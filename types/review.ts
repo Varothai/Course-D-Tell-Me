@@ -39,6 +39,8 @@ export interface Review {
   readingAmount?: number
   contentDifficulty?: number
   teachingQuality?: number
+  programType?: string
+  electiveType?: string
 }
 
 export interface LocaleContent {
@@ -79,6 +81,7 @@ export interface LocaleContent {
   comment: string
   writing: string
   programTypes: string
+  electiveTypes: string
   international: string
   special: string
   freeElective: string
@@ -96,5 +99,16 @@ export interface LocaleContent {
   seeReviews: string
   questionPlaceholder: string
   posting: string
+  others: string
+  pleaseSpecify: string
+  othersSpecify: string
+  majorSelection: {
+    placeholder: string
+  }
+}
+
+export interface MajorSelection {
+    major: string;
+    customMajor?: string;
 }
 

@@ -44,6 +44,9 @@ export const localeContent: Record<string, LocaleContent> = {
     seeReviews: "See Reviews about this Subject",
     questionPlaceholder: "Write your question here...",
     posting: "Posting...",
+    others: "Others",
+    pleaseSpecify: "Please specify",
+    othersSpecify: "Others (Please specify)",
     faculties: [
       { value: "Faculty of Mass Communication", label: "Faculty of Mass Communication" },
       { value: "Faculty of Agriculture", label: "Faculty of Agriculture" },
@@ -72,17 +75,21 @@ export const localeContent: Record<string, LocaleContent> = {
       { value: "School of Public Policy Chiang Mai University", label: "School of Public Policy Chiang Mai University" },
       { value: "Biomedical Engineering Institute", label: "Biomedical Engineering Institute" },
     ],
-    programTypes: "PROGRAM TYPES",
+    programTypes: "Program Types",
+    electiveTypes: "Elective Types",
     international: "International Program",
     special: "Special Program",
-    freeElective: "Free Electives",
-    generalElective: "General Electives",
+    freeElective: "Free Elective",
+    generalElective: "General Elective",
     majorElective: "Major Electives",
-    normalProgram: "Normal Program",
-    specialProgram: "Special Program",
+    normalProgram: "Normal Program (Thai)",
+    specialProgram: "Special Program (Thai)",
     internationalProgram: "International Program",
     bilingualProgram: "Bilingual Program",
     trilingualProgram: "Trilingual Program",
+    majorSelection: {
+      placeholder: "Please specify your major",
+    },
   },
   th: {
     welcome: "ยินดีต้อนรับ",
@@ -127,6 +134,9 @@ export const localeContent: Record<string, LocaleContent> = {
     seeReviews: "ดูรีวิวเกี่ยวกับวิชานี้",
     questionPlaceholder: "เขียนคำถามของคุณที่นี่...",
     posting: "กำลังโพสต์...",
+    others: "อื่นๆ",
+    pleaseSpecify: "โปรดระบุ",
+    othersSpecify: "อื่นๆ (โปรดระบุ)",
     faculties: [
       { value: "Faculty of Mass Communication", label: "คณะการสื่อสารมวลชน" },
       { value: "Faculty of Agriculture", label: "คณะเกษตรศาสตร์" },
@@ -153,16 +163,20 @@ export const localeContent: Record<string, LocaleContent> = {
       { value: "College of Art, Media and Technology", label: "วิทยาลัยศิลปะ สื่อ และเทคโนโลยี" },
     ],
     programTypes: "ประเภทหลักสูตร",
-    international: "ภาค Inter",
+    electiveTypes: "ประเภทวิชาเลือก",
+    international: "หลักสูตรนานาชาติ",
     special: "ภาคพิเศษ",
-    freeElective: "ตัวฟรี",
-    generalElective: "วิชาเลือก",
+    freeElective: "วิชาเลือกเสรี (Free Elective)",
+    generalElective: "วิชาเลือกทั่วไป (GE)",
     majorElective: "วิชาเมเจอร์",
-    normalProgram: "ภาคปกติ",
-    specialProgram: "ภาคพิเศษ",
-    internationalProgram: "นานาชาติ",
-    bilingualProgram: "สองภาษา",
-    trilingualProgram: "สามภาษา",
+    normalProgram: "ภาคปกติ (ไทย)",
+    specialProgram: "ภาคพิเศษ (ไทย)",
+    internationalProgram: "นานาชาติ International",
+    bilingualProgram: "สองภาษา Bilingual",
+    trilingualProgram: "สามภาษา Trilingual",
+    majorSelection: {
+      placeholder: "Please specify your major",
+    },
   },
 }
 
@@ -171,6 +185,7 @@ export const facultyMajors = {
     { value: "Digital_Film", label: { en: "Digital Film", th: "ภาพยนตร์ดิจิทัล" } },
     { value: "Creative_Media", label: { en: "Creative Media Production", th: "การสื่อสารมวลชน (วิชาเอกการผลิตสื่อสร้างสรรค์)" } },
     { value: "Marketing_Comm", label: { en: "Marketing Communication", th: "การสื่อสารมวลชน (วิชาเอกการสื่อสารการตลาด)" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Humanities": [
     { value: "English", label: { en: "English", th: "ภาษาอังกฤษ" } },
@@ -191,6 +206,7 @@ export const facultyMajors = {
     { value: "Psychology", label: { en: "Psychology", th: "จิตวิทยา" } },
     { value: "Tourism", label: { en: "Tourism", th: "การท่องเที่ยว" } },
     { value: "Tourism_Hotel", label: { en: "Tourism and Hotel", th: "การท่องเที่ยวและการโรงแรม" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Education": [
     { value: "Thai_Ed", label: { en: "Thai", th: "ภาษาไทย" } },
@@ -205,6 +221,7 @@ export const facultyMajors = {
     { value: "Biology", label: { en: "Biology", th: "ชีววิทยา" } },
     { value: "Physics", label: { en: "Physics", th: "ฟิสิกส์" } },
     { value: "Chemistry", label: { en: "Chemistry", th: "เคมี" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Fine Arts": [
     { value: "Printmaking", label: { en: "Multidisciplinary Art", th: "ศิลปะภาพพิมพ์" } },
@@ -216,12 +233,14 @@ export const facultyMajors = {
     { value: "Performing_Arts", label: { en: "Performing Arts", th: "ศิลปะการแสดง" } },
     { value: "Thai_Arts", label: { en: "Thai Arts and Creative Cultures", th: "ศิลปะไทยและวัฒนธรรมสร้างสรรค์" } },
     { value: "Painting", label: { en: "Painting", th: "จิตรกรรม" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Social Sciences": [
     { value: "Geography", label: { en: "Geography", th: "ภูมิศาสตร์" } },
     { value: "Sociology", label: { en: "Sociology and Anthropology", th: "สังคมวิทยาและมานุษยวิทยา" } },
     { value: "ASEAN", label: { en: "ASEAN Studies", th: "อาเซียนศึกษา" } },
     { value: "Sustainable_Dev", label: { en: "Social Science and Sustainable Development", th: "สังคมศาสตร์และการพัฒนาอย่างยั่งยืน" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Engineering": [
     { value: "CE", label: { en: "Civil Engineering (CE)", th: "วิศวกรรมโยธา (CE)" } },
@@ -238,6 +257,7 @@ export const facultyMajors = {
     { value: "EESG", label: { en: "Electrical Engineering and Smart Grid Technology (EESG)", th: "วิศวกรรมไฟฟ้าและเทคโนโลยีโครงข่ายไฟฟ้าอัจฉริยะ (EESG)" } },
     { value: "IEL", label: { en: "Industrial Engineering and Logistics Management (IEL)", th: "วิศวกรรมอุตสาหการและการจัดการโลจิสติกส์ (IEL)" } },
     { value: "IGE_Multi", label: { en: "Integrated and Multidisciplinary Engineering (IGE)", th: "วิศวกรรมบูรณาการและพหุวิทยาการ (IGE)" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Science": [
     { value: "Chemistry", label: { en: "Chemistry, Industrial Chemistry, Biochemistry and Biochemical Innovation", th: "เคมี,เคมีอุตสาหกรรม,ชีวเคมีและชีวเคมีนวัตกรรม" } },
@@ -250,6 +270,7 @@ export const facultyMajors = {
     { value: "Data_Science", label: { en: "Data Science", th: "วิทยาการข้อมูล" } },
     { value: "Environmental_Science", label: { en: "Environmental Science", th: "วิทยาศาสตร์สิ่งแวดล้อม" } },
     { value: "Science", label: { en: "Science", th: "วิทยาศาสตร์" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Associated Medical Sciences": [
     { value: "Medical_Tech", label: { en: "Medical Technology", th: "เทคนิคการแพทย์" } },
@@ -257,15 +278,18 @@ export const facultyMajors = {
     { value: "Radiologic_Tech", label: { en: "Radiologic Technology", th: "รังสีเทคนิค" } },
     { value: "Physical_Therapy", label: { en: "Physical Therapy", th: "กายภาพบำบัด" } },
     { value: "Communication_Sciences", label: { en: "Communication Sciences and Disorders", th: "วิทยาศาสตร์สื่อความหมายและความผิดปกติของการสื่อความหมาย" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Veterinary Medicine": [
     { value: "Veterinary_Med", label: { en: "Veterinary Med", th: "สัตวแพทยศาสตร์" } },
     { value: "Veterinary_Nursing", label: { en: "Veterinary Nursing", th: "การพยาบาลสัตว์" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Business Administration": [
     { value: "Business_Admin", label: { en: "Business Administration", th: "บัญชีและบริหารธุรกิจ" } },
     { value: "Service_Management", label: { en: "Service Business Management", th: "การจัดการธุรกิจบริการ" } },
     { value: "Accountancy", label: { en: "Accountancy", th: "การบัญชี" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Architecture": [
     { value: "Arch_5Year", label: { en: "Architecture 5 years program", th: "สถาปัตยกรรมศาสตร์ หลักสูตร 5 ปี" } },
@@ -273,12 +297,14 @@ export const facultyMajors = {
     { value: "Landscape", label: { en: "Landscape Architecture", th: "ภูมิสถาปัตยกรรมศาสตร์" } },
     { value: "Industrial_Design", label: { en: "Industrial Design", th: "การออกแบบอุตสาหกรรม" } },
     { value: "Integrated_Design", label: { en: "Integrated Design in Emerging Architecture", th: "การออกแบบเชิงบูรณาการสถาปัตยกรรมแนวใหม่" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Political Science and Public Administration": [
     { value: "Political_Science", label: { en: "Political Science", th: "การเมืองและการปกครอง" } },
     { value: "Public_Admin", label: { en: "Public Administration", th: "รัฐประศาสนศาสตร์" } },
     { value: "International", label: { en: "International Affairs", th: "การระหว่างประเทศ" } },
     { value: "Sustainability", label: { en: "Bachelor of Science in Sustainability", th: "ศาสตร์แห่งความยั่งยืน" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "College of Art, Media and Technology": [
     { value: "MMIT", label: { en: "Modern Management and Information Technology", th: "การจัดการสมัยใหม่และเทคโนโลยีสารสนเทศ" } },
@@ -286,6 +312,7 @@ export const facultyMajors = {
     { value: "Digital_Integration", label: { en: "Digital Industry Integration", th: "บูรณาการอุตสาหกรรมดิจิทัล" } },
     { value: "Animation", label: { en: "Bachelor of Arts Program in Animation and Visual Effects", th: "แอนนิเมชันและวิชวลเอฟเฟกต์" } },
     { value: "Software_Eng", label: { en: "Software Engineering", th: "วิศวกรรมซอฟต์แวร์" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
   "Faculty of Agro-Industry": [
     { value: "Food_Science", label: { en: "Food Science and Technology", th: "วิทยาศาสตร์และเทคโนโลยีการอาหาร" } },
@@ -295,6 +322,48 @@ export const facultyMajors = {
     { value: "Packaging", label: { en: "Packaging Technology", th: "เทคโนโลยีการบรรจุ" } },
     { value: "Marine_Product", label: { en: "Marine Product Technology", th: "เทคโนโลยีและนวัตกรรมผลิตภัณฑ์อาหารทะเล" } },
     { value: "Agro_Innovation", label: { en: "นวัตกรรมอุตสาหกรรมเกษตรและการเป็นผู้ประกอบการ", th: "นวัตกรรมอุตสาหกรรมเกษตรและการเป็นผู้ประกอบการ" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
+  ],
+  "International College of Digital Innovation": [
+    { value: "Digital_Innovation", label: { en: "Digital Innovation", th: "นวัตกรรมดิจิทัล" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
+  ],
+  "Faculty of Law": [
+    { value: "Laws", label: { en: "Laws", th: "นิติศาสตร์" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
+  ],
+  "Faculty of Economics": [
+    { value: "Economics", label: { en: "Economics", th: "เศรษฐศาสตร์" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
+  ],
+  "Faculty of Pharmacy": [
+    { value: "Pharmacy", label: { en: "Pharmacy", th: "เภสัชศาสตร์" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
+  ],
+  "Faculty of Dentistry": [
+    { value: "Dentistry", label: { en: "Dentistry", th: "ทันตแพทยศาสตร์" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
+  ],
+  "Faculty of Medicine": [
+    { value: "Medicine", label: { en: "Medicine", th: "แพทยศาสตร์" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
+  ],
+  "Faculty of Nursing": [
+    { value: "Nursing", label: { en: "Nursing", th: "พยาบาลศาสตร์" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
+  ],
+  "Faculty of Agriculture": [
+    { value: "Agri_Economics", label: { en: "Agricultural Economics and Agribusiness", th: "เศรษฐศาสตร์เกษตรและธุรกิจเกษตร" } },
+    { value: "Agri_Science", label: { en: "Horticulture, Agronomy, Soil Science", th: "เกษตรศาสตร์ (วิชาเอกพืชสวน วิชาเอกพืชไร่ วิชาเอกปฐพีศาสตร์)" } },
+    { value: "Plant_Pathology", label: { en: "Plant Pathology", th: "เกษตรศาสตร์ (วิชาเอกโรคพืช)" } },
+    { value: "Entomology", label: { en: "Entomology", th: "เกษตรศาสตร์ (วิชาเอกกีฏวิทยา)" } },
+    { value: "Agri_Extension", label: { en: "Agricultural Extension", th: "เกษตรศาสตร์ (วิชาเอกส่งเสริมและเผยแพร่การเกษตร)" } },
+    { value: "Highland_Agriculture", label: { en: "Highland Agriculture and Natural Resources", th: "เกษตรศาสตร์ (วิชาเอกเกษตรที่สูงและทรัพยากรธรรมชาติ)" } },
+    { value: "Animal_Science", label: { en: "Animal Science", th: "สัตวศาสตร์ (วิชาเอกสัตวศาสตร์)" } },
+    { value: "Animal_Aquatic", label: { en: "Animal and Aquatic Sciences", th: "สัตวศาสตร์ (วิชาเอกวิทยาศาสตร์การประมง)" } },
+    { value: "Highland_Forest", label: { en: "Highland Agriculture and Forest Resources", th: "เกษตรที่สูงและทรัพยากรป่าไม้" } },
+    { value: "Smart_Agri_Food", label: { en: "ผู้ประกอบการด้านเกษตรอัจฉริยะและอาหาร", th: "ผู้ประกอบการด้านเกษตรอัจฉริยะและอาหาร" } },
+    { value: "Others", label: { en: "Others (Please specify)", th: "อื่นๆ (โปรดระบุ)" } },
   ],
 }
 

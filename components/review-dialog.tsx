@@ -64,16 +64,30 @@ export function ReviewDialog({ review, open, action }: ReviewDialogProps) {
                 <p className="font-medium">{review.major}</p>
               </div>
             )}
-            {review.studyPlan && (
+            {review.programType && (
               <div>
                 <label className="text-sm text-muted-foreground">{content.programTypes}</label>
-                <p className="font-medium">{review.studyPlan}</p>
+                <p className="font-medium">
+                  {review.programType === 'normal' && content.normalProgram}
+                  {review.programType === 'special' && content.specialProgram}
+                  {review.programType === 'international' && content.internationalProgram}
+                  {review.programType === 'bilingual' && content.bilingualProgram}
+                  {review.programType === 'trilingual' && content.trilingualProgram}
+                </p>
               </div>
             )}
             {review.section && (
               <div>
                 <label className="text-sm text-muted-foreground">Sec</label>
                 <p className="font-medium">{review.section}</p>
+              </div>
+            )}
+            {review.electiveType && review.electiveType !== 'none' && (
+              <div>
+                <label className="text-sm text-muted-foreground">{content.electiveTypes}</label>
+                <p className="font-medium">
+                  {review.electiveType === 'free' ? content.freeElective : content.generalElective}
+                </p>
               </div>
             )}
           </div>

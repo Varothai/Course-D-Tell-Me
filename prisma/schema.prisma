@@ -1,0 +1,33 @@
+model Course {
+  id        String   @id
+  name      String
+  reviews   Review[]
+  // Add other course fields as needed
+}
+
+model Review {
+  id                String    @id @default(cuid())
+  courseId          String
+  course            Course    @relation(fields: [courseId], references: [id])
+  rating            Int
+  userName          String
+  review            String
+  timestamp         DateTime  @default(now())
+  likes             Int      @default(0)
+  dislikes         Int      @default(0)
+  comments          Comment[]
+  isBookmarked      Boolean  @default(false)
+  readingAmount     Int
+  contentDifficulty Int
+  teachingQuality   Int
+  grade            String
+  major            String
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  reviewId  String
+  review    Review   @relation(fields: [reviewId], references: [id])
+  timestamp DateTime @default(now())
+} 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Star, ThumbsUp, ThumbsDown, MessageSquare, Bookmark, ExternalLink } from 'lucide-react'
 import { Card } from "@/components/ui/card"
@@ -31,6 +31,29 @@ export function ReviewCard({
   const [showComments, setShowComments] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const { content } = useLanguage()
+  const [commentText, setCommentText] = useState('')
+  const [comments, setComments] = useState<string[]>([])
+
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const response = await fetch(`/api/comments?reviewId=${review.id}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch comments')
+        }
+        const data = await response.json()
+        if (data.success) {
+          setComments(data.comments.map((c: any) => c.comment))
+        } else {
+          console.error('Error fetching comments:', data.error)
+        }
+      } catch (error) {
+        console.error('Error fetching comments:', error)
+      }
+    }
+
+    fetchComments()
+  }, [review.id])
 
   const handleContentClick = (e: React.MouseEvent) => {
     if (
@@ -40,6 +63,19 @@ export function ReviewCard({
       return
     }
     setIsOpen(true)
+  }
+
+  const handleAddComment = async () => {
+    if (commentText.trim() === '') return
+
+    await commentAction(review.id, commentText)
+    setComments([...comments, commentText])
+    setCommentText('')
+  }
+
+  const handleViewInCourse = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    router.push(`/course/${review.courseId}?reviewId=${review.id}`)
   }
 
   return (
@@ -92,20 +128,17 @@ export function ReviewCard({
             </div>
             {showComments && (
               <div className="mt-4">
-                {review.comments?.map((comment, index) => (
+                {comments.map((comment, index) => (
                   <p key={index} className="text-sm mb-2">{comment}</p>
-                )) || null}
+                ))}
                 <div className="flex gap-2 mt-2">
                   <Input
                     className="flex-1"
                     placeholder={content.addComment}
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
                   />
-                  <Button onClick={() => {
-                    commentAction(review.id, comment)
-                    setComment("")
-                  }}>
+                  <Button onClick={handleAddComment}>
                     {content.post}
                   </Button>
                 </div>
@@ -118,10 +151,8 @@ export function ReviewCard({
           <Button
             variant="outline"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation()
-              router.push(`/course/${review.courseId}`)
-            }}
+            onClick={handleViewInCourse}
+            className="hover:bg-secondary"
           >
             <ExternalLink className="w-4 h-4 mr-2" />
             {content.seeReviews}

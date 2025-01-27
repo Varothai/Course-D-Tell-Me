@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useParams, useSearchParams } from "next/navigation"
 import { Bookmark, Star } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
@@ -11,64 +12,102 @@ import { RatingChart } from "@/components/rating-chart"
 import { useLanguage } from "@/providers/language-provider"
 import { QAFormDialog } from "@/components/qa-form-dialog"
 
-// Mock data
-const courseData = {
-  id: "271001",
-  name: "CRITICAL THINKING",
+interface CourseData {
+  id: string;
+  name: string;
   stats: {
-    averageRating: 5,
-    totalReviews: 50,
-    gradeDistribution: {
-      "A": 30,
-      "B+": 10,
-      "B": 5,
-      "C+": 3,
-      "C": 2,
-    },
-    ratingDistribution: {
-      5: 30,
-      4: 15,
-      3: 3,
-      2: 1,
-      1: 1,
-    }
-  },
-  reviews: [
-    {
-      id: "1",
-      courseId: "271001",
-      courseName: "CRITICAL THINKING",
-      rating: 5,
-      userName: "ผู้ใช้ 1",
-      review: "เนื้อหาเข้าใจง่าย อาจารย์สอนดี...",
-      timestamp: "25 ธ.ค. 2567 14:25 น.",
-      likes: 10,
-      dislikes: 0,
-      comments: [],
-      isBookmarked: false,
-      readingAmount: 4,
-      contentDifficulty: 3,
-      teachingQuality: 5,
-      grade: "A",
-      major: "วิศวกรรมศาสตร์ (ISNE)"
-    },
-    // Add more reviews...
-  ]
+    averageRating: number;
+    totalReviews: number;
+    gradeDistribution: Record<string, number>;
+    ratingDistribution: Record<number, number>;
+  };
+  reviews: Array<{
+    id: string;
+    courseId: string;
+    courseName: string;
+    rating: number;
+    userName: string;
+    review: string;
+    timestamp: string;
+    likes: number;
+    dislikes: number;
+    comments: string[];
+    isBookmarked: boolean;
+    readingAmount: number;
+    contentDifficulty: number;
+    teachingQuality: number;
+    grade: string;
+    major: string;
+  }>;
 }
 
 export default function CourseDetail() {
+  const params = useParams();
+  const id = params?.id as string;
+  const searchParams = useSearchParams();
+  const reviewId = searchParams?.get('reviewId') || null;
+  const [courseData, setCourseData] = useState<CourseData | null>(null)
   const [isBookmarked, setIsBookmarked] = useState(false)
   const { content } = useLanguage()
   const [isQADialogOpen, setIsQADialogOpen] = useState(false)
+  const reviewRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      const fetchCourseData = async () => {
+        try {
+          const response = await fetch(`/api/courses/${id}`)
+          if (!response.ok) {
+            throw new Error('Failed to fetch course data')
+          }
+          const data = await response.json()
+          setCourseData(data)
+        } catch (error) {
+          console.error('Error fetching course data:', error)
+        }
+      }
+      fetchCourseData()
+    }
+  }, [id])
+
+  useEffect(() => {
+    if (reviewId && courseData) {
+      setTimeout(() => {
+        const element = document.getElementById(`review-${reviewId}`)
+        if (element) {
+          element.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          })
+          element.classList.add('bg-secondary/50')
+          setTimeout(() => {
+            element.classList.remove('bg-secondary/50')
+          }, 2000)
+        }
+      }, 100)
+    }
+  }, [reviewId, courseData])
 
   const handleQuestionSubmit = async (question: string) => {
     try {
       console.log("Question submitted:", question)
       // Optionally refresh the Q&A list here
-      // You could add the new question to local state or refetch all questions
     } catch (error) {
       console.error("Error handling question submission:", error)
     }
+  }
+
+  if (!courseData) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[50vh]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Loading...</h2>
+          <p className="text-muted-foreground">
+            {courseData === null ? 'Loading course data...' : 'Course not found'}
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -140,7 +179,9 @@ export default function CourseDetail() {
               </DialogContent>
             </Dialog>
           </div>
-          <ReviewList reviews={courseData.reviews} />
+          <div ref={reviewRef}>
+            <ReviewList reviews={courseData.reviews} />
+          </div>
         </div>
 
         {/* Add Ask Question Button */}

@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, ReactNode } from "react"
 import { localeContent } from "@/locales/content"
 import type { LocaleContent } from "@/types/review"
+import React from 'react'
 
 type Language = "en" | "th"
 
@@ -65,5 +66,35 @@ export const useLanguage = () => {
     throw new Error("useLanguage must be used within a LanguageProvider")
   }
   return context
+}
+
+function MajorSelection() {
+    const [selectedMajor, setSelectedMajor] = useState('');
+    const [customMajor, setCustomMajor] = useState('');
+
+    const handleMajorChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedMajor(event.target.value);
+        if (event.target.value !== 'Others') {
+            setCustomMajor(''); // Clear custom input if not "Others"
+        }
+    };
+
+    return (
+        <div>
+            <select value={selectedMajor} onChange={handleMajorChange}>
+                <option value="Computer Science">Computer Science</option>
+                <option value="Mathematics">Mathematics</option>
+                <option value="Others">Others</option>
+            </select>
+            {selectedMajor === 'Others' && (
+                <input
+                    type="text"
+                    value={customMajor}
+                    onChange={(e) => setCustomMajor(e.target.value)}
+                    placeholder="Please specify your major"
+                />
+            )}
+        </div>
+    );
 }
 

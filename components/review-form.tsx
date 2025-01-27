@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,12 +18,35 @@ import {
 import { useReviews } from "@/providers/review-provider"
 import { Review } from "@/types/review"
 import { facultyMajors } from "@/locales/content"
+import Papa from "papaparse"
+import Autosuggest from "react-autosuggest"
 
 interface ReviewFormProps {
   courseId: string
   courseName: string
   action: (review: any) => void
   onClose?: () => void
+}
+
+interface SuggestionsFetchRequestedParams {
+  value: string;
+}
+
+interface ReviewFormData {
+  courseId: string;
+  courseName: string;
+  userName: string;
+  rating: number;
+  review: string;
+  faculty: string;
+  major: string;
+  studyPlan: string;
+  section: string;
+  programType: string;
+  electiveType: string;
+  readingAmount: number;
+  contentDifficulty: number;
+  teachingQuality: number;
 }
 
 export function ReviewForm({ courseId, courseName, action, onClose }: ReviewFormProps) {
@@ -37,6 +60,7 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
     courseName: courseName,
     faculty: "",
     major: "",
+    customMajor: "",
     studyPlan: "",
     section: "",
     grade: "",
@@ -44,16 +68,108 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
     contentDifficulty: 0,
     teachingQuality: 0,
     review: "",
+    electiveType: "none",
   })
   const [availableMajors, setAvailableMajors] = useState<Array<{value: string, label: string}>>([])
+  const [courses, setCourses] = useState<Array<{ courseno: string; title_short_en: string }>>([])
+  const [suggestions, setSuggestions] = useState<Array<{ courseno: string; title_short_en: string }>>([])
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch("/courses/courses.csv");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const csvText = await response.text();
+        const parsedData = Papa.parse(csvText, {
+          header: true,
+          dynamicTyping: false,
+        });
+        const coursesData = parsedData.data.map((course: any) => ({
+          courseno: String(course.courseno),
+          title_short_en: course.title_short_en,
+        }));
+        setCourses(coursesData as Array<{ courseno: string; title_short_en: string }>);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  const getSuggestions = (value: string, field: 'courseno' | 'title_short_en') => {
+    const inputValue = value.trim().toLowerCase();
+    const inputLength = inputValue.length;
+
+    return inputLength === 0 ? [] : courses.filter(course => {
+      const fieldValue = String(course[field]);
+      return fieldValue.toLowerCase().slice(0, inputLength) === inputValue;
+    });
+  }
+
+  const onSuggestionsFetchRequested = (
+    { value }: SuggestionsFetchRequestedParams,
+    field: 'courseno' | 'title_short_en'
+  ) => {
+    setSuggestions(getSuggestions(value, field))
+  }
+
+  const onSuggestionsClearRequested = () => {
+    setSuggestions([])
+  }
+
+  const onCourseNoChange = (event: any, { newValue }: { newValue: string }) => {
+    setFormData({ ...formData, courseNo: newValue })
+    const matchedCourse = courses.find(course => course.courseno === newValue)
+    if (matchedCourse) {
+      setFormData({ ...formData, courseName: matchedCourse.title_short_en })
+    }
+  }
+
+  const onCourseNameChange = (event: any, { newValue }: { newValue: string }) => {
+    setFormData({ ...formData, courseName: newValue })
+    const matchedCourse = courses.find(course => course.title_short_en === newValue)
+    if (matchedCourse) {
+      setFormData({ ...formData, courseNo: matchedCourse.courseno })
+    }
+  }
+
+  const onCourseNoSuggestionSelected = (event: any, { suggestion }: { suggestion: { courseno: string; title_short_en: string } }) => {
+    setFormData({ ...formData, courseNo: suggestion.courseno, courseName: suggestion.title_short_en });
+  }
+
+  const onCourseNameSuggestionSelected = (event: any, { suggestion }: { suggestion: { courseno: string; title_short_en: string } }) => {
+    setFormData({ ...formData, courseName: suggestion.title_short_en, courseNo: suggestion.courseno });
+  }
+
+  const inputPropsCourseNo = {
+    placeholder: "Enter Course ID",
+    value: formData.courseNo,
+    onChange: onCourseNoChange,
+    pattern: "\\d{6}", // Regex pattern to allow only 6 digit numbers
+    title: "Course ID must be a 6 digit number",
+    maxLength: 6, // Limit input to 6 characters
+  }
+
+  const inputPropsCourseName = {
+    placeholder: "Enter Course Name",
+    value: formData.courseName,
+    onChange: onCourseNameChange,
+  }
 
   const handleFacultyChange = (value: string) => {
-    setFormData({ ...formData, faculty: value, major: "" })
+    setFormData({ ...formData, faculty: value, major: "", customMajor: "" })
     const majors = facultyMajors[value as keyof typeof facultyMajors] || []
     setAvailableMajors(majors.map(m => ({
       value: m.value,
       label: m.label[language as keyof typeof m.label]
     })))
+  }
+
+  const handleMajorChange = (value: string) => {
+    setFormData({ ...formData, major: value, customMajor: value === "Others" ? formData.customMajor : "" })
   }
 
   const handleSubmit = async () => {
@@ -65,12 +181,14 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
         rating,
         review: formData.review,
         faculty: formData.faculty,
-        major: formData.major,
+        major: formData.major === "Others" ? formData.customMajor : formData.major,
         studyPlan: formData.studyPlan,
         section: formData.section,
         readingAmount: formData.readingAmount,
         contentDifficulty: formData.contentDifficulty,
         teachingQuality: formData.teachingQuality,
+        programType: formData.studyPlan,
+        electiveType: formData.electiveType,
       }
       
       const response = await fetch('/api/reviews', {
@@ -125,19 +243,25 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Input
-              placeholder={content.courseNo}
-              value={formData.courseNo}
-              onChange={(e) => setFormData({ ...formData, courseNo: e.target.value })}
-              className="bg-[#FFFAD7]"
+            <Autosuggest
+              suggestions={suggestions}
+              onSuggestionsFetchRequested={({ value }: SuggestionsFetchRequestedParams) => onSuggestionsFetchRequested({ value }, 'courseno')}
+              onSuggestionsClearRequested={onSuggestionsClearRequested}
+              getSuggestionValue={(suggestion: any) => suggestion.courseno}
+              renderSuggestion={(suggestion: any) => <div>{suggestion.courseno}</div>}
+              inputProps={inputPropsCourseNo}
+              onSuggestionSelected={onCourseNoSuggestionSelected}
             />
           </div>
           <div>
-            <Input
-              placeholder={content.courseName}
-              value={formData.courseName}
-              onChange={(e) => setFormData({ ...formData, courseName: e.target.value })}
-              className="bg-[#FFFAD7]"
+            <Autosuggest
+              suggestions={suggestions}
+              onSuggestionsFetchRequested={({ value }: SuggestionsFetchRequestedParams) => onSuggestionsFetchRequested({ value }, 'title_short_en')}
+              onSuggestionsClearRequested={onSuggestionsClearRequested}
+              getSuggestionValue={(suggestion: any) => suggestion.title_short_en}
+              renderSuggestion={(suggestion: any) => <div>{suggestion.title_short_en}</div>}
+              inputProps={inputPropsCourseName}
+              onSuggestionSelected={onCourseNameSuggestionSelected}
             />
           </div>
           <div>
@@ -160,7 +284,7 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
           <div>
             <Select
               value={formData.major}
-              onValueChange={(value) => setFormData({ ...formData, major: value })}
+              onValueChange={handleMajorChange}
               disabled={!formData.faculty}
             >
               <SelectTrigger className="bg-[#FFFAD7]">
@@ -174,6 +298,15 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
                 ))}
               </SelectContent>
             </Select>
+            {formData.major === "Others" && (
+              <Input
+                type="text"
+                value={formData.customMajor}
+                onChange={(e) => setFormData({ ...formData, customMajor: e.target.value })}
+                placeholder={content.majorSelection.placeholder}
+                className="mt-2 bg-[#FFFAD7]"
+              />
+            )}
           </div>
           <div>
             <Select
@@ -194,11 +327,52 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
           </div>
           <div>
             <Input
+              type="text"
               placeholder="Sec"
               value={formData.section}
-              onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^\d*$/.test(value)) {
+                  setFormData({ ...formData, section: value });
+                }
+              }}
               className="bg-[#FFFAD7]"
             />
+          </div>
+          <div>
+            <Label className="block mb-2">{content.electiveTypes}</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className={`flex-1 ${
+                  formData.electiveType === "free" 
+                    ? "bg-primary text-primary-foreground" 
+                    : ""
+                }`}
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  electiveType: prev.electiveType === "free" ? "none" : "free"
+                }))}
+              >
+                {content.freeElective}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className={`flex-1 ${
+                  formData.electiveType === "general" 
+                    ? "bg-primary text-primary-foreground" 
+                    : ""
+                }`}
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  electiveType: prev.electiveType === "general" ? "none" : "general"
+                }))}
+              >
+                {content.generalElective}
+              </Button>
+            </div>
           </div>
         </div>
 

@@ -21,6 +21,8 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { ReviewForm } from "@/components/review-form"
 import { useReviews } from "@/providers/review-provider"
 import type { Review } from "@/types/review"
+import Autosuggest from "react-autosuggest"
+import Papa from "papaparse"
 
 // Mock data for reviews
 const mockReviews = [
@@ -58,11 +60,15 @@ export default function Home() {
   const { reviews, addReview, clearReviews } = useReviews()
   const [selectedFaculty, setSelectedFaculty] = useState("")
   const [selectedProgram, setSelectedProgram] = useState("all")
+  const [selectedElective, setSelectedElective] = useState("all")
   const [isWritingReview, setIsWritingReview] = useState(false)
   const [newReviewData, setNewReviewData] = useState({
     courseId: "",
     courseName: ""
   })
+  const [courses, setCourses] = useState<Array<{ courseno: string; title_short_en: string }>>([])
+  const [suggestions, setSuggestions] = useState<Array<{ courseno: string; title_short_en: string }>>([])
+  const [selectedCourse, setSelectedCourse] = useState<{ courseno: string; title_short_en: string } | null>(null)
 
   // Fetch reviews when component mounts
   useEffect(() => {
@@ -85,17 +91,142 @@ export default function Home() {
     fetchReviews()
   }, [])
 
-  const handleLike = (id: string) => {
-    // Implementation of handleLike
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch("/courses/courses.csv")
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const csvText = await response.text()
+        const parsedData = Papa.parse(csvText, {
+          header: true,
+          dynamicTyping: false,
+        })
+        const coursesData = parsedData.data.map((course: any) => ({
+          courseno: String(course.courseno),
+          title_short_en: course.title_short_en,
+        }))
+        setCourses(coursesData as Array<{ courseno: string; title_short_en: string }>)
+      } catch (error) {
+        console.error("Error fetching courses:", error)
+      }
+    }
+
+    fetchCourses()
+  }, [])
+
+  const getSuggestions = (value: string) => {
+    const inputValue = value.trim().toLowerCase()
+    const inputLength = inputValue.length
+
+    return inputLength === 0 ? [] : courses.filter(course => {
+      const courseNoMatch = course.courseno.toLowerCase().slice(0, inputLength) === inputValue
+      const courseNameMatch = course.title_short_en.toLowerCase().slice(0, inputLength) === inputValue
+      return courseNoMatch || courseNameMatch
+    })
   }
 
-  const handleDislike = (id: string) => {
-    // Implementation of handleDislike
+  const onSuggestionsFetchRequested = ({ value }: { value: string }) => {
+    setSuggestions(getSuggestions(value))
   }
 
-  const handleComment = (id: string, comment: string) => {
-    // Implementation of handleComment
+  const onSuggestionsClearRequested = () => {
+    setSuggestions([])
   }
+
+  const onSuggestionSelected = (event: any, { suggestion }: { suggestion: { courseno: string; title_short_en: string } }) => {
+    setSearchQuery(`${suggestion.courseno} - ${suggestion.title_short_en}`)
+    setSelectedCourse(suggestion)
+  }
+
+  const inputProps = {
+    placeholder: "Search by Course ID or Name",
+    value: searchQuery,
+    onChange: (e: any, { newValue }: { newValue: string }) => {
+      setSearchQuery(newValue)
+      if (newValue.trim() === "") {
+        setSelectedCourse(null) // Reset selected course when search is cleared
+      }
+    },
+  }
+
+  const handleLike = async (id: string) => {
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reviewId: id, action: 'like' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to like review');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        console.log('Review liked successfully');
+        // Optionally update the UI with the new like count
+      } else {
+        console.error('Error liking review:', data.error);
+      }
+    } catch (error) {
+      console.error('Error liking review:', error);
+    }
+  };
+
+  const handleDislike = async (id: string) => {
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reviewId: id, action: 'dislike' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to dislike review');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        console.log('Review disliked successfully');
+        // Optionally update the UI with the new dislike count
+      } else {
+        console.error('Error disliking review:', data.error);
+      }
+    } catch (error) {
+      console.error('Error disliking review:', error);
+    }
+  };
+
+  const handleComment = async (id: string, comment: string) => {
+    try {
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reviewId: id, comment, userName: 'Anonymous' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to post comment');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        console.log('Comment added successfully');
+      } else {
+        console.error('Error adding comment:', data.error);
+      }
+    } catch (error) {
+      console.error('Error posting comment:', error);
+    }
+  };
 
   const handleBookmark = (id: string) => {
     // Implementation of handleBookmark
@@ -106,6 +237,20 @@ export default function Home() {
     console.log(review)
     setIsWritingReview(false)
   }
+
+  const filteredReviews = reviews
+    // First filter by course if selected
+    .filter(review => selectedCourse ? review.courseId === selectedCourse.courseno : true)
+    // Then filter by program type
+    .filter(review => {
+      if (selectedProgram === 'all') return true;
+      return review.programType === selectedProgram;
+    })
+    // Then filter by elective type
+    .filter(review => {
+      if (selectedElective === 'all') return true;
+      return review.electiveType === selectedElective;
+    });
 
   return (
     <div className="min-h-screen bg-[#E5E1FF] dark:bg-gray-900">
@@ -156,14 +301,24 @@ export default function Home() {
 
         {/* Search and Filters */}
         <div className="mb-8">
-          <div className="flex gap-4 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder={content.searchPlaceholder}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+          <div className="flex justify-center mb-4">
+            <div className="relative w-full max-w-4xl">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
+              <Autosuggest
+                suggestions={suggestions}
+                onSuggestionsFetchRequested={onSuggestionsFetchRequested}
+                onSuggestionsClearRequested={onSuggestionsClearRequested}
+                getSuggestionValue={(suggestion: any) => `${suggestion.courseno} - ${suggestion.title_short_en}`}
+                renderSuggestion={(suggestion: any) => (
+                  <div>
+                    {suggestion.courseno} - {suggestion.title_short_en}
+                  </div>
+                )}
+                inputProps={{
+                  ...inputProps,
+                  className: "pl-12 pr-4 py-3 w-full border border-gray-300 rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out",
+                }}
+                onSuggestionSelected={onSuggestionSelected}
               />
             </div>
           </div>
@@ -181,12 +336,39 @@ export default function Home() {
                 <Label htmlFor="all">All</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="international" id="international" />
-                <Label htmlFor="international">{content.international}</Label>
+                <RadioGroupItem value="normal" id="normal" />
+                <Label htmlFor="normal">{content.normalProgram}</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="special" id="special" />
-                <Label htmlFor="special">{content.special}</Label>
+                <Label htmlFor="special">{content.specialProgram}</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="international" id="international" />
+                <Label htmlFor="international">{content.internationalProgram}</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="bilingual" id="bilingual" />
+                <Label htmlFor="bilingual">{content.bilingualProgram}</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="trilingual" id="trilingual" />
+                <Label htmlFor="trilingual">{content.trilingualProgram}</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Elective Types Filter */}
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">{content.electiveTypes}</h3>
+            <RadioGroup
+              value={selectedElective}
+              onValueChange={setSelectedElective}
+              className="flex flex-wrap gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="all" id="all-elective" />
+                <Label htmlFor="all-elective">All</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="free" id="free" />
@@ -196,10 +378,6 @@ export default function Home() {
                 <RadioGroupItem value="general" id="general" />
                 <Label htmlFor="general">{content.generalElective}</Label>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="major" id="major" />
-                <Label htmlFor="major">{content.majorElective}</Label>
-              </div>
             </RadioGroup>
           </div>
         </div>
@@ -208,7 +386,7 @@ export default function Home() {
         <div>
           <h3 className="text-xl font-bold mb-4">{content.allReviews}</h3>
           <div>
-            {reviews.map((review) => (
+            {filteredReviews.map((review) => (
               <ReviewCard 
                 key={review.id} 
                 review={review}
