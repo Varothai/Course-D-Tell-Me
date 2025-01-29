@@ -100,6 +100,18 @@ export function ReviewCard({
                 />
               ))}
             </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              onClick={(e) => {
+                e.stopPropagation()
+                router.push(`/course/${review.courseId}`)
+              }}
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              {content.seeReviews}
+            </Button>
           </div>
           <div className="flex-[2]">
             <div className="flex items-center gap-2 mb-2">
@@ -146,18 +158,6 @@ export function ReviewCard({
             )}
           </div>
         </div>
-
-        <div className="mt-4 flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleViewInCourse}
-            className="hover:bg-secondary"
-          >
-            <ExternalLink className="w-4 h-4 mr-2" />
-            {content.seeReviews}
-          </Button>
-        </div>
       </Card>
 
       <ReviewDialog 
@@ -168,4 +168,3 @@ export function ReviewCard({
     </>
   )
 }
-

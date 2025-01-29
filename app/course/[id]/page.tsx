@@ -1,205 +1,105 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { useParams, useSearchParams } from "next/navigation"
-import { Bookmark, Star } from 'lucide-react'
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
-import { ReviewForm } from "@/components/review-form"
-import { ReviewList } from "@/components/review-list"
-import { GradeChart } from "@/components/grade-chart"
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
+import { Card } from "@/components/ui/card"
 import { RatingChart } from "@/components/rating-chart"
+import { GradeChart } from "@/components/grade-chart"
+import { ReviewCard } from "@/components/review-card"
 import { useLanguage } from "@/providers/language-provider"
-import { QAFormDialog } from "@/components/qa-form-dialog"
+import type { Review } from "@/types/review"
 
-interface CourseData {
-  id: string;
-  name: string;
-  stats: {
-    averageRating: number;
-    totalReviews: number;
-    gradeDistribution: Record<string, number>;
-    ratingDistribution: Record<number, number>;
-  };
-  reviews: Array<{
-    id: string;
-    courseId: string;
-    courseName: string;
-    rating: number;
-    userName: string;
-    review: string;
-    timestamp: string;
-    likes: number;
-    dislikes: number;
-    comments: string[];
-    isBookmarked: boolean;
-    readingAmount: number;
-    contentDifficulty: number;
-    teachingQuality: number;
-    grade: string;
-    major: string;
-  }>;
-}
-
-export default function CourseDetail() {
-  const params = useParams();
-  const id = params?.id as string;
-  const searchParams = useSearchParams();
-  const reviewId = searchParams?.get('reviewId') || null;
-  const [courseData, setCourseData] = useState<CourseData | null>(null)
-  const [isBookmarked, setIsBookmarked] = useState(false)
+export default function CoursePage() {
+  const params = useParams<{ id: string }>()
+  const courseId = params?.id || ''
   const { content } = useLanguage()
-  const [isQADialogOpen, setIsQADialogOpen] = useState(false)
-  const reviewRef = useRef<HTMLDivElement | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [ratingData, setRatingData] = useState<Record<number, number>>({})
+  const [gradeData, setGradeData] = useState<Record<string, number>>({})
+  const [courseName, setCourseName] = useState("")
 
   useEffect(() => {
-    if (id) {
-      const fetchCourseData = async () => {
-        try {
-          const response = await fetch(`/api/courses/${id}`)
-          if (!response.ok) {
-            throw new Error('Failed to fetch course data')
-          }
-          const data = await response.json()
-          setCourseData(data)
-        } catch (error) {
-          console.error('Error fetching course data:', error)
+    const fetchCourseAndReviews = async () => {
+      try {
+        // Fetch course name from CSV
+        const courseResponse = await fetch('/courses/courses.csv')
+        const courseText = await courseResponse.text()
+        const courses = courseText.split('\n').map(line => {
+          const [id, name] = line.split(',')
+          return { id: id.trim(), name: name?.trim() }
+        })
+        const course = courses.find(c => c.id === courseId)
+        if (course) {
+          setCourseName(course.name)
         }
-      }
-      fetchCourseData()
-    }
-  }, [id])
 
-  useEffect(() => {
-    if (reviewId && courseData) {
-      setTimeout(() => {
-        const element = document.getElementById(`review-${reviewId}`)
-        if (element) {
-          element.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
+        // Fetch only reviews for this course
+        const reviewResponse = await fetch(`/api/reviews?courseId=${courseId}`)
+        const data = await reviewResponse.json()
+        
+        if (data.success) {
+          // Filter reviews to ensure only this course's reviews are shown
+          const courseReviews = data.reviews.filter((review: Review) => 
+            review.courseId === courseId
+          )
+          setReviews(courseReviews)
+
+          // Calculate distributions only for this course's reviews
+          const ratingCounts: Record<number, number> = {}
+          const gradeCounts: Record<string, number> = {}
+
+          courseReviews.forEach((review: Review) => {
+            ratingCounts[review.rating] = (ratingCounts[review.rating] || 0) + 1
+            if (review.grade) {
+              gradeCounts[review.grade] = (gradeCounts[review.grade] || 0) + 1
+            }
           })
-          element.classList.add('bg-secondary/50')
-          setTimeout(() => {
-            element.classList.remove('bg-secondary/50')
-          }, 2000)
+
+          setRatingData(ratingCounts)
+          setGradeData(gradeCounts)
         }
-      }, 100)
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      }
     }
-  }, [reviewId, courseData])
 
-  const handleQuestionSubmit = async (question: string) => {
-    try {
-      console.log("Question submitted:", question)
-      // Optionally refresh the Q&A list here
-    } catch (error) {
-      console.error("Error handling question submission:", error)
+    if (courseId) {
+      fetchCourseAndReviews()
     }
-  }
-
-  if (!courseData) {
-    return (
-      <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[50vh]">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Loading...</h2>
-          <p className="text-muted-foreground">
-            {courseData === null ? 'Loading course data...' : 'Course not found'}
-          </p>
-        </div>
-      </div>
-    )
-  }
+  }, [courseId])
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <div className="text-4xl font-bold font-mono">{courseData.id}</div>
-            <div className="text-2xl text-muted-foreground">{courseData.name}</div>
-            <div className="flex items-center gap-1 mt-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-6 h-6 ${
-                    i < courseData.stats.averageRating
-                      ? "fill-primary text-primary"
-                      : "fill-muted text-muted-foreground"
-                  }`}
-                />
-              ))}
-              <span className="ml-2 text-2xl font-bold">
-                {courseData.stats.averageRating.toFixed(1)}
-              </span>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsBookmarked(!isBookmarked)}
-          >
-            <Bookmark
-              className={`w-6 h-6 ${isBookmarked ? "fill-primary" : ""}`}
-            />
-          </Button>
-        </div>
-
-        {/* Charts */}
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
+    <div className="container mx-auto py-8 px-4">
+      <Card className="p-6 mb-8">
+        <h1 className="text-2xl font-bold mb-2">{courseId}</h1>
+        <h2 className="text-xl mb-6">{courseName}</h2>
+        
+        <div className="grid md:grid-cols-2 gap-8">
           <div className="h-[300px]">
             <h3 className="text-lg font-semibold mb-4">{content.ratingDistribution}</h3>
-            <RatingChart data={courseData.stats.ratingDistribution} />
+            <RatingChart data={ratingData} />
           </div>
+          
           <div className="h-[300px]">
             <h3 className="text-lg font-semibold mb-4">{content.gradeDistribution}</h3>
-            <GradeChart data={courseData.stats.gradeDistribution} />
+            <GradeChart data={gradeData} />
           </div>
         </div>
+      </Card>
 
-        {/* Reviews Section */}
-        <div>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">{content.reviews}</h2>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="bg-[#90EE90] text-black hover:bg-[#7FDF7F]">
-                  {content.writeReview}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <ReviewForm 
-                  courseId={courseData.id}
-                  courseName={courseData.name}
-                  action={(review) => {
-                    // Handle the review submission
-                    console.log(review)
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
-          </div>
-          <div ref={reviewRef}>
-            <ReviewList reviews={courseData.reviews} />
-          </div>
-        </div>
-
-        {/* Add Ask Question Button */}
-        <Button 
-          onClick={() => setIsQADialogOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white"
-        >
-          {content.askQuestion}
-        </Button>
-
-        {/* Q&A Form Dialog */}
-        <QAFormDialog
-          open={isQADialogOpen}
-          action={setIsQADialogOpen}
-          submitAction={handleQuestionSubmit}
-        />
+      <h3 className="text-xl font-semibold mb-4">{content.reviews}</h3>
+      <div>
+        {reviews.map((review) => (
+          <ReviewCard
+            key={review.id}
+            review={review}
+            likeAction={async (id) => {/* implement like action */}}
+            dislikeAction={async (id) => {/* implement dislike action */}}
+            commentAction={async (id, comment) => {/* implement comment action */}}
+            bookmarkAction={async (id) => {/* implement bookmark action */}}
+          />
+        ))}
       </div>
     </div>
   )
-}
-
+} 

@@ -10,10 +10,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { ReviewDialog } from "@/components/review-dialog"
 
+interface ReviewWithUserInteraction extends Review {
+  hasLiked?: boolean;
+  hasDisliked?: boolean;
+}
+
 export default function FacultyReviewsPage() {
   const { content } = useLanguage()
   const params = useParams()
-  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviews, setReviews] = useState<ReviewWithUserInteraction[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -49,6 +54,90 @@ export default function FacultyReviewsPage() {
     setSelectedReview(review)
     setIsDialogOpen(true)
   }
+
+  const handleLike = async (reviewId: string) => {
+    try {
+      const review = reviews.find(r => r.id === reviewId);
+      if (!review) return;
+
+      // If already liked, return
+      if (review.hasLiked) return;
+
+      const response = await fetch('/api/reviews', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          reviewId, 
+          action: review.hasDisliked ? 'undislike-and-like' : 'like' 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to like review');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setReviews(reviews.map(review => 
+          review.id === reviewId 
+            ? {
+                ...review,
+                likes: review.likes + 1,
+                dislikes: review.hasDisliked ? review.dislikes - 1 : review.dislikes,
+                hasLiked: true,
+                hasDisliked: false
+              }
+            : review
+        ));
+      }
+    } catch (error) {
+      console.error('Error liking review:', error);
+    }
+  };
+
+  const handleDislike = async (reviewId: string) => {
+    try {
+      const review = reviews.find(r => r.id === reviewId);
+      if (!review) return;
+
+      // If already disliked, return
+      if (review.hasDisliked) return;
+
+      const response = await fetch('/api/reviews', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          reviewId, 
+          action: review.hasLiked ? 'unlike-and-dislike' : 'dislike' 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to dislike review');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setReviews(reviews.map(review => 
+          review.id === reviewId 
+            ? {
+                ...review,
+                dislikes: review.dislikes + 1,
+                likes: review.hasLiked ? review.likes - 1 : review.likes,
+                hasDisliked: true,
+                hasLiked: false
+              }
+            : review
+        ));
+      }
+    } catch (error) {
+      console.error('Error disliking review:', error);
+    }
+  };
 
   if (loading) {
     return <div>Loading...</div>
@@ -92,12 +181,28 @@ export default function FacultyReviewsPage() {
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">{review.review}</p>
                     <div className="flex items-center gap-4">
-                      <Button variant="ghost" size="sm">
-                        <ThumbsUp className="w-4 h-4 mr-2" />
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLike(review.id);
+                        }}
+                        className={review.hasLiked ? "text-primary" : ""}
+                      >
+                        <ThumbsUp className={`w-4 h-4 mr-2 ${review.hasLiked ? "fill-primary" : ""}`} />
                         {review.likes} {content.likes}
                       </Button>
-                      <Button variant="ghost" size="sm">
-                        <ThumbsDown className="w-4 h-4 mr-2" />
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDislike(review.id);
+                        }}
+                        className={review.hasDisliked ? "text-primary" : ""}
+                      >
+                        <ThumbsDown className={`w-4 h-4 mr-2 ${review.hasDisliked ? "fill-primary" : ""}`} />
                         {review.dislikes} {content.dislikes}
                       </Button>
                       <Button variant="ghost" size="sm">

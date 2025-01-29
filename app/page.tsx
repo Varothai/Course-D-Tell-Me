@@ -24,6 +24,11 @@ import type { Review } from "@/types/review"
 import Autosuggest from "react-autosuggest"
 import Papa from "papaparse"
 
+interface ReviewWithUserInteraction extends Review {
+  hasLiked?: boolean;
+  hasDisliked?: boolean;
+}
+
 // Mock data for reviews
 const mockReviews = [
   {
