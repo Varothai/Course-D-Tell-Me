@@ -379,58 +379,106 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
         <div className="space-y-4">
           <div>
             <Label>{content.homeworkAmount}</Label>
-            <div className="flex gap-2 mt-1">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <Button
-                  key={value}
-                  variant="outline"
-                  size="sm"
-                  className={`rounded-full w-8 h-8 p-0 ${
-                    formData.readingAmount === value ? "bg-red-500 text-white" : ""
-                  }`}
-                  onClick={() => setFormData({ ...formData, readingAmount: value })}
-                >
-                  {value}
-                </Button>
-              ))}
+            <div className="flex flex-col gap-2 mt-1">
+              <div className="flex justify-between" style={{ width: '33%' }}>
+                <span className="text-xs text-muted-foreground">
+                  {language === "en" ? "Not Satisfied" : "ไม่พอใจ"}
+                </span>
+                <span className="text-xs text-muted-foreground ml-auto" style={{ marginRight: '-20%' }}>
+                  {language === "en" ? "Satisfied" : "พอใจ"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                {[
+                  { value: 1, emoji: "😟" },
+                  { value: 2, emoji: "😕" },
+                  { value: 3, emoji: "😐" },
+                  { value: 4, emoji: "🙂" },
+                  { value: 5, emoji: "😊" }
+                ].map((item) => (
+                  <Button
+                    key={item.value}
+                    variant="outline"
+                    size="sm"
+                    className={`w-10 h-10 p-0 rounded-full border-2 border-gray-200 ${
+                      formData.readingAmount === item.value ? "border-primary bg-primary text-white" : ""
+                    }`}
+                    onClick={() => setFormData({ ...formData, readingAmount: item.value })}
+                  >
+                    {item.emoji}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
 
           <div>
             <Label>{content.contentInterest}</Label>
-            <div className="flex gap-2 mt-1">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <Button
-                  key={value}
-                  variant="outline"
-                  size="sm"
-                  className={`rounded-full w-8 h-8 p-0 ${
-                    formData.contentDifficulty === value ? "bg-red-500 text-white" : ""
-                  }`}
-                  onClick={() => setFormData({ ...formData, contentDifficulty: value })}
-                >
-                  {value}
-                </Button>
-              ))}
+            <div className="flex flex-col gap-2 mt-1">
+              <div className="flex justify-between" style={{ width: '33%' }}>
+                <span className="text-xs text-muted-foreground">
+                  {language === "en" ? "Not Satisfied" : "ไม่พอใจ"}
+                </span>
+                <span className="text-xs text-muted-foreground ml-auto" style={{ marginRight: '-20%' }}>
+                  {language === "en" ? "Satisfied" : "พอใจ"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                {[
+                  { value: 1, emoji: "😟" },
+                  { value: 2, emoji: "😕" },
+                  { value: 3, emoji: "😐" },
+                  { value: 4, emoji: "🙂" },
+                  { value: 5, emoji: "😊" }
+                ].map((item) => (
+                  <Button
+                    key={item.value}
+                    variant="outline"
+                    size="sm"
+                    className={`w-10 h-10 p-0 rounded-full border-2 border-gray-200 ${
+                      formData.contentDifficulty === item.value ? "border-primary bg-primary text-white" : ""
+                    }`}
+                    onClick={() => setFormData({ ...formData, contentDifficulty: item.value })}
+                  >
+                    {item.emoji}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
 
           <div>
             <Label>{content.teachingQuality}</Label>
-            <div className="flex gap-2 mt-1">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <Button
-                  key={value}
-                  variant="outline"
-                  size="sm"
-                  className={`rounded-full w-8 h-8 p-0 ${
-                    formData.teachingQuality === value ? "bg-green-500 text-white" : ""
-                  }`}
-                  onClick={() => setFormData({ ...formData, teachingQuality: value })}
-                >
-                  {value}
-                </Button>
-              ))}
+            <div className="flex flex-col gap-2 mt-1">
+              <div className="flex justify-between" style={{ width: '33%' }}>
+                <span className="text-xs text-muted-foreground">
+                  {language === "en" ? "Not Satisfied" : "ไม่พอใจ"}
+                </span>
+                <span className="text-xs text-muted-foreground ml-auto" style={{ marginRight: '-20%' }}>
+                  {language === "en" ? "Satisfied" : "พอใจ"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                {[
+                  { value: 1, emoji: "😟" },
+                  { value: 2, emoji: "😕" },
+                  { value: 3, emoji: "😐" },
+                  { value: 4, emoji: "🙂" },
+                  { value: 5, emoji: "😊" }
+                ].map((item) => (
+                  <Button
+                    key={item.value}
+                    variant="outline"
+                    size="sm"
+                    className={`w-10 h-10 p-0 rounded-full border-2 border-gray-200 ${
+                      formData.teachingQuality === item.value ? "border-primary bg-primary text-white" : ""
+                    }`}
+                    onClick={() => setFormData({ ...formData, teachingQuality: item.value })}
+                  >
+                    {item.emoji}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

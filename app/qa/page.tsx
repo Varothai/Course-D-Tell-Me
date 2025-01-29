@@ -102,14 +102,6 @@ export default function QAPage() {
                   <MessageSquare className="w-4 h-4 mr-2" />
                   comment
                 </Button>
-                <Button variant="ghost" size="sm" className="text-muted-foreground">
-                  <ThumbsUp className="w-4 h-4 mr-2" />
-                  {qa.likes}
-                </Button>
-                <Button variant="ghost" size="sm" className="text-muted-foreground">
-                  <ThumbsDown className="w-4 h-4 mr-2" />
-                  {qa.dislikes}
-                </Button>
               </div>
 
               {/* Comments Section */}

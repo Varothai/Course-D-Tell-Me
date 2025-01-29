@@ -98,14 +98,20 @@ export function ReviewDialog({ review, open, action }: ReviewDialogProps) {
               <div>
                 <label className="text-sm text-muted-foreground">{content.homeworkAmount}</label>
                 <div className="flex gap-2 mt-1">
-                  {[1, 2, 3, 4, 5].map((value) => (
+                  {[
+                    { value: 1, emoji: "😟" },
+                    { value: 2, emoji: "😕" },
+                    { value: 3, emoji: "😐" },
+                    { value: 4, emoji: "🙂" },
+                    { value: 5, emoji: "😊" }
+                  ].map((item) => (
                     <div
-                      key={value}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        value <= review.readingAmount! ? "bg-red-500 text-white" : "bg-gray-100"
+                      key={item.value}
+                      className={`w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center ${
+                        item.value === review.readingAmount ? "border-primary bg-primary text-white" : "bg-gray-50"
                       }`}
                     >
-                      {value}
+                      {item.emoji}
                     </div>
                   ))}
                 </div>
@@ -115,14 +121,20 @@ export function ReviewDialog({ review, open, action }: ReviewDialogProps) {
               <div>
                 <label className="text-sm text-muted-foreground">{content.contentInterest}</label>
                 <div className="flex gap-2 mt-1">
-                  {[1, 2, 3, 4, 5].map((value) => (
+                  {[
+                    { value: 1, emoji: "😟" },
+                    { value: 2, emoji: "😕" },
+                    { value: 3, emoji: "😐" },
+                    { value: 4, emoji: "🙂" },
+                    { value: 5, emoji: "😊" }
+                  ].map((item) => (
                     <div
-                      key={value}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        value <= review.contentDifficulty! ? "bg-red-500 text-white" : "bg-gray-100"
+                      key={item.value}
+                      className={`w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center ${
+                        item.value === review.contentDifficulty ? "border-primary bg-primary text-white" : "bg-gray-50"
                       }`}
                     >
-                      {value}
+                      {item.emoji}
                     </div>
                   ))}
                 </div>
@@ -132,14 +144,20 @@ export function ReviewDialog({ review, open, action }: ReviewDialogProps) {
               <div>
                 <label className="text-sm text-muted-foreground">{content.teachingQuality}</label>
                 <div className="flex gap-2 mt-1">
-                  {[1, 2, 3, 4, 5].map((value) => (
+                  {[
+                    { value: 1, emoji: "😟" },
+                    { value: 2, emoji: "😕" },
+                    { value: 3, emoji: "😐" },
+                    { value: 4, emoji: "🙂" },
+                    { value: 5, emoji: "😊" }
+                  ].map((item) => (
                     <div
-                      key={value}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        value <= review.teachingQuality! ? "bg-green-500 text-white" : "bg-gray-100"
+                      key={item.value}
+                      className={`w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center ${
+                        item.value === review.teachingQuality ? "border-primary bg-primary text-white" : "bg-gray-50"
                       }`}
                     >
-                      {value}
+                      {item.emoji}
                     </div>
                   ))}
                 </div>
