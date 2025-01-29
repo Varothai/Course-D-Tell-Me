@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Star } from "lucide-react"
 import { Review } from "@/types/review"
 import { useLanguage } from "@/providers/language-provider"
+import { facultyMajors } from "@/locales/content"
 
 interface ReviewDialogProps {
   review: Review
@@ -12,7 +13,18 @@ interface ReviewDialogProps {
 }
 
 export function ReviewDialog({ review, open, action }: ReviewDialogProps) {
-  const { content } = useLanguage()
+  const { content, language } = useLanguage()
+
+  const getFacultyLabel = (facultyValue: string) => {
+    const faculty = content.faculties.find(f => f.value === facultyValue)
+    return faculty?.label || facultyValue
+  }
+
+  const getMajorLabel = (facultyValue: string, majorValue: string) => {
+    const faculty = facultyMajors[facultyValue as keyof typeof facultyMajors]
+    const major = faculty?.find(m => m.value === majorValue)
+    return major?.label[language as keyof typeof major.label] || majorValue
+  }
 
   return (
     <Dialog open={open} onOpenChange={action}>
@@ -55,13 +67,15 @@ export function ReviewDialog({ review, open, action }: ReviewDialogProps) {
             {review.faculty && (
               <div>
                 <label className="text-sm text-muted-foreground">{content.faculty}</label>
-                <p className="font-medium">{review.faculty}</p>
+                <p className="font-medium">{getFacultyLabel(review.faculty)}</p>
               </div>
             )}
             {review.major && (
               <div>
                 <label className="text-sm text-muted-foreground">{content.major}</label>
-                <p className="font-medium">{review.major}</p>
+                <p className="font-medium">
+                  {getMajorLabel(review.faculty || '', review.major)}
+                </p>
               </div>
             )}
             {review.programType && (
