@@ -262,35 +262,80 @@ export default function Home() {
     });
 
   return (
-    <div className="min-h-screen bg-[#E5E1FF] dark:bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold">{content.welcome}</h1>
-            <h2 className="text-2xl text-muted-foreground">
-              {content.courseTitle}
-            </h2>
+        {/* Welcome Section with Mascot */}
+        <div className="relative mb-12 bg-white/80 dark:bg-gray-800/80 rounded-3xl p-8 backdrop-blur-sm shadow-lg transition-all duration-300 overflow-hidden">
+          {/* Decorative background elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-200/30 to-pink-200/30 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-200/30 to-purple-200/30 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2" />
+
+          <div className="relative flex items-center justify-between">
+            {/* Welcome Text and Mascot */}
+            <div className="flex items-center gap-8">
+              <div className="relative w-32 h-32 group">
+                <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-75 group-hover:opacity-100 blur transition-all duration-500" />
+                <div className="relative bg-white dark:bg-gray-800 rounded-full p-2">
+                  <img
+                    src="/elephant-mascot.png"
+                    alt="Cute elephant mascot"
+                    className="w-full h-full object-contain animate-bounce-gentle"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h1 className="text-5xl font-bold">
+                  <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    {content.welcome}
+                  </span>
+                </h1>
+                <h2 className="text-2xl text-muted-foreground">
+                  {content.courseTitle}
+                </h2>
+              </div>
+            </div>
+
+            {/* Theme and Language Toggle */}
+            <div className="flex flex-col gap-3">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={toggleTheme}
+                className="rounded-full w-12 h-12 hover:scale-110 hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-gray-800/50"
+              >
+                {theme === "light" ? (
+                  <Moon className="h-5 w-5" />
+                ) : (
+                  <Sun className="h-5 w-5" />
+                )}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={toggleLanguage}
+                className="rounded-full w-12 h-12 hover:scale-110 hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-gray-800/50"
+              >
+                {language === "en" ? "TH" : "EN"}
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={toggleTheme}>
-              {theme === "light" ? (
-                <Moon className="h-5 w-5" />
-              ) : (
-                <Sun className="h-5 w-5" />
-              )}
-            </Button>
-            <Button variant="outline" onClick={toggleLanguage}>
-              {language === "en" ? "TH" : "EN"}
-            </Button>
+
+          {/* Decorative sparkles */}
+          <div className="absolute top-6 right-24 animate-pulse">
+            <div className="w-3 h-3 bg-yellow-300 rounded-full" />
+          </div>
+          <div className="absolute top-12 right-36 animate-pulse delay-100">
+            <div className="w-2 h-2 bg-yellow-300 rounded-full" />
+          </div>
+          <div className="absolute top-8 right-48 animate-pulse delay-200">
+            <div className="w-2 h-2 bg-yellow-300 rounded-full" />
           </div>
         </div>
 
-        {/* Add Write Review Button */}
-        <div className="flex justify-end mb-4">
+        {/* Write Review Button with updated styling */}
+        <div className="flex justify-end mb-6">
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="bg-[#90EE90] text-black hover:bg-[#7FDF7F]">
+              <Button className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 rounded-full px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                 {content.writeReview}
               </Button>
             </DialogTrigger>
@@ -308,9 +353,9 @@ export default function Home() {
           </Dialog>
         </div>
 
-        {/* Search and Filters */}
-        <div className="mb-8">
-          <div className="flex justify-center mb-4">
+        {/* Search bar with updated styling */}
+        <div className="mb-12">
+          <div className="flex justify-center mb-6">
             <div className="relative w-full max-w-4xl">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
               <Autosuggest
@@ -325,85 +370,102 @@ export default function Home() {
                 )}
                 inputProps={{
                   ...inputProps,
-                  className: "pl-12 pr-4 py-3 w-full border border-gray-300 rounded-full shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out",
+                  className: "pl-12 pr-4 py-4 w-full border-2 border-purple-200 dark:border-purple-900 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm",
+                }}
+                theme={{
+                  container: 'relative',
+                  suggestion: 'px-4 py-2 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50',
+                  suggestionHighlighted: 'bg-purple-100 dark:bg-purple-800/50',
+                  suggestionsContainer: 'absolute w-full bg-white dark:bg-gray-800 shadow-xl rounded-2xl mt-2 overflow-hidden z-50',
+                  suggestionsList: 'max-h-64 overflow-auto rounded-2xl'
                 }}
                 onSuggestionSelected={onSuggestionSelected}
               />
             </div>
           </div>
 
-          {/* Program Types Filter */}
-          <div className="mt-4">
-            <h3 className="text-lg font-semibold mb-2">{content.programTypes}</h3>
-            <RadioGroup
-              value={selectedProgram}
-              onValueChange={setSelectedProgram}
-              className="flex flex-wrap gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="all" id="all" />
-                <Label htmlFor="all">All</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="normal" id="normal" />
-                <Label htmlFor="normal">{content.normalProgram}</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="special" id="special" />
-                <Label htmlFor="special">{content.specialProgram}</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="international" id="international" />
-                <Label htmlFor="international">{content.internationalProgram}</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="bilingual" id="bilingual" />
-                <Label htmlFor="bilingual">{content.bilingualProgram}</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="trilingual" id="trilingual" />
-                <Label htmlFor="trilingual">{content.trilingualProgram}</Label>
-              </div>
-            </RadioGroup>
-          </div>
+          {/* Filters with updated styling */}
+          <div className="space-y-8 bg-white/80 dark:bg-gray-800/80 rounded-2xl p-6 backdrop-blur-sm shadow-lg">
+            {/* Program Types Filter */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-purple-700 dark:text-purple-300">
+                {content.programTypes}
+              </h3>
+              <RadioGroup
+                value={selectedProgram}
+                onValueChange={setSelectedProgram}
+                className="flex flex-wrap gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="all" id="all" />
+                  <Label htmlFor="all">All</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="normal" id="normal" />
+                  <Label htmlFor="normal">{content.normalProgram}</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="special" id="special" />
+                  <Label htmlFor="special">{content.specialProgram}</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="international" id="international" />
+                  <Label htmlFor="international">{content.internationalProgram}</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="bilingual" id="bilingual" />
+                  <Label htmlFor="bilingual">{content.bilingualProgram}</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="trilingual" id="trilingual" />
+                  <Label htmlFor="trilingual">{content.trilingualProgram}</Label>
+                </div>
+              </RadioGroup>
+            </div>
 
-          {/* Elective Types Filter */}
-          <div className="mt-4">
-            <h3 className="text-lg font-semibold mb-2">{content.electiveTypes}</h3>
-            <RadioGroup
-              value={selectedElective}
-              onValueChange={setSelectedElective}
-              className="flex flex-wrap gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="all" id="all-elective" />
-                <Label htmlFor="all-elective">All</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="free" id="free" />
-                <Label htmlFor="free">{content.freeElective}</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="general" id="general" />
-                <Label htmlFor="general">{content.generalElective}</Label>
-              </div>
-            </RadioGroup>
+            {/* Elective Types Filter */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-purple-700 dark:text-purple-300">
+                {content.electiveTypes}
+              </h3>
+              <RadioGroup
+                value={selectedElective}
+                onValueChange={setSelectedElective}
+                className="flex flex-wrap gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="all" id="all-elective" />
+                  <Label htmlFor="all-elective">All</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="free" id="free" />
+                  <Label htmlFor="free">{content.freeElective}</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="general" id="general" />
+                  <Label htmlFor="general">{content.generalElective}</Label>
+                </div>
+              </RadioGroup>
+            </div>
           </div>
         </div>
 
-        {/* Reviews Section */}
+        {/* Reviews Section with updated styling */}
         <div>
-          <h3 className="text-xl font-bold mb-4">{content.allReviews}</h3>
-          <div>
+          <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            {content.allReviews}
+          </h3>
+          <div className="space-y-6">
             {filteredReviews.map((review) => (
-              <ReviewCard 
-                key={review.id} 
-                review={review}
-                likeAction={handleLike}
-                dislikeAction={handleDislike}
-                commentAction={handleComment}
-                bookmarkAction={handleBookmark}
-              />
+              <div key={review.id} className="transform hover:scale-[1.02] transition-all duration-300">
+                <ReviewCard 
+                  review={review}
+                  likeAction={handleLike}
+                  dislikeAction={handleDislike}
+                  commentAction={handleComment}
+                  bookmarkAction={handleBookmark}
+                />
+              </div>
             ))}
           </div>
         </div>

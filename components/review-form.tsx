@@ -211,23 +211,32 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
 
   return (
     <div className="max-h-[80vh] overflow-y-auto px-4 -mx-4">
-      <div className="space-y-6">
-        <div className="bg-[#FFFAD7] rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">{content.writing}</h2>
+      <div className="space-y-8">
+        <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-6 shadow-lg">
+          <div className="absolute top-0 right-0 w-24 h-24 opacity-50">
+            <img
+              src="/elephant-mascot.png"
+              alt="Cute elephant mascot"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <h2 className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+            {content.writing}
+          </h2>
           <Textarea
             placeholder={content.yourReview}
             value={formData.review}
             onChange={(e) => setFormData({ ...formData, review: e.target.value })}
-            className="min-h-[150px] bg-transparent border-none resize-none focus-visible:ring-0"
+            className="min-h-[150px] bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 resize-none transition-all duration-300"
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4 bg-white/80 dark:bg-gray-800/80 p-4 rounded-xl backdrop-blur-sm">
           <div className="flex">
             {[1, 2, 3, 4, 5].map((index) => (
               <Star
                 key={index}
-                className={`w-8 h-8 cursor-pointer ${
+                className={`w-8 h-8 cursor-pointer transition-all duration-300 transform hover:scale-110 ${
                   index <= (hoverRating || rating)
                     ? "fill-yellow-400 text-yellow-400"
                     : "fill-gray-200 text-gray-200"
@@ -238,11 +247,13 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
               />
             ))}
           </div>
-          <span className="text-lg">{content.ratingStar}</span>
+          <span className="text-lg text-purple-700 dark:text-purple-300 font-medium">
+            {content.ratingStar}
+          </span>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
+          <div className="col-span-2 md:col-span-1">
             <Autosuggest
               suggestions={suggestions}
               onSuggestionsFetchRequested={({ value }: SuggestionsFetchRequestedParams) => onSuggestionsFetchRequested({ value }, 'courseno')}
@@ -251,9 +262,16 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
               renderSuggestion={(suggestion: any) => <div>{suggestion.courseno}</div>}
               inputProps={inputPropsCourseNo}
               onSuggestionSelected={onCourseNoSuggestionSelected}
+              theme={{
+                container: 'relative',
+                input: 'w-full px-4 py-2 rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300',
+                suggestionsList: 'absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg max-h-60 overflow-auto',
+                suggestion: 'px-4 py-2 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50',
+                suggestionHighlighted: 'bg-purple-100 dark:bg-purple-800/50'
+              }}
             />
           </div>
-          <div>
+          <div className="col-span-2 md:col-span-1">
             <Autosuggest
               suggestions={suggestions}
               onSuggestionsFetchRequested={({ value }: SuggestionsFetchRequestedParams) => onSuggestionsFetchRequested({ value }, 'title_short_en')}
@@ -262,6 +280,13 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
               renderSuggestion={(suggestion: any) => <div>{suggestion.title_short_en}</div>}
               inputProps={inputPropsCourseName}
               onSuggestionSelected={onCourseNameSuggestionSelected}
+              theme={{
+                container: 'relative',
+                input: 'w-full px-4 py-2 rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300',
+                suggestionsList: 'absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg max-h-60 overflow-auto',
+                suggestion: 'px-4 py-2 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50',
+                suggestionHighlighted: 'bg-purple-100 dark:bg-purple-800/50'
+              }}
             />
           </div>
           <div>
@@ -376,19 +401,13 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <Label>{content.homeworkAmount}</Label>
-            <div className="flex flex-col gap-2 mt-1">
-              <div className="flex justify-between" style={{ width: '33%' }}>
-                <span className="text-xs text-muted-foreground">
-                  {language === "en" ? "Not Satisfied" : "ไม่พอใจ"}
-                </span>
-                <span className="text-xs text-muted-foreground ml-auto" style={{ marginRight: '-20%' }}>
-                  {language === "en" ? "Satisfied" : "พอใจ"}
-                </span>
-              </div>
-              <div className="flex gap-2">
+        <div className="space-y-6">
+          <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 backdrop-blur-sm">
+            <Label className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-4 block">
+              {content.homeworkAmount}
+            </Label>
+            <div className="flex justify-between items-center">
+              <div className="flex gap-4">
                 {[
                   { value: 1, emoji: "😟" },
                   { value: 2, emoji: "😕" },
@@ -399,31 +418,27 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
                   <Button
                     key={item.value}
                     variant="outline"
-                    size="sm"
-                    className={`w-10 h-10 p-0 rounded-full border-2 border-gray-200 ${
-                      formData.readingAmount === item.value ? "border-primary bg-primary text-white" : ""
+                    size="lg"
+                    className={`w-12 h-12 rounded-full transform transition-all duration-300 hover:scale-110 ${
+                      formData.readingAmount === item.value 
+                        ? "bg-gradient-to-r from-purple-500 to-pink-500 border-none text-white shadow-lg" 
+                        : "border-2 border-purple-200 dark:border-purple-800 hover:border-purple-500"
                     }`}
                     onClick={() => setFormData({ ...formData, readingAmount: item.value })}
                   >
-                    {item.emoji}
+                    <span className="text-xl">{item.emoji}</span>
                   </Button>
                 ))}
               </div>
             </div>
           </div>
 
-          <div>
-            <Label>{content.contentInterest}</Label>
-            <div className="flex flex-col gap-2 mt-1">
-              <div className="flex justify-between" style={{ width: '33%' }}>
-                <span className="text-xs text-muted-foreground">
-                  {language === "en" ? "Not Satisfied" : "ไม่พอใจ"}
-                </span>
-                <span className="text-xs text-muted-foreground ml-auto" style={{ marginRight: '-20%' }}>
-                  {language === "en" ? "Satisfied" : "พอใจ"}
-                </span>
-              </div>
-              <div className="flex gap-2">
+          <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 backdrop-blur-sm">
+            <Label className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-4 block">
+              {content.contentInterest}
+            </Label>
+            <div className="flex justify-between items-center">
+              <div className="flex gap-4">
                 {[
                   { value: 1, emoji: "😟" },
                   { value: 2, emoji: "😕" },
@@ -434,31 +449,27 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
                   <Button
                     key={item.value}
                     variant="outline"
-                    size="sm"
-                    className={`w-10 h-10 p-0 rounded-full border-2 border-gray-200 ${
-                      formData.contentDifficulty === item.value ? "border-primary bg-primary text-white" : ""
+                    size="lg"
+                    className={`w-12 h-12 rounded-full transform transition-all duration-300 hover:scale-110 ${
+                      formData.contentDifficulty === item.value 
+                        ? "bg-gradient-to-r from-purple-500 to-pink-500 border-none text-white shadow-lg" 
+                        : "border-2 border-purple-200 dark:border-purple-800 hover:border-purple-500"
                     }`}
                     onClick={() => setFormData({ ...formData, contentDifficulty: item.value })}
                   >
-                    {item.emoji}
+                    <span className="text-xl">{item.emoji}</span>
                   </Button>
                 ))}
               </div>
             </div>
           </div>
 
-          <div>
-            <Label>{content.teachingQuality}</Label>
-            <div className="flex flex-col gap-2 mt-1">
-              <div className="flex justify-between" style={{ width: '33%' }}>
-                <span className="text-xs text-muted-foreground">
-                  {language === "en" ? "Not Satisfied" : "ไม่พอใจ"}
-                </span>
-                <span className="text-xs text-muted-foreground ml-auto" style={{ marginRight: '-20%' }}>
-                  {language === "en" ? "Satisfied" : "พอใจ"}
-                </span>
-              </div>
-              <div className="flex gap-2">
+          <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 backdrop-blur-sm">
+            <Label className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-4 block">
+              {content.teachingQuality}
+            </Label>
+            <div className="flex justify-between items-center">
+              <div className="flex gap-4">
                 {[
                   { value: 1, emoji: "😟" },
                   { value: 2, emoji: "😕" },
@@ -469,13 +480,15 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
                   <Button
                     key={item.value}
                     variant="outline"
-                    size="sm"
-                    className={`w-10 h-10 p-0 rounded-full border-2 border-gray-200 ${
-                      formData.teachingQuality === item.value ? "border-primary bg-primary text-white" : ""
+                    size="lg"
+                    className={`w-12 h-12 rounded-full transform transition-all duration-300 hover:scale-110 ${
+                      formData.teachingQuality === item.value 
+                        ? "bg-gradient-to-r from-purple-500 to-pink-500 border-none text-white shadow-lg" 
+                        : "border-2 border-purple-200 dark:border-purple-800 hover:border-purple-500"
                     }`}
                     onClick={() => setFormData({ ...formData, teachingQuality: item.value })}
                   >
-                    {item.emoji}
+                    <span className="text-xl">{item.emoji}</span>
                   </Button>
                 ))}
               </div>
@@ -483,18 +496,23 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
           </div>
         </div>
 
-        <div>
-          <Label>
-            {content.grade} (optional) *** {language === "en" ? "does not show when posting" : "ไม่แสดงตอนโพสต์"} ***
+        <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 backdrop-blur-sm">
+          <Label className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-4 block">
+            {content.grade} 
+            <span className="text-sm text-muted-foreground ml-2">
+              (optional) *** {language === "en" ? "does not show when posting" : "ไม่แสดงตอนโพสต์"} ***
+            </span>
           </Label>
-          <div className="flex gap-2 mt-2">
+          <div className="flex flex-wrap gap-2">
             {["A", "B+", "B", "C+", "C", "D+", "D", "F"].map((grade) => (
               <Button
                 key={grade}
                 variant="outline"
                 size="sm"
-                className={`${
-                  formData.grade === grade ? "bg-yellow-200" : ""
+                className={`rounded-xl transition-all duration-300 hover:scale-105 ${
+                  formData.grade === grade 
+                    ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-none" 
+                    : "border-2 border-purple-200 dark:border-purple-800"
                 }`}
                 onClick={() => setFormData({ ...formData, grade })}
               >
@@ -504,38 +522,27 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <RadioGroup defaultValue="show">
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="show" id="show" />
-              <Label htmlFor="show">{content.showIdentity}</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="hide" id="hide" />
-              <Label htmlFor="hide">{content.hideIdentity}</Label>
-            </div>
-          </RadioGroup>
-        </div>
+        <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 backdrop-blur-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <input
+              type="checkbox"
+              checked={verified}
+              onChange={(e) => setVerified(e.target.checked)}
+              className="w-5 h-5 rounded border-2 border-purple-200 dark:border-purple-800 text-purple-600 focus:ring-purple-500"
+            />
+            <Label className="text-red-500 font-medium">
+              {content.verifyContent}
+            </Label>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={verified}
-            onChange={(e) => setVerified(e.target.checked)}
-            className="rounded"
-          />
-          <Label className="text-sm text-red-500">
-            {content.verifyContent}
-          </Label>
+          <Button 
+            className="w-full bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-xl py-6 font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+            disabled={!verified || !rating}
+            onClick={handleSubmit}
+          >
+            {content.post}
+          </Button>
         </div>
-
-        <Button 
-          className="w-full bg-green-500 hover:bg-green-600 text-white"
-          disabled={!verified || !rating}
-          onClick={handleSubmit}
-        >
-          {content.post}
-        </Button>
       </div>
     </div>
   )
