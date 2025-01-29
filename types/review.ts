@@ -31,7 +31,9 @@ export interface Review {
   likes: number
   dislikes: number
   comments?: string[]
-  isBookmarked: boolean
+  isBookmarked?: boolean
+  hasLiked?: boolean
+  hasDisliked?: boolean
   faculty?: string
   major?: string
   studyPlan?: string
@@ -41,6 +43,7 @@ export interface Review {
   teachingQuality?: number
   programType?: string
   electiveType?: string
+  createdAt: string | Date
 }
 
 export interface LocaleContent {

@@ -80,19 +80,23 @@ export default function Home() {
     const fetchReviews = async () => {
       try {
         const response = await fetch('/api/reviews')
+        if (!response.ok) {
+          throw new Error('Failed to fetch reviews')
+        }
         const data = await response.json()
-        
-        if (data.success && data.reviews) {
+        if (data.success) {
+          // Sort reviews by date, newest first (as backup if API sorting fails)
+          const sortedReviews = data.reviews.sort((a: Review, b: Review) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          )
           clearReviews()
-          data.reviews.forEach((review: Review) => addReview(review))
-        } else {
-          console.error("Failed to fetch reviews:", data.error)
+          sortedReviews.forEach((review: Review) => addReview(review))
         }
       } catch (error) {
-        console.error("Error fetching reviews:", error)
+        console.error('Error fetching reviews:', error)
       }
     }
-    
+
     fetchReviews()
   }, [])
 

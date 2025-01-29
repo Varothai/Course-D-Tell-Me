@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input"
 import type { Review } from "@/types/review"
 import { useLanguage } from "@/providers/language-provider"
 import { ReviewDialog } from "@/components/review-dialog"
+import { useReviews } from "@/providers/reviews-provider"
+import { formatDistanceToNow, format } from 'date-fns'
 
 interface ReviewCardProps {
   review: Review
@@ -33,6 +35,8 @@ export function ReviewCard({
   const { content } = useLanguage()
   const [commentText, setCommentText] = useState('')
   const [comments, setComments] = useState<string[]>([])
+  const { handleLike, handleDislike } = useReviews()
+  const [localReview, setLocalReview] = useState(review)
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -78,6 +82,30 @@ export function ReviewCard({
     router.push(`/course/${review.courseId}?reviewId=${review.id}`)
   }
 
+  const onLike = async () => {
+    await handleLike(review.id, localReview.hasLiked, localReview.hasDisliked)
+    setLocalReview(prev => ({
+      ...prev,
+      likes: prev.hasLiked ? prev.likes - 1 : prev.likes + 1,
+      dislikes: prev.hasDisliked ? prev.dislikes - 1 : prev.dislikes,
+      hasLiked: !prev.hasLiked,
+      hasDisliked: false
+    }))
+    likeAction(review.id)
+  }
+
+  const onDislike = async () => {
+    await handleDislike(review.id, localReview.hasLiked, localReview.hasDisliked)
+    setLocalReview(prev => ({
+      ...prev,
+      dislikes: prev.hasDisliked ? prev.dislikes - 1 : prev.dislikes + 1,
+      likes: prev.hasLiked ? prev.likes - 1 : prev.likes,
+      hasDisliked: !prev.hasDisliked,
+      hasLiked: false
+    }))
+    dislikeAction(review.id)
+  }
+
   return (
     <>
       <Card className="p-4 mb-4">
@@ -114,25 +142,44 @@ export function ReviewCard({
             </Button>
           </div>
           <div className="flex-[2]">
-            <div className="flex items-center gap-2 mb-2">
-              <Avatar className="w-6 h-6">
-                <AvatarFallback>{review.userName[0]}</AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium">{review.userName}</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Avatar className="w-6 h-6">
+                  <AvatarFallback>{review.userName[0]}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium">{review.userName}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-sm text-muted-foreground block">
+                  {review.createdAt ? format(new Date(review.createdAt), 'MMM d, yyyy') : ''}
+                </span>
+              </div>
             </div>
             <p className="text-sm text-muted-foreground mb-4">{review.review}</p>
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => likeAction(review.id)}>
-                <ThumbsUp className="w-4 h-4 mr-2" />
-                {review.likes} {content.likes}
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLike();
+                }}
+                className={localReview.hasLiked ? "text-primary" : ""}
+              >
+                <ThumbsUp className={`w-4 h-4 mr-2 ${localReview.hasLiked ? "fill-primary" : ""}`} />
+                {localReview.likes} {content.likes}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => dislikeAction(review.id)}>
-                <ThumbsDown className="w-4 h-4 mr-2" />
-                {review.dislikes} {content.dislikes}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)}>
-                <MessageSquare className="w-4 h-4 mr-2" />
-                {review.comments?.length || 0} {content.comments}
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDislike();
+                }}
+                className={localReview.hasDisliked ? "text-primary" : ""}
+              >
+                <ThumbsDown className={`w-4 h-4 mr-2 ${localReview.hasDisliked ? "fill-primary" : ""}`} />
+                {localReview.dislikes} {content.dislikes}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => bookmarkAction(review.id)}>
                 <Bookmark className={`w-4 h-4 ${review.isBookmarked ? "fill-primary" : ""}`} />

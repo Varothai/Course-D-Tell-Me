@@ -58,7 +58,11 @@ export async function GET() {
     await connectMongoDB()
     console.log("Fetching reviews...")
     
-    const reviews = await Review.find().sort({ createdAt: -1 })
+    // Sort by createdAt in descending order (-1) to get newest first
+    const reviews = await Review.find()
+      .sort({ createdAt: -1 })
+      .exec()
+    
     console.log(`Found ${reviews.length} reviews`)
     
     const transformedReviews = reviews.map(review => review.toJSON())

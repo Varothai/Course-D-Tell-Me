@@ -25,6 +25,7 @@ export function ReviewProvider({ children }: { children: React.ReactNode }) {
         dislikes: 0,
         comments: [],
         isBookmarked: false,
+        createdAt: new Date(),
       } as Review,
       ...prev,
     ])

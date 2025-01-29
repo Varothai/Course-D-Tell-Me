@@ -9,6 +9,8 @@ import { Star, ThumbsUp, ThumbsDown, MessageSquare, Bookmark } from "lucide-reac
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { ReviewDialog } from "@/components/review-dialog"
+import { useReviews } from "@/providers/reviews-provider"
+import { formatDistanceToNow, format } from 'date-fns'
 
 interface ReviewWithUserInteraction extends Review {
   hasLiked?: boolean;
@@ -23,6 +25,7 @@ export default function FacultyReviewsPage() {
   const [selectedReview, setSelectedReview] = useState<Review | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const faculty = params?.faculty ? decodeURIComponent(params.faculty as string) : ''
+  const { handleLike, handleDislike } = useReviews()
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -36,7 +39,11 @@ export default function FacultyReviewsPage() {
         
         const data = await response.json()
         if (data.success) {
-          setReviews(data.reviews)
+          // Sort reviews by date, newest first
+          const sortedReviews = data.reviews.sort((a: Review, b: Review) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          )
+          setReviews(sortedReviews)
         } else {
           throw new Error(data.error || 'Failed to fetch reviews')
         }
@@ -55,88 +62,40 @@ export default function FacultyReviewsPage() {
     setIsDialogOpen(true)
   }
 
-  const handleLike = async (reviewId: string) => {
-    try {
-      const review = reviews.find(r => r.id === reviewId);
-      if (!review) return;
+  const handleLikeClick = async (reviewId: string) => {
+    const review = reviews.find(r => r.id === reviewId);
+    if (!review) return;
 
-      // If already liked, return
-      if (review.hasLiked) return;
-
-      const response = await fetch('/api/reviews', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          reviewId, 
-          action: review.hasDisliked ? 'undislike-and-like' : 'like' 
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to like review');
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setReviews(reviews.map(review => 
-          review.id === reviewId 
-            ? {
-                ...review,
-                likes: review.likes + 1,
-                dislikes: review.hasDisliked ? review.dislikes - 1 : review.dislikes,
-                hasLiked: true,
-                hasDisliked: false
-              }
-            : review
-        ));
-      }
-    } catch (error) {
-      console.error('Error liking review:', error);
-    }
+    await handleLike(reviewId, review.hasLiked, review.hasDisliked);
+    setReviews(reviews.map(review => 
+      review.id === reviewId 
+        ? {
+            ...review,
+            likes: review.hasLiked ? review.likes - 1 : review.likes + 1,
+            dislikes: review.hasDisliked ? review.dislikes - 1 : review.dislikes,
+            hasLiked: !review.hasLiked,
+            hasDisliked: false
+          }
+        : review
+    ));
   };
 
-  const handleDislike = async (reviewId: string) => {
-    try {
-      const review = reviews.find(r => r.id === reviewId);
-      if (!review) return;
+  const handleDislikeClick = async (reviewId: string) => {
+    const review = reviews.find(r => r.id === reviewId);
+    if (!review) return;
 
-      // If already disliked, return
-      if (review.hasDisliked) return;
-
-      const response = await fetch('/api/reviews', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          reviewId, 
-          action: review.hasLiked ? 'unlike-and-dislike' : 'dislike' 
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to dislike review');
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setReviews(reviews.map(review => 
-          review.id === reviewId 
-            ? {
-                ...review,
-                dislikes: review.dislikes + 1,
-                likes: review.hasLiked ? review.likes - 1 : review.likes,
-                hasDisliked: true,
-                hasLiked: false
-              }
-            : review
-        ));
-      }
-    } catch (error) {
-      console.error('Error disliking review:', error);
-    }
+    await handleDislike(reviewId, review.hasLiked, review.hasDisliked);
+    setReviews(reviews.map(review => 
+      review.id === reviewId 
+        ? {
+            ...review,
+            dislikes: review.hasDisliked ? review.dislikes - 1 : review.dislikes + 1,
+            likes: review.hasLiked ? review.likes - 1 : review.likes,
+            hasDisliked: !review.hasDisliked,
+            hasLiked: false
+          }
+        : review
+    ));
   };
 
   if (loading) {
@@ -173,11 +132,21 @@ export default function FacultyReviewsPage() {
                     </div>
                   </div>
                   <div className="flex-[2]">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Avatar className="w-6 h-6">
-                        <AvatarFallback>{review.userName[0]}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium">{review.userName}</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-6 h-6">
+                          <AvatarFallback>{review.userName[0]}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">{review.userName}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm text-muted-foreground block">
+                          {format(new Date(review.createdAt), 'MMM d, yyyy')}
+                        </span>
+                        <span className="text-xs text-muted-foreground block">
+                          {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-sm text-muted-foreground mb-4">{review.review}</p>
                     <div className="flex items-center gap-4">
@@ -186,7 +155,7 @@ export default function FacultyReviewsPage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleLike(review.id);
+                          handleLikeClick(review.id);
                         }}
                         className={review.hasLiked ? "text-primary" : ""}
                       >
@@ -198,7 +167,7 @@ export default function FacultyReviewsPage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDislike(review.id);
+                          handleDislikeClick(review.id);
                         }}
                         className={review.hasDisliked ? "text-primary" : ""}
                       >

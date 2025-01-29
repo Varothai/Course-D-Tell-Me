@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/providers/theme-provider"
 import { LanguageProvider } from "@/providers/language-provider"
 import { NavBar } from "@/components/nav-bar"
 import { ReviewProvider } from "@/providers/review-provider"
+import { ReviewsProvider } from "@/providers/reviews-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,8 +25,10 @@ export default function RootLayout({
         <ThemeProvider>
           <LanguageProvider>
             <ReviewProvider>
-              <NavBar />
-              {children}
+              <ReviewsProvider>
+                <NavBar />
+                {children}
+              </ReviewsProvider>
             </ReviewProvider>
           </LanguageProvider>
         </ThemeProvider>
