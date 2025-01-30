@@ -92,9 +92,9 @@ export default function QAPage() {
         />
 
         {/* Questions List */}
-        <div className="space-y-6">
+        <div className="space-y-6 bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-8">
           {qas.map((qa) => (
-            <div key={qa.id} className="transform hover:scale-[1.01] transition-all duration-300">
+            <div key={qa.id} className="transition-all duration-300">
               <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800">
                 <div className="p-6">
                   {/* User Info */}

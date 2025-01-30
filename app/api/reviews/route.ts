@@ -1,10 +1,18 @@
 import { connectMongoDB } from "@/lib/mongodb"
 import { Review } from "@/models/review"
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "../auth/[...nextauth]/route"
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions)
+  
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
-    const review = await request.json()
+    const review = await req.json()
     console.log("Received review data:", review)
 
     await connectMongoDB()

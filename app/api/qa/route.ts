@@ -1,10 +1,18 @@
 import { connectMongoDB } from "@/lib/mongodb"
 import { Question } from "@/models/qa"
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
+  const session = await getServerSession(authOptions)
+  
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   try {
-    const { question, userName } = await request.json()
+    const { question, userName } = await req.json()
     await connectMongoDB()
     
     const qa = await Question.create({

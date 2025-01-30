@@ -20,6 +20,9 @@ import { Review } from "@/types/review"
 import { facultyMajors } from "@/locales/content"
 import Papa from "papaparse"
 import Autosuggest from "react-autosuggest"
+import { useProtectedAction } from '@/hooks/use-protected-action'
+import { useSession } from "next-auth/react"
+import { useAuth } from "@/contexts/auth-context"
 
 interface ReviewFormProps {
   courseId: string
@@ -73,6 +76,20 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
   const [availableMajors, setAvailableMajors] = useState<Array<{value: string, label: string}>>([])
   const [courses, setCourses] = useState<Array<{ courseno: string; title_short_en: string }>>([])
   const [suggestions, setSuggestions] = useState<Array<{ courseno: string; title_short_en: string }>>([])
+  const handleProtectedAction = useProtectedAction()
+  const { data: session } = useSession()
+  const { setShowAuthModal } = useAuth()
+
+  useEffect(() => {
+    if (!session) {
+      setShowAuthModal(true)
+      onClose?.()
+    }
+  }, [session, setShowAuthModal, onClose])
+
+  if (!session) {
+    return null
+  }
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -172,41 +189,44 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
     setFormData({ ...formData, major: value, customMajor: value === "Others" ? formData.customMajor : "" })
   }
 
-  const handleSubmit = async () => {
-    try {
-      const review = {
-        courseId: formData.courseNo,
-        courseName: formData.courseName,
-        userName: "User",
-        rating,
-        review: formData.review,
-        faculty: formData.faculty,
-        major: formData.major === "Others" ? formData.customMajor : formData.major,
-        studyPlan: formData.studyPlan,
-        section: formData.section,
-        readingAmount: formData.readingAmount,
-        contentDifficulty: formData.contentDifficulty,
-        teachingQuality: formData.teachingQuality,
-        programType: formData.studyPlan,
-        electiveType: formData.electiveType,
-      }
-      
-      const response = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(review),
-      })
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    handleProtectedAction(async () => {
+      try {
+        const review = {
+          courseId: formData.courseNo,
+          courseName: formData.courseName,
+          userName: "User",
+          rating,
+          review: formData.review,
+          faculty: formData.faculty,
+          major: formData.major === "Others" ? formData.customMajor : formData.major,
+          studyPlan: formData.studyPlan,
+          section: formData.section,
+          readingAmount: formData.readingAmount,
+          contentDifficulty: formData.contentDifficulty,
+          teachingQuality: formData.teachingQuality,
+          programType: formData.studyPlan,
+          electiveType: formData.electiveType,
+        }
+        
+        const response = await fetch('/api/reviews', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(review),
+        })
 
-      if (response.ok) {
-        addReview(review)
-        action(review)
-        onClose?.()
+        if (response.ok) {
+          addReview(review)
+          action(review)
+          onClose?.()
+        }
+      } catch (error) {
+        console.error('Error submitting review:', error)
       }
-    } catch (error) {
-      console.error('Error submitting review:', error)
-    }
+    })
   }
 
   return (

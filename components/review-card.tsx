@@ -12,6 +12,7 @@ import { useLanguage } from "@/providers/language-provider"
 import { ReviewDialog } from "@/components/review-dialog"
 import { useReviews } from "@/providers/reviews-provider"
 import { formatDistanceToNow, format } from 'date-fns'
+import { useProtectedAction } from '@/hooks/use-protected-action'
 
 interface ReviewCardProps {
   review: Review
@@ -40,6 +41,7 @@ export function ReviewCard({
   const [isTranslated, setIsTranslated] = useState(false)
   const [translatedText, setTranslatedText] = useState("")
   const [isTranslating, setIsTranslating] = useState(false)
+  const handleProtectedAction = useProtectedAction()
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -73,11 +75,13 @@ export function ReviewCard({
   }
 
   const handleAddComment = async () => {
-    if (commentText.trim() === '') return
+    handleProtectedAction(async () => {
+      if (commentText.trim() === '') return
 
-    await commentAction(review.id, commentText)
-    setComments([...comments, commentText])
-    setCommentText('')
+      await commentAction(review.id, commentText)
+      setComments([...comments, commentText])
+      setCommentText('')
+    })
   }
 
   const handleViewInCourse = (e: React.MouseEvent) => {
@@ -86,27 +90,31 @@ export function ReviewCard({
   }
 
   const onLike = async () => {
-    await handleLike(review.id, localReview.hasLiked, localReview.hasDisliked)
-    setLocalReview(prev => ({
-      ...prev,
-      likes: prev.hasLiked ? prev.likes - 1 : prev.likes + 1,
-      dislikes: prev.hasDisliked ? prev.dislikes - 1 : prev.dislikes,
-      hasLiked: !prev.hasLiked,
-      hasDisliked: false
-    }))
-    likeAction(review.id)
+    handleProtectedAction(async () => {
+      await handleLike(review.id, localReview.hasLiked, localReview.hasDisliked)
+      setLocalReview(prev => ({
+        ...prev,
+        likes: prev.hasLiked ? prev.likes - 1 : prev.likes + 1,
+        dislikes: prev.hasDisliked ? prev.dislikes - 1 : prev.dislikes,
+        hasLiked: !prev.hasLiked,
+        hasDisliked: false
+      }))
+      likeAction(review.id)
+    })
   }
 
   const onDislike = async () => {
-    await handleDislike(review.id, localReview.hasLiked, localReview.hasDisliked)
-    setLocalReview(prev => ({
-      ...prev,
-      dislikes: prev.hasDisliked ? prev.dislikes - 1 : prev.dislikes + 1,
-      likes: prev.hasLiked ? prev.likes - 1 : prev.likes,
-      hasDisliked: !prev.hasDisliked,
-      hasLiked: false
-    }))
-    dislikeAction(review.id)
+    handleProtectedAction(async () => {
+      await handleDislike(review.id, localReview.hasLiked, localReview.hasDisliked)
+      setLocalReview(prev => ({
+        ...prev,
+        dislikes: prev.hasDisliked ? prev.dislikes - 1 : prev.dislikes + 1,
+        likes: prev.hasLiked ? prev.likes - 1 : prev.likes,
+        hasDisliked: !prev.hasDisliked,
+        hasLiked: false
+      }))
+      dislikeAction(review.id)
+    })
   }
 
   const handleTranslate = async () => {
@@ -144,6 +152,13 @@ export function ReviewCard({
     } finally {
       setIsTranslating(false)
     }
+  }
+
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    handleProtectedAction(() => {
+      bookmarkAction(review.id)
+    })
   }
 
   return (
@@ -199,10 +214,7 @@ export function ReviewCard({
                     variant="ghost" 
                     size="icon"
                     className="rounded-full w-8 h-8 hover:bg-purple-50 dark:hover:bg-purple-900/30"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      bookmarkAction(review.id)
-                    }}
+                    onClick={handleBookmark}
                   >
                     <Bookmark className={`w-4 h-4 transition-colors duration-300 ${review.isBookmarked ? "fill-purple-500 text-purple-500" : ""}`} />
                   </Button>
