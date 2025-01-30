@@ -5,11 +5,17 @@ export function useProtectedAction() {
   const { setShowAuthModal } = useAuth()
   const { data: session } = useSession()
 
-  const handleProtectedAction = (callback: () => void) => {
+  const handleProtectedAction = (callback: () => void, requireCMU = false) => {
     if (!session) {
       setShowAuthModal(true)
       return
     }
+
+    if (requireCMU && session.user.provider !== 'cmu') {
+      alert('This feature is only available for CMU users')
+      return
+    }
+
     callback()
   }
 

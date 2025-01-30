@@ -226,7 +226,7 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
       } catch (error) {
         console.error('Error submitting review:', error)
       }
-    })
+    }, true)
   }
 
   return (

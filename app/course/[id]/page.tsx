@@ -8,6 +8,9 @@ import { GradeChart } from "@/components/grade-chart"
 import { ReviewCard } from "@/components/review-card"
 import { useLanguage } from "@/providers/language-provider"
 import type { Review } from "@/types/review"
+import { useSession } from "next-auth/react"
+import { Button } from "@/components/ui/button"
+import { ReviewForm } from "@/components/review-form"
 
 export default function CoursePage() {
   const params = useParams<{ id: string }>()
@@ -17,6 +20,9 @@ export default function CoursePage() {
   const [ratingData, setRatingData] = useState<Record<number, number>>({})
   const [gradeData, setGradeData] = useState<Record<string, number>>({})
   const [courseName, setCourseName] = useState("")
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const { data: session } = useSession()
+  const isCMUUser = session?.user?.provider === 'cmu'
 
   useEffect(() => {
     const fetchCourseAndReviews = async () => {
@@ -100,6 +106,26 @@ export default function CoursePage() {
           />
         ))}
       </div>
+
+      {isCMUUser && (
+        <>
+          <Button onClick={() => setShowReviewForm(true)}>
+            {content.writeReview}
+          </Button>
+
+          {showReviewForm && (
+            <ReviewForm
+              courseId={courseId}
+              courseName={courseName}
+              action={(review) => {
+                setReviews([...reviews, review])
+                setShowReviewForm(false)
+              }}
+              onClose={() => setShowReviewForm(false)}
+            />
+          )}
+        </>
+      )}
     </div>
   )
 } 
