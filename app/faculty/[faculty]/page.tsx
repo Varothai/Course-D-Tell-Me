@@ -141,10 +141,7 @@ export default function FacultyReviewsPage() {
                       </div>
                       <div className="text-right">
                         <span className="text-sm text-muted-foreground block">
-                          {format(new Date(review.createdAt), 'MMM d, yyyy')}
-                        </span>
-                        <span className="text-xs text-muted-foreground block">
-                          {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
+                        {review.timestamp ? format(new Date(review.timestamp), 'MMM d, yyyy') : ''}
                         </span>
                       </div>
                     </div>

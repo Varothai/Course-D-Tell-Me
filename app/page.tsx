@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Moon, Sun, Search } from 'lucide-react'
+import { Moon, Sun, Search, GraduationCap, BookOpen } from 'lucide-react'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -385,66 +385,91 @@ export default function Home() {
           </div>
 
           {/* Filters with updated styling */}
-          <div className="space-y-8 bg-white/80 dark:bg-gray-800/80 rounded-2xl p-6 backdrop-blur-sm shadow-lg">
+          <div className="space-y-6 bg-white/80 dark:bg-gray-800/80 rounded-2xl p-6 backdrop-blur-sm shadow-lg">
             {/* Program Types Filter */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-purple-700 dark:text-purple-300">
-                {content.programTypes}
-              </h3>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="relative w-8 h-8">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-75 blur" />
+                  <div className="relative bg-white dark:bg-gray-800 rounded-full p-1.5">
+                    <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  {content.programTypes}
+                </h3>
+              </div>
               <RadioGroup
                 value={selectedProgram}
                 onValueChange={setSelectedProgram}
-                className="flex flex-wrap gap-4"
+                className="grid grid-cols-2 md:grid-cols-3 gap-2"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="all" id="all" />
-                  <Label htmlFor="all">All</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="normal" id="normal" />
-                  <Label htmlFor="normal">{content.normalProgram}</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="special" id="special" />
-                  <Label htmlFor="special">{content.specialProgram}</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="international" id="international" />
-                  <Label htmlFor="international">{content.internationalProgram}</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="bilingual" id="bilingual" />
-                  <Label htmlFor="bilingual">{content.bilingualProgram}</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="trilingual" id="trilingual" />
-                  <Label htmlFor="trilingual">{content.trilingualProgram}</Label>
-                </div>
+                {[
+                  { value: "all", label: "All" },
+                  { value: "normal", label: content.normalProgram },
+                  { value: "special", label: content.specialProgram },
+                  { value: "international", label: content.internationalProgram },
+                  { value: "bilingual", label: content.bilingualProgram },
+                  { value: "trilingual", label: content.trilingualProgram }
+                ].map((program) => (
+                  <div key={program.value} className="relative">
+                    <RadioGroupItem
+                      value={program.value}
+                      id={program.value}
+                      className="peer sr-only"
+                    />
+                    <Label
+                      htmlFor={program.value}
+                      className="flex items-center justify-center px-3 py-2 rounded-lg border-2 border-purple-100 dark:border-purple-800 bg-white/50 dark:bg-gray-800/50 cursor-pointer transition-all duration-300 hover:border-purple-300 dark:hover:border-purple-600 peer-data-[state=checked]:border-purple-500 dark:peer-data-[state=checked]:border-purple-400 peer-data-[state=checked]:bg-gradient-to-r peer-data-[state=checked]:from-purple-50 peer-data-[state=checked]:to-pink-50 dark:peer-data-[state=checked]:from-purple-900/20 dark:peer-data-[state=checked]:to-pink-900/20"
+                    >
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 peer-data-[state=checked]:text-purple-700 dark:peer-data-[state=checked]:text-purple-300">
+                        {program.label}
+                      </span>
+                    </Label>
+                  </div>
+                ))}
               </RadioGroup>
             </div>
 
             {/* Elective Types Filter */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-purple-700 dark:text-purple-300">
-                {content.electiveTypes}
-              </h3>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="relative w-8 h-8">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-75 blur" />
+                  <div className="relative bg-white dark:bg-gray-800 rounded-full p-1.5">
+                    <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  {content.electiveTypes}
+                </h3>
+              </div>
               <RadioGroup
                 value={selectedElective}
                 onValueChange={setSelectedElective}
-                className="flex flex-wrap gap-4"
+                className="grid grid-cols-3 gap-2"
               >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="all" id="all-elective" />
-                  <Label htmlFor="all-elective">All</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="free" id="free" />
-                  <Label htmlFor="free">{content.freeElective}</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="general" id="general" />
-                  <Label htmlFor="general">{content.generalElective}</Label>
-                </div>
+                {[
+                  { value: "all", label: "All" },
+                  { value: "free", label: content.freeElective },
+                  { value: "general", label: content.generalElective }
+                ].map((elective) => (
+                  <div key={elective.value} className="relative">
+                    <RadioGroupItem
+                      value={elective.value}
+                      id={`${elective.value}-elective`}
+                      className="peer sr-only"
+                    />
+                    <Label
+                      htmlFor={`${elective.value}-elective`}
+                      className="flex items-center justify-center px-3 py-2 rounded-lg border-2 border-purple-100 dark:border-purple-800 bg-white/50 dark:bg-gray-800/50 cursor-pointer transition-all duration-300 hover:border-purple-300 dark:hover:border-purple-600 peer-data-[state=checked]:border-purple-500 dark:peer-data-[state=checked]:border-purple-400 peer-data-[state=checked]:bg-gradient-to-r peer-data-[state=checked]:from-purple-50 peer-data-[state=checked]:to-pink-50 dark:peer-data-[state=checked]:from-purple-900/20 dark:peer-data-[state=checked]:to-pink-900/20"
+                    >
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 peer-data-[state=checked]:text-purple-700 dark:peer-data-[state=checked]:text-purple-300">
+                        {elective.label}
+                      </span>
+                    </Label>
+                  </div>
+                ))}
               </RadioGroup>
             </div>
           </div>
@@ -457,7 +482,7 @@ export default function Home() {
           </h3>
           <div className="space-y-6">
             {filteredReviews.map((review) => (
-              <div key={review.id} className="transform hover:scale-[1.02] transition-all duration-300">
+              <div key={review.id} className="transition-all duration-300">
                 <ReviewCard 
                   review={review}
                   likeAction={handleLike}

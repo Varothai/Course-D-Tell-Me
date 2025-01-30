@@ -401,7 +401,7 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-1">
           <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 backdrop-blur-sm">
             <Label className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-4 block">
               {content.homeworkAmount}

@@ -22,6 +22,7 @@ export interface Course {
 }
 
 export interface Review {
+  createdAt: string | number | Date
   id: string
   courseId: string
   courseName: string
@@ -43,7 +44,8 @@ export interface Review {
   teachingQuality?: number
   programType?: string
   electiveType?: string
-  createdAt: string | Date
+  // createdAt: Date
+  timestamp?: string
 }
 
 export interface LocaleContent {

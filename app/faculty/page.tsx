@@ -33,7 +33,7 @@ export default function FacultyPage() {
               <Link 
                 key={faculty.value} 
                 href={`/faculty/${encodeURIComponent(faculty.value)}`}
-                className="transform hover:scale-[1.02] transition-all duration-300"
+                className="transition-all duration-300"
               >
                 <Card className="group relative overflow-hidden bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800">
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-pink-500/0 to-purple-500/0 group-hover:from-purple-500/10 group-hover:via-pink-500/10 group-hover:to-purple-500/10 transition-all duration-500" />

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google-cloud/translate": "^8.5.0",
     "@hookform/resolvers": "^3.9.1",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.4",
@@ -45,6 +46,7 @@
     "csv-parser": "^3.1.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "8.5.1",
+    "google-translate-api-browser": "^5.0.0",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
     "mongodb": "^6.12.0",
@@ -63,6 +65,7 @@
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "translate-google": "^1.5.0",
     "vaul": "^0.9.6",
     "xlsx": "^0.18.5",
     "zod": "^3.24.1"
