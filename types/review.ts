@@ -29,12 +29,6 @@ export interface Review {
   userName: string
   rating: number
   review: string
-  likes: number
-  dislikes: number
-  comments?: string[]
-  isBookmarked?: boolean
-  hasLiked?: boolean
-  hasDisliked?: boolean
   faculty?: string
   major?: string
   studyPlan?: string
@@ -46,6 +40,12 @@ export interface Review {
   electiveType?: string
   // createdAt: Date
   timestamp?: string
+  likes: number
+  dislikes: number
+  hasLiked?: boolean
+  hasDisliked?: boolean
+  isBookmarked?: boolean
+  comments?: string[]
 }
 
 export interface LocaleContent {
@@ -61,10 +61,7 @@ export interface LocaleContent {
   ratingDistribution: string
   gradeDistribution: string
   reviews: string
-  likes: string
-  dislikes: string
-  comments: string
-  addComment: string
+  
   post: string
   ratingStar: string
   courseNo: string
@@ -84,6 +81,7 @@ export interface LocaleContent {
   answer: string
   writeQA: string
   comment: string
+  addComment: string
   writing: string
   programTypes: string
   electiveTypes: string
@@ -110,6 +108,9 @@ export interface LocaleContent {
   majorSelection: {
     placeholder: string
   }
+  likes: string
+  dislikes: string
+  comments: string
 }
 
 export interface MajorSelection {

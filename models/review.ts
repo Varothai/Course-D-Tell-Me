@@ -17,10 +17,6 @@ const reviewSchema = new mongoose.Schema({
   teachingQuality: { type: Number, required: true },
   grade: { type: String },
   customMajor: { type: String },
-  likes: { type: Number, default: 0 },
-  dislikes: { type: Number, default: 0 },
-  comments: { type: [String], default: [] },
-  isBookmarked: { type: Boolean, default: false },
   timestamp: { type: Date, default: Date.now }
 }, { timestamps: true })
 
@@ -52,10 +48,6 @@ export interface IReview {
   readingAmount: number;
   contentDifficulty: number;
   teachingQuality: number;
-  likes: number;
-  dislikes: number;
-  comments: string[];
-  isBookmarked: boolean;
   timestamp: Date;
 }
 

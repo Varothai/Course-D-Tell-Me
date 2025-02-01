@@ -21,10 +21,6 @@ export function ReviewProvider({ children }: { children: React.ReactNode }) {
       {
         ...reviewData,
         id: Math.random().toString(36).substr(2, 9),
-        likes: 0,
-        dislikes: 0,
-        comments: [],
-        isBookmarked: false,
         createdAt: new Date(),
       } as Review,
       ...prev,

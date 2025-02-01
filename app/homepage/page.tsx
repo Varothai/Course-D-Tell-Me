@@ -23,40 +23,12 @@ import { useReviews } from "@/providers/review-provider"
 import type { Review } from "@/types/review"
 import Autosuggest from "react-autosuggest"
 import Papa from "papaparse"
+import { useSession } from "next-auth/react"
 
 interface ReviewWithUserInteraction extends Review {
   hasLiked?: boolean;
   hasDisliked?: boolean;
 }
-
-// Mock data for reviews
-const mockReviews = [
-  {
-    id: "1",
-    courseId: "261411",
-    courseName: "SOFTWARE ENGINEERING",
-    rating: 4,
-    userName: "USER 1",
-    review: "Great course with practical applications. The professor explains concepts clearly and provides good examples.",
-    likes: 10,
-    dislikes: 2,
-    comments: ["Great review!", "I agree, very helpful course."],
-    isBookmarked: false,
-  },
-  {
-    id: "2",
-    courseId: "271001",
-    courseName: "GENERAL PHYSICS",
-    rating: 3,
-    userName: "USER 2",
-    review: "Challenging but interesting. The labs help understand theoretical concepts better.",
-    likes: 5,
-    dislikes: 1,
-    comments: ["Thanks for sharing your experience."],
-    isBookmarked: true,
-  },
-  // Add more mock reviews as needed
-]
 
 export default function Home() {
   const { theme, toggleTheme } = useTheme()
@@ -74,6 +46,7 @@ export default function Home() {
   const [courses, setCourses] = useState<Array<{ courseno: string; title_short_en: string }>>([])
   const [suggestions, setSuggestions] = useState<Array<{ courseno: string; title_short_en: string }>>([])
   const [selectedCourse, setSelectedCourse] = useState<{ courseno: string; title_short_en: string } | null>(null)
+  const { data: session } = useSession()
 
   // Fetch reviews when component mounts
   useEffect(() => {
@@ -261,6 +234,10 @@ export default function Home() {
       return review.electiveType === selectedElective;
     });
 
+  const isGoogleUser = () => {
+    return session?.user?.provider === 'google'
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
@@ -331,26 +308,28 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Write Review Button with updated styling */}
+        {/* Write Review Button with Auth Check */}
         <div className="flex justify-end mb-6">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 rounded-full px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                {content.writeReview}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <ReviewForm 
-                courseId=""
-                courseName=""
-                action={handleNewReview}
-                onClose={() => {
-                  const closeButton = document.querySelector('[aria-label="Close"]') as HTMLButtonElement
-                  closeButton?.click()
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+          {!isGoogleUser() && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 rounded-full px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                  {content.writeReview}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <ReviewForm 
+                  courseId=""
+                  courseName=""
+                  action={handleNewReview}
+                  onClose={() => {
+                    const closeButton = document.querySelector('[aria-label="Close"]') as HTMLButtonElement
+                    closeButton?.click()
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         {/* Search bar with updated styling */}
@@ -384,7 +363,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Filters with updated styling */}
+          {/* Filters */}
           <div className="space-y-6 bg-white/80 dark:bg-gray-800/80 rounded-2xl p-6 backdrop-blur-sm shadow-lg">
             {/* Program Types Filter */}
             <div>

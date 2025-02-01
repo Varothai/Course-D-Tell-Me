@@ -24,14 +24,13 @@ export function NavBar() {
   const pathname = usePathname()
   const { content } = useLanguage()
   const { data: session } = useSession()
-  const isCMUUser = session?.user?.provider === 'cmu'
   
   const routes = [
     {
-      href: "/",
+      href: "/homepage",
       label: "Home",
       icon: Home,
-      active: pathname === "/",
+      active: pathname === "/homepage",
     },
     {
       href: "/qa",
@@ -121,16 +120,14 @@ export function NavBar() {
                     </DropdownMenuItem>
                   </Link>
                 )}
-                {session && isCMUUser && (
-                  <Link href="/history">
-                    <DropdownMenuItem className="hover:bg-purple-50 dark:hover:bg-purple-900/30 cursor-pointer transition-colors duration-300">
-                      {content.history}
-                    </DropdownMenuItem>
-                  </Link>
-                )}
                 <Link href="/bookmarks">
                   <DropdownMenuItem className="hover:bg-purple-50 dark:hover:bg-purple-900/30 cursor-pointer transition-colors duration-300">
                     {content.bookmarks}
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/history">
+                  <DropdownMenuItem className="hover:bg-purple-50 dark:hover:bg-purple-900/30 cursor-pointer transition-colors duration-300">
+                    {content.history}
                   </DropdownMenuItem>
                 </Link>
                 {session && (

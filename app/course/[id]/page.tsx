@@ -10,7 +10,6 @@ import { useLanguage } from "@/providers/language-provider"
 import type { Review } from "@/types/review"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { ReviewForm } from "@/components/review-form"
 
 export default function CoursePage() {
   const params = useParams<{ id: string }>()
@@ -20,7 +19,6 @@ export default function CoursePage() {
   const [ratingData, setRatingData] = useState<Record<number, number>>({})
   const [gradeData, setGradeData] = useState<Record<string, number>>({})
   const [courseName, setCourseName] = useState("")
-  const [showReviewForm, setShowReviewForm] = useState(false)
   const { data: session } = useSession()
   const isCMUUser = session?.user?.provider === 'cmu'
 
@@ -74,6 +72,10 @@ export default function CoursePage() {
     }
   }, [courseId])
 
+  function setShowReviewForm(arg0: boolean): void {
+    throw new Error("Function not implemented.")
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <Card className="p-6 mb-8">
@@ -98,33 +100,23 @@ export default function CoursePage() {
         {reviews.map((review) => (
           <ReviewCard
             key={review.id}
-            review={review}
-            likeAction={async (id) => {/* implement like action */}}
-            dislikeAction={async (id) => {/* implement dislike action */}}
-            commentAction={async (id, comment) => {/* implement comment action */}}
-            bookmarkAction={async (id) => {/* implement bookmark action */}}
+            review={review} likeAction={function (id: string): void {
+              throw new Error("Function not implemented.")
+            } } dislikeAction={function (id: string): void {
+              throw new Error("Function not implemented.")
+            } } commentAction={function (id: string, comment: string): void {
+              throw new Error("Function not implemented.")
+            } } bookmarkAction={function (id: string): void {
+              throw new Error("Function not implemented.")
+            } }            
           />
         ))}
       </div>
 
       {isCMUUser && (
-        <>
-          <Button onClick={() => setShowReviewForm(true)}>
-            {content.writeReview}
-          </Button>
-
-          {showReviewForm && (
-            <ReviewForm
-              courseId={courseId}
-              courseName={courseName}
-              action={(review) => {
-                setReviews([...reviews, review])
-                setShowReviewForm(false)
-              }}
-              onClose={() => setShowReviewForm(false)}
-            />
-          )}
-        </>
+        <Button onClick={() => setShowReviewForm(true)}>
+          {content.writeReview}
+        </Button>
       )}
     </div>
   )
