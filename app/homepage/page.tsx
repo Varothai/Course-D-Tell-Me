@@ -363,93 +363,115 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="space-y-6 bg-white/80 dark:bg-gray-800/80 rounded-2xl p-6 backdrop-blur-sm shadow-lg">
+          {/* Filters Section */}
+          <div className="flex flex-wrap gap-4 bg-white/80 dark:bg-gray-800/80 rounded-2xl p-4 backdrop-blur-sm shadow-lg">
             {/* Program Types Filter */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="relative w-8 h-8">
+            <div className="flex-1 min-w-[280px]">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="relative w-6 h-6">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-75 blur" />
-                  <div className="relative bg-white dark:bg-gray-800 rounded-full p-1.5">
-                    <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                  <div className="relative bg-white dark:bg-gray-800 rounded-full p-1">
+                    <GraduationCap className="w-4 h-4 text-purple-600 dark:text-purple-300" />
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <h3 className="text-sm font-medium text-purple-700 dark:text-purple-300">
                   {content.programTypes}
                 </h3>
               </div>
-              <RadioGroup
-                value={selectedProgram}
-                onValueChange={setSelectedProgram}
-                className="grid grid-cols-2 md:grid-cols-3 gap-2"
-              >
-                {[
-                  { value: "all", label: "All" },
-                  { value: "normal", label: content.normalProgram },
-                  { value: "special", label: content.specialProgram },
-                  { value: "international", label: content.internationalProgram },
-                  { value: "bilingual", label: content.bilingualProgram },
-                  { value: "trilingual", label: content.trilingualProgram }
-                ].map((program) => (
-                  <div key={program.value} className="relative">
-                    <RadioGroupItem
-                      value={program.value}
-                      id={program.value}
-                      className="peer sr-only"
-                    />
-                    <Label
-                      htmlFor={program.value}
-                      className="flex items-center justify-center px-3 py-2 rounded-lg border-2 border-purple-100 dark:border-purple-800 bg-white/50 dark:bg-gray-800/50 cursor-pointer transition-all duration-300 hover:border-purple-300 dark:hover:border-purple-600 peer-data-[state=checked]:border-purple-500 dark:peer-data-[state=checked]:border-purple-400 peer-data-[state=checked]:bg-gradient-to-r peer-data-[state=checked]:from-purple-50 peer-data-[state=checked]:to-pink-50 dark:peer-data-[state=checked]:from-purple-900/20 dark:peer-data-[state=checked]:to-pink-900/20"
-                    >
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 peer-data-[state=checked]:text-purple-700 dark:peer-data-[state=checked]:text-purple-300">
-                        {program.label}
-                      </span>
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={selectedProgram === 'all' ? 'default' : 'outline'}
+                  className="rounded-full text-xs"
+                  onClick={() => setSelectedProgram('all')}
+                >
+                  All
+                </Button>
+                <Button
+                  size="sm"
+                  variant={selectedProgram === 'normal' ? 'default' : 'outline'}
+                  className="rounded-full text-xs"
+                  onClick={() => setSelectedProgram('normal')}
+                >
+                  {content.normalProgram}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={selectedProgram === 'special' ? 'default' : 'outline'}
+                  className="rounded-full text-xs"
+                  onClick={() => setSelectedProgram('special')}
+                >
+                  {content.specialProgram}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={selectedProgram === 'international' ? 'default' : 'outline'}
+                  className="rounded-full text-xs"
+                  onClick={() => setSelectedProgram('international')}
+                >
+                  {content.internationalProgram}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={selectedProgram === 'bilingual' ? 'default' : 'outline'}
+                  className="rounded-full text-xs"
+                  onClick={() => setSelectedProgram('bilingual')}
+                >
+                  {content.bilingualProgram}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={selectedProgram === 'trilingual' ? 'default' : 'outline'}
+                  className="rounded-full text-xs"
+                  onClick={() => setSelectedProgram('trilingual')}
+                >
+                  {content.trilingualProgram}
+                </Button>
+              </div>
             </div>
 
+            {/* Vertical Divider */}
+            <div className="hidden md:block w-px bg-gray-200 dark:bg-gray-700 self-stretch mx-2" />
+
             {/* Elective Types Filter */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="relative w-8 h-8">
+            <div className="flex-1 min-w-[280px]">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="relative w-6 h-6">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-75 blur" />
-                  <div className="relative bg-white dark:bg-gray-800 rounded-full p-1.5">
-                    <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                  <div className="relative bg-white dark:bg-gray-800 rounded-full p-1">
+                    <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-300" />
                   </div>
                 </div>
-                <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <h3 className="text-sm font-medium text-purple-700 dark:text-purple-300">
                   {content.electiveTypes}
                 </h3>
               </div>
-              <RadioGroup
-                value={selectedElective}
-                onValueChange={setSelectedElective}
-                className="grid grid-cols-3 gap-2"
-              >
-                {[
-                  { value: "all", label: "All" },
-                  { value: "free", label: content.freeElective },
-                  { value: "general", label: content.generalElective }
-                ].map((elective) => (
-                  <div key={elective.value} className="relative">
-                    <RadioGroupItem
-                      value={elective.value}
-                      id={`${elective.value}-elective`}
-                      className="peer sr-only"
-                    />
-                    <Label
-                      htmlFor={`${elective.value}-elective`}
-                      className="flex items-center justify-center px-3 py-2 rounded-lg border-2 border-purple-100 dark:border-purple-800 bg-white/50 dark:bg-gray-800/50 cursor-pointer transition-all duration-300 hover:border-purple-300 dark:hover:border-purple-600 peer-data-[state=checked]:border-purple-500 dark:peer-data-[state=checked]:border-purple-400 peer-data-[state=checked]:bg-gradient-to-r peer-data-[state=checked]:from-purple-50 peer-data-[state=checked]:to-pink-50 dark:peer-data-[state=checked]:from-purple-900/20 dark:peer-data-[state=checked]:to-pink-900/20"
-                    >
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 peer-data-[state=checked]:text-purple-700 dark:peer-data-[state=checked]:text-purple-300">
-                        {elective.label}
-                      </span>
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant={selectedElective === 'all' ? 'default' : 'outline'}
+                  className="rounded-full text-xs"
+                  onClick={() => setSelectedElective('all')}
+                >
+                  All
+                </Button>
+                <Button
+                  size="sm"
+                  variant={selectedElective === 'free' ? 'default' : 'outline'}
+                  className="rounded-full text-xs"
+                  onClick={() => setSelectedElective('free')}
+                >
+                  {content.freeElective}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={selectedElective === 'general' ? 'default' : 'outline'}
+                  className="rounded-full text-xs"
+                  onClick={() => setSelectedElective('general')}
+                >
+                  {content.generalElective}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
