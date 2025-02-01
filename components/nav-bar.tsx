@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/providers/language-provider"
-import { User, Home, MessageCircleQuestion, GraduationCap, LogOut } from "lucide-react"
+import { User, Home, MessageCircleQuestion, GraduationCap, History, Bookmark, LogOut } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -111,29 +111,47 @@ export function NavBar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent 
                 align="end"
-                className="w-48 mt-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-purple-100 dark:border-purple-900"
+                className="w-56 mt-2 p-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-2 border-purple-200 dark:border-purple-800 rounded-xl shadow-xl animate-in slide-in-from-top-2"
               >
                 {session && (
                   <Link href="/profile">
-                    <DropdownMenuItem className="hover:bg-purple-50 dark:hover:bg-purple-900/30 cursor-pointer">
-                      {content.profile}
+                    <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
+                      <User className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+                      <div className="flex flex-col">
+                        <span className="font-medium">{content.profile}</span>
+                        <span className="text-xs text-muted-foreground">{session.user?.email}</span>
+                      </div>
                     </DropdownMenuItem>
                   </Link>
                 )}
+
                 <Link href="/bookmarks">
-                  <DropdownMenuItem className="hover:bg-purple-50 dark:hover:bg-purple-900/30 cursor-pointer transition-colors duration-300">
-                    {content.bookmarks}
+                  <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 mt-1 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
+                    <Bookmark className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+                    <span className="font-medium">{content.bookmarks}</span>
                   </DropdownMenuItem>
                 </Link>
+
                 <Link href="/history">
-                  <DropdownMenuItem className="hover:bg-purple-50 dark:hover:bg-purple-900/30 cursor-pointer transition-colors duration-300">
-                    {content.history}
+                  <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 mt-1 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
+                    <History className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+                    <span className="font-medium">{content.history}</span>
                   </DropdownMenuItem>
                 </Link>
+
                 {session && (
-                  <DropdownMenuItem className="hover:bg-purple-50 dark:hover:bg-purple-900/30 cursor-pointer transition-colors duration-300" onClick={() => signOut()}>
-                    {content.signOut}
-                  </DropdownMenuItem>
+                  <>
+                    <div className="h-px my-2 bg-gradient-to-r from-transparent via-purple-200 dark:via-purple-800 to-transparent" />
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-gradient-to-r from-red-50 to-orange-50 dark:hover:bg-gradient-to-r dark:from-red-900/30 dark:to-orange-900/30 cursor-pointer transition-all duration-300 group"
+                      onClick={() => signOut()}
+                    >
+                      <LogOut className="w-4 h-4 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="font-medium text-red-600 dark:text-red-400">
+                        {content.signOut}
+                      </span>
+                    </DropdownMenuItem>
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
