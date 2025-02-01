@@ -1,5 +1,27 @@
 import mongoose from "mongoose"
 
+const commentSchema = new mongoose.Schema({
+  content: {
+    type: String,
+    required: true,
+  },
+  userName: {
+    type: String,
+    required: true,
+  },
+  timestamp: {
+    type: String,
+    default: () => new Date().toLocaleString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).toUpperCase()
+  }
+})
+
 const questionSchema = new mongoose.Schema({
   question: {
     type: String,
@@ -7,7 +29,7 @@ const questionSchema = new mongoose.Schema({
   },
   userName: {
     type: String,
-    default: "Anonymous",
+    required: true,
   },
   timestamp: {
     type: String,
@@ -32,10 +54,7 @@ const questionSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  comments: {
-    type: [String],
-    default: []
-  }
+  comments: [commentSchema]
 }, { 
   versionKey: false,
   collection: 'questions'

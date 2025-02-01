@@ -5,7 +5,7 @@ import { useLanguage } from "@/providers/language-provider"
 import { Card } from "@/components/ui/card"
 import { Review } from "@/types/review"
 import { useParams } from "next/navigation"
-import { Star, ThumbsUp, ThumbsDown, MessageSquare, Bookmark } from "lucide-react"
+import { Star, ThumbsUp, ThumbsDown, MessageSquare, Bookmark, Book } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { ReviewDialog } from "@/components/review-dialog"
@@ -103,92 +103,135 @@ export default function FacultyReviewsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#E5E1FF] dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-8">{faculty}</h1>
-        
-        <div className="space-y-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-lg mb-8">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10" />
+        <div className="container mx-auto px-4 py-8 relative">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+            {faculty}
+          </h1>
+          <p className="text-muted-foreground">
+            {reviews.length} {content.language === 'en' ? 'Course Reviews' : 'รีวิวรายวิชา'}
+          </p>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4">
+        <div className="space-y-6">
           {reviews.length > 0 ? (
             reviews.map((review) => (
-              <Card key={review.id} className="p-4 mb-4">
-                <div 
-                  className="flex gap-4 cursor-pointer"
-                  onClick={() => handleContentClick(review)}
-                >
-                  <div className="flex-1">
-                    <div className="font-mono text-lg font-bold">{review.courseId}</div>
-                    <div className="text-sm text-muted-foreground">{review.courseName}</div>
-                    <div className="flex mt-1">
+              <Card 
+                key={review.id} 
+                className="group hover:shadow-lg transition-all duration-300 overflow-hidden bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800"
+                onClick={() => handleContentClick(review)}
+              >
+                <div className="p-6">
+                  {/* Course Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <div className="font-mono text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        {review.courseId}
+                      </div>
+                      <div className="text-sm text-muted-foreground">{review.courseName}</div>
+                    </div>
+                    <div className="flex items-center gap-1">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star
                           key={i}
-                          className={`w-4 h-4 ${
+                          className={`w-5 h-5 transition-colors ${
                             i < review.rating
-                              ? "fill-primary text-primary"
-                              : "fill-muted text-muted-foreground"
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "fill-gray-200 text-gray-200"
                           }`}
                         />
                       ))}
                     </div>
                   </div>
-                  <div className="flex-[2]">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Avatar className="w-6 h-6">
-                          <AvatarFallback>{review.userName[0]}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm font-medium">{review.userName}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-sm text-muted-foreground block">
-                        {review.timestamp ? format(new Date(review.timestamp), 'MMM d, yyyy') : ''}
-                        </span>
+
+                  {/* Review Content */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Avatar className="w-8 h-8 border-2 border-purple-200 dark:border-purple-800">
+                        <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white">
+                          {review.userName[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium text-purple-700 dark:text-purple-300">
+                          {review.userName}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {review.timestamp ? format(new Date(review.timestamp), 'MMM d, yyyy') : ''}
+                        </div>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-4">{review.review}</p>
-                    <div className="flex items-center gap-4">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLikeClick(review.id);
-                        }}
-                        className={review.hasLiked ? "text-primary" : ""}
-                      >
-                        <ThumbsUp className={`w-4 h-4 mr-2 ${review.hasLiked ? "fill-primary" : ""}`} />
-                        {review.likes} {content.likes}
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDislikeClick(review.id);
-                        }}
-                        className={review.hasDisliked ? "text-primary" : ""}
-                      >
-                        <ThumbsDown className={`w-4 h-4 mr-2 ${review.hasDisliked ? "fill-primary" : ""}`} />
-                        {review.dislikes} {content.dislikes}
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        {review.comments?.length || 0} {content.comments}
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Bookmark className={`w-4 h-4 ${review.isBookmarked ? "fill-primary" : ""}`} />
-                      </Button>
-                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {review.review}
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleLikeClick(review.id)
+                      }}
+                      className={`hover:bg-purple-50 dark:hover:bg-purple-900/30 ${
+                        review.hasLiked ? "text-purple-600 dark:text-purple-400" : ""
+                      }`}
+                    >
+                      <ThumbsUp className={`w-4 h-4 mr-2 ${review.hasLiked ? "fill-current" : ""}`} />
+                      {review.likes} {content.likes}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDislikeClick(review.id)
+                      }}
+                      className={`hover:bg-purple-50 dark:hover:bg-purple-900/30 ${
+                        review.hasDisliked ? "text-purple-600 dark:text-purple-400" : ""
+                      }`}
+                    >
+                      <ThumbsDown className={`w-4 h-4 mr-2 ${review.hasDisliked ? "fill-current" : ""}`} />
+                      {review.dislikes} {content.dislikes}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="hover:bg-purple-50 dark:hover:bg-purple-900/30"
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      {review.comments?.length || 0} {content.comments}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className={`hover:bg-purple-50 dark:hover:bg-purple-900/30 ml-auto ${
+                        review.isBookmarked ? "text-purple-600 dark:text-purple-400" : ""
+                      }`}
+                    >
+                      <Bookmark className={`w-4 h-4 ${review.isBookmarked ? "fill-current" : ""}`} />
+                    </Button>
                   </div>
                 </div>
               </Card>
             ))
           ) : (
-            <div className="text-center py-8">
-              <p className="text-xl text-muted-foreground">
-                No reviews available for this faculty.
+            <Card className="p-12 text-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
+              <Book className="w-12 h-12 mx-auto mb-4 text-purple-500/50" />
+              <h3 className="text-xl font-semibold text-purple-700 dark:text-purple-300 mb-2">
+                No Reviews Yet
+              </h3>
+              <p className="text-muted-foreground">
+                Be the first to review courses from this faculty!
               </p>
-            </div>
+            </Card>
           )}
         </div>
       </div>

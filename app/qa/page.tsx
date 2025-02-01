@@ -8,6 +8,14 @@ import { Input } from "@/components/ui/input"
 import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark } from 'lucide-react'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { QAFormDialog } from "@/components/qa-form-dialog"
+import { useSession } from "next-auth/react"
+import { useToast } from "@/components/ui/use-toast"
+
+interface Comment {
+  content: string
+  userName: string
+  timestamp: string
+}
 
 interface QA {
   id: string
@@ -17,14 +25,16 @@ interface QA {
   likes: number
   dislikes: number
   isBookmarked: boolean
-  comments: string[]
+  comments: Comment[]
 }
 
 export default function QAPage() {
   const { content } = useLanguage()
   const [qas, setQAs] = useState<QA[]>([])
-  const [comment, setComment] = useState("")
+  const [comments, setComments] = useState<Record<string, string>>({})
   const [isWriting, setIsWriting] = useState(false)
+  const { data: session } = useSession()
+  const { toast } = useToast()
   
   useEffect(() => {
     fetchQuestions()
@@ -43,10 +53,81 @@ export default function QAPage() {
   }
 
   const handleNewQuestion = async (question: string) => {
+    if (!session) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to post a question",
+        variant: "destructive"
+      })
+      return
+    }
+
     try {
-      await fetchQuestions()
+      const response = await fetch('/api/qa', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question,
+        }),
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        setQAs(prevQas => [data.qa, ...prevQas])
+        setIsWriting(false)
+        toast({
+          title: "Success",
+          description: "Your question has been posted",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to post your question",
+          variant: "destructive"
+        })
+      }
     } catch (error) {
-      console.error("Error handling new question:", error)
+      console.error("Error posting question:", error)
+      toast({
+        title: "Error",
+        description: "Failed to post your question",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleComment = async (qaId: string) => {
+    if (!session) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to comment",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!comments[qaId]?.trim()) return
+
+    try {
+      const response = await fetch(`/api/qa/${qaId}/comment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: comments[qaId]
+        }),
+      })
+
+      if (response.ok) {
+        await fetchQuestions()
+        setComments(prev => ({ ...prev, [qaId]: '' }))
+      }
+    } catch (error) {
+      console.error("Error posting comment:", error)
     }
   }
 
@@ -145,24 +226,37 @@ export default function QAPage() {
                   <div className="pl-6 border-l-2 border-purple-200 dark:border-purple-800 space-y-4">
                     {qa.comments.map((comment, index) => (
                       <div key={index} className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-3">
-                        <div className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                          Jasmin eiei
+                        <div className="flex items-center gap-2 mb-1">
+                          <Avatar className="w-6 h-6">
+                            <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
+                              {comment.userName[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                            {comment.userName}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {comment.timestamp}
+                          </div>
                         </div>
-                        <div className="text-sm mt-1">
-                          เหมือนว่าจะไม่ยากนะคะ
+                        <div className="text-sm ml-8">
+                          {comment.content}
                         </div>
                       </div>
                     ))}
                     <div className="flex gap-2 mt-4">
                       <Input
-                        placeholder="Add a comment..."
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
+                        placeholder={session ? "Add a comment..." : "Sign in to comment"}
+                        value={comments[qa.id] || ''}
+                        onChange={(e) => setComments(prev => ({ ...prev, [qa.id]: e.target.value }))}
                         className="rounded-full bg-white/50 dark:bg-gray-900/50 border-purple-200 dark:border-purple-800 focus:ring-purple-500 focus:border-purple-500"
+                        disabled={!session}
                       />
                       <Button 
                         size="sm" 
                         className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                        onClick={() => handleComment(qa.id)}
+                        disabled={!session || !comments[qa.id]?.trim()}
                       >
                         Post
                       </Button>

@@ -23,6 +23,7 @@ import Autosuggest from "react-autosuggest"
 import { useProtectedAction } from '@/hooks/use-protected-action'
 import { useSession } from "next-auth/react"
 import { useAuth } from "@/contexts/auth-context"
+import { Switch } from "@/components/ui/switch"
 
 interface ReviewFormProps {
   courseId: string
@@ -50,6 +51,7 @@ interface ReviewFormData {
   readingAmount: number;
   contentDifficulty: number;
   teachingQuality: number;
+  grade?: string;
 }
 
 export function ReviewForm({ courseId, courseName, action, onClose }: ReviewFormProps) {
@@ -58,6 +60,7 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [verified, setVerified] = useState(false)
+  const [isAnonymous, setIsAnonymous] = useState(false)
   const [formData, setFormData] = useState({
     courseNo: courseId,
     courseName: courseName,
@@ -193,10 +196,12 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
     e.preventDefault()
     handleProtectedAction(async () => {
       try {
+        const userName = session?.user?.name || "User"
+
         const review = {
           courseId: formData.courseNo,
           courseName: formData.courseName,
-          userName: "User",
+          userName: isAnonymous ? "Anonymous" : userName,
           rating,
           review: formData.review,
           faculty: formData.faculty,
@@ -208,6 +213,8 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
           teachingQuality: formData.teachingQuality,
           programType: formData.studyPlan,
           electiveType: formData.electiveType,
+          isAnonymous,
+          grade: formData.grade || undefined,
         }
         
         const response = await fetch('/api/reviews', {
@@ -553,6 +560,22 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
             <Label className="text-red-500 font-medium">
               {content.verifyContent}
             </Label>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-purple-700 dark:text-purple-300 font-medium">
+                {isAnonymous ? content.hideIdentity : content.showIdentity}
+              </Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                {isAnonymous ? 'Anonymous' : session?.user?.name || 'User'}
+              </p>
+            </div>
+            <Switch
+              checked={!isAnonymous}
+              onCheckedChange={(checked) => setIsAnonymous(!checked)}
+              className="data-[state=checked]:bg-purple-500"
+            />
           </div>
 
           <Button 

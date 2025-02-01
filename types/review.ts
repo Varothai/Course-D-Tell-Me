@@ -26,6 +26,7 @@ export interface Review {
   id: string
   courseId: string
   courseName: string
+  userId: string
   userName: string
   rating: number
   review: string
@@ -46,6 +47,8 @@ export interface Review {
   hasDisliked?: boolean
   isBookmarked?: boolean
   comments?: string[]
+  isAnonymous?: boolean
+  grade?: string
 }
 
 export interface LocaleContent {

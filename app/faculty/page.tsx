@@ -3,6 +3,7 @@
 import { useLanguage } from "@/providers/language-provider"
 import { Card } from "@/components/ui/card"
 import Link from "next/link"
+import Image from "next/image"
 import { localeContent } from "@/locales/content"
 
 export default function FacultyPage() {
@@ -39,23 +40,26 @@ export default function FacultyPage() {
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-pink-500/0 to-purple-500/0 group-hover:from-purple-500/10 group-hover:via-pink-500/10 group-hover:to-purple-500/10 transition-all duration-500" />
                   
                   <div className="relative p-6">
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-lg">
-                        <div className="text-purple-700 dark:text-purple-300 group-hover:text-purple-600 dark:group-hover:text-purple-200 transition-colors duration-300">
-                          {thaiLabel}
-                        </div>
-                        <div className="text-sm text-muted-foreground group-hover:text-purple-500/70 dark:group-hover:text-purple-300/70 transition-colors duration-300">
-                          {englishLabel}
-                        </div>
-                      </h3>
-                    </div>
-                    
-                    {/* Decorative elements */}
-                    <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20" />
-                    </div>
-                    <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-r from-pink-500/20 to-purple-500/20" />
+                    <div className="flex items-center gap-4">
+                      <div className="relative w-12 h-12 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                        <Image
+                          src={`/icons/faculties/${faculty.value.toLowerCase().replace(/ /g, '-')}.png`}
+                          alt={faculty.value}
+                          width={48}
+                          height={48}
+                          className="object-contain"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="font-semibold text-lg">
+                          <div className="text-purple-700 dark:text-purple-300 group-hover:text-purple-600 dark:group-hover:text-purple-200 transition-colors duration-300">
+                            {thaiLabel}
+                          </div>
+                          <div className="text-sm text-muted-foreground group-hover:text-purple-500/70 dark:group-hover:text-purple-300/70 transition-colors duration-300">
+                            {englishLabel}
+                          </div>
+                        </h3>
+                      </div>
                     </div>
                   </div>
                 </Card>
