@@ -17,6 +17,10 @@ const reviewSchema = new mongoose.Schema({
   teachingQuality: { type: Number, required: true },
   grade: { type: String },
   customMajor: { type: String },
+  bookmarkedBy: [{
+    type: String,
+    ref: 'User'
+  }],
   timestamp: { type: Date, default: Date.now }
 }, { timestamps: true })
 
