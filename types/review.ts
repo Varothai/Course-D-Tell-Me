@@ -51,6 +51,11 @@ export interface Review {
 }
 
 export interface LocaleContent {
+  deleteReviewConfirmation: ReactNode
+  deleteReviewWarning: ReactNode
+  cancel: ReactNode
+  deleting: ReactNode
+  delete: ReactNode
   language: string
   review: any
   profile: ReactNode

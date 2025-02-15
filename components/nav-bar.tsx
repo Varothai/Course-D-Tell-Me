@@ -5,25 +5,37 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/providers/language-provider"
-import { User, Home, MessageCircleQuestion, GraduationCap, History, Bookmark, LogOut } from "lucide-react"
+import { 
+  User, 
+  Home, 
+  MessageCircleQuestion, 
+  GraduationCap, 
+  History, 
+  Bookmark, 
+  LogOut,
+  Mail,
+  Chrome
+} from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useSession, signOut } from "next-auth/react"
+import { useSession, signOut, signIn } from "next-auth/react"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useAuth } from '@/contexts/auth-context'
 
 export function NavBar() {
   const pathname = usePathname()
   const { content } = useLanguage()
   const { data: session } = useSession()
+  const { signInWithGoogle } = useAuth()
   
   const routes = [
     {
@@ -45,6 +57,18 @@ export function NavBar() {
       active: pathname === "/faculty",
     }
   ]
+
+  const handleCMUSignIn = async () => {
+    try {
+      const response = await fetch('/api/signIn', { method: 'GET' })
+      const data = await response.json()
+      if (data.authUrl) {
+        window.location.href = data.authUrl
+      }
+    } catch (error) {
+      console.error('Error initiating CMU sign in:', error)
+    }
+  }
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -113,34 +137,49 @@ export function NavBar() {
                 align="end"
                 className="w-56 mt-2 p-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-2 border-purple-200 dark:border-purple-800 rounded-xl shadow-xl animate-in slide-in-from-top-2"
               >
-                {session && (
-                  <Link href="/profile">
-                    <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
-                      <User className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
-                      <div className="flex flex-col">
-                        <span className="font-medium">{content.profile}</span>
-                        <span className="text-xs text-muted-foreground">{session.user?.email}</span>
-                      </div>
-                    </DropdownMenuItem>
-                  </Link>
-                )}
-
-                <Link href="/bookmarks">
-                  <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 mt-1 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
-                    <Bookmark className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="font-medium">{content.bookmarks}</span>
-                  </DropdownMenuItem>
-                </Link>
-
-                <Link href="/history">
-                  <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 mt-1 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
-                    <History className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
-                    <span className="font-medium">{content.history}</span>
-                  </DropdownMenuItem>
-                </Link>
-
-                {session && (
+                {!session ? (
                   <>
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group"
+                      onClick={handleCMUSignIn}
+                    >
+                      <Mail className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="font-medium">Sign in with CMU Account</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 px-4 py-3 mt-1 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group"
+                      onClick={signInWithGoogle}
+                    >
+                      <Chrome className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="font-medium">Sign in with Google</span>
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/profile">
+                      <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
+                        <User className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+                        <div className="flex flex-col">
+                          <span className="font-medium">{content.profile}</span>
+                          <span className="text-xs text-muted-foreground">{session.user?.email}</span>
+                        </div>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link href="/bookmarks">
+                      <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 mt-1 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
+                        <Bookmark className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+                        <span className="font-medium">{content.bookmarks}</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link href="/history">
+                      <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 mt-1 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
+                        <History className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+                        <span className="font-medium">{content.history}</span>
+                      </DropdownMenuItem>
+                    </Link>
+
                     <div className="h-px my-2 bg-gradient-to-r from-transparent via-purple-200 dark:via-purple-800 to-transparent" />
                     <DropdownMenuItem 
                       className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-gradient-to-r from-red-50 to-orange-50 dark:hover:bg-gradient-to-r dark:from-red-900/30 dark:to-orange-900/30 cursor-pointer transition-all duration-300 group"

@@ -193,70 +193,54 @@ export default function QAPage() {
                         {qa.timestamp}
                       </div>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className="ml-auto rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30"
-                      onClick={() => {
-                        setQAs(qas.map(q => 
-                          q.id === qa.id ? { ...q, isBookmarked: !q.isBookmarked } : q
-                        ))
-                      }}
-                    >
-                      <Bookmark className={`transition-colors duration-300 ${qa.isBookmarked ? "fill-purple-500 text-purple-500" : ""}`} />
-                    </Button>
                   </div>
                   
                   {/* Question Content */}
                   <p className="mb-6 text-lg">{qa.question}</p>
                   
-                  {/* Interaction Buttons */}
-                  <div className="flex items-center gap-4 mb-6">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30"
-                    >
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Comment
-                    </Button>
-                  </div>
-
                   {/* Comments Section */}
-                  <div className="pl-6 border-l-2 border-purple-200 dark:border-purple-800 space-y-4">
-                    {qa.comments.map((comment, index) => (
-                      <div key={index} className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Avatar className="w-6 h-6">
-                            <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
-                              {comment.userName[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                            {comment.userName}
+                  <div className="border-t pt-4">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5" />
+                      Comments
+                    </h3>
+                    
+                    {/* Existing Comments */}
+                    <div className="space-y-4 mb-4">
+                      {qa.comments.map((comment, index) => (
+                        <div key={index} className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Avatar className="w-6 h-6">
+                              <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
+                                {comment.userName[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
+                              {comment.userName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {comment.timestamp}
+                            </span>
                           </div>
-                          <div className="text-xs text-muted-foreground">
-                            {comment.timestamp}
-                          </div>
+                          <p className="text-sm">{comment.content}</p>
                         </div>
-                        <div className="text-sm ml-8">
-                          {comment.content}
-                        </div>
-                      </div>
-                    ))}
-                    <div className="flex gap-2 mt-4">
+                      ))}
+                    </div>
+
+                    {/* Add Comment Form */}
+                    <div className="flex gap-2">
                       <Input
-                        placeholder={session ? "Add a comment..." : "Sign in to comment"}
+                        placeholder="Write a comment..."
                         value={comments[qa.id] || ''}
-                        onChange={(e) => setComments(prev => ({ ...prev, [qa.id]: e.target.value }))}
-                        className="rounded-full bg-white/50 dark:bg-gray-900/50 border-purple-200 dark:border-purple-800 focus:ring-purple-500 focus:border-purple-500"
-                        disabled={!session}
+                        onChange={(e) => setComments(prev => ({
+                          ...prev,
+                          [qa.id]: e.target.value
+                        }))}
+                        className="bg-white dark:bg-gray-900"
                       />
                       <Button 
-                        size="sm" 
-                        className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transition-all duration-300"
                         onClick={() => handleComment(qa.id)}
-                        disabled={!session || !comments[qa.id]?.trim()}
+                        variant="secondary"
                       >
                         Post
                       </Button>
