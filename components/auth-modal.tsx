@@ -63,6 +63,10 @@ export default function AuthModal() {
             <span className="font-medium text-gray-700 dark:text-gray-200">Sign in with CMU Account</span>
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-600/0 to-pink-600/0 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
           </button>
+          
+          <p className="text-xs text-center text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-4 py-2 rounded-lg">
+            ⚡ Only CMU account users can write course reviews
+          </p>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">

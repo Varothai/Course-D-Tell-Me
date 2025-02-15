@@ -9,6 +9,7 @@ import { useLanguage } from "@/providers/language-provider"
 import { useProtectedAction } from '@/hooks/use-protected-action'
 import { useSession } from "next-auth/react"
 import { useAuth } from "@/contexts/auth-context"
+import { MessageCircleQuestion } from "lucide-react"
 
 interface QAFormDialogProps {
   open: boolean
@@ -72,36 +73,63 @@ export function QAFormDialog({ open, action, submitAction }: QAFormDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={action}>
-      <DialogContent className="sm:max-w-[500px] bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl shadow-lg p-6 backdrop-blur-sm">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-purple-700">{content.askQuestion}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <Textarea
-            placeholder={content.questionPlaceholder}
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            className="min-h-[150px] bg-white/80 dark:bg-gray-800/80 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 transition-all duration-300"
+      <DialogContent className="sm:max-w-[500px] rounded-3xl bg-white/95 dark:bg-gray-900/90 backdrop-blur-sm p-8 border-2 border-purple-200 dark:border-purple-800">
+        <div className="relative w-16 h-16 mx-auto mb-4">
+          <img
+            src="/elephant-mascot.png" 
+            alt="Cute elephant mascot"
+            className="w-full h-full object-contain animate-bounce-gentle"
           />
-          <div className="flex items-center space-x-2">
+        </div>
+
+        <DialogHeader>
+          <DialogTitle className="text-center text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            {content.askQuestion}
+          </DialogTitle>
+          <p className="text-center mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Share your questions with the community
+          </p>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="relative">
+            <Textarea
+              placeholder={content.questionPlaceholder}
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              className="min-h-[150px] bg-white/80 dark:bg-gray-800/80 border-2 border-purple-200 dark:border-purple-800 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 px-4 py-3 resize-none"
+            />
+            <MessageCircleQuestion className="absolute right-3 top-3 w-5 h-5 text-purple-400 opacity-50" />
+          </div>
+
+          <div className="flex items-center space-x-2 bg-purple-50 dark:bg-purple-900/30 p-3 rounded-xl">
             <Checkbox
               id="verify"
               checked={verified}
               onCheckedChange={(checked) => setVerified(checked as boolean)}
-              className="text-purple-600"
+              className="text-purple-600 border-2 border-purple-400 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
             />
-            <label htmlFor="verify" className="text-sm text-muted-foreground">
+            <label htmlFor="verify" className="text-sm text-gray-600 dark:text-gray-300">
               {content.verifyContent}
             </label>
           </div>
+
           <Button
-            className="w-full bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-xl py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl py-6 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group relative overflow-hidden"
             disabled={!question.trim() || !verified || isSubmitting}
             onClick={handleSubmit}
           >
-            {isSubmitting ? content.posting : content.postQuestion}
+            <span className="relative z-10 flex items-center gap-2">
+              {isSubmitting ? content.posting : content.postQuestion}
+              {!isSubmitting && <MessageCircleQuestion className="w-4 h-4 animate-bounce" />}
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
           </Button>
         </div>
+
+        <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
+          Your question will be visible to all users
+        </p>
       </DialogContent>
     </Dialog>
   )
