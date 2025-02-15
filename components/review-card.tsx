@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Star, ThumbsUp, ThumbsDown, MessageSquare, Bookmark, ExternalLink, Languages } from 'lucide-react'
+import { Star, ThumbsUp, ThumbsDown, ExternalLink, Languages } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -11,8 +11,11 @@ import type { Review } from "@/types/review"
 import { useLanguage } from "@/providers/language-provider"
 import { ReviewDialog } from "@/components/review-dialog"
 import { useReviews } from "@/providers/reviews-provider"
-import { formatDistanceToNow, format } from 'date-fns'
-import { useProtectedAction } from '@/hooks/use-protected-action'
+import { format } from "date-fns"
+import { useProtectedAction } from "@/hooks/use-protected-action"
+import { BookmarkIcon } from "@heroicons/react/24/outline"
+import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid"
+import { useSession } from "next-auth/react"
 
 interface ReviewCardProps {
   review: Review & {
@@ -24,19 +27,13 @@ interface ReviewCardProps {
   bookmarkAction: (id: string) => void
 }
 
-export function ReviewCard({ 
-  review, 
-  likeAction, 
-  dislikeAction, 
-  commentAction, 
-  bookmarkAction 
-}: ReviewCardProps) {
+export function ReviewCard({ review, likeAction, dislikeAction, commentAction, bookmarkAction }: ReviewCardProps) {
   const router = useRouter()
   const [comment, setComment] = useState("")
   const [showComments, setShowComments] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const { content } = useLanguage()
-  const [commentText, setCommentText] = useState('')
+  const [commentText, setCommentText] = useState("")
   const [comments, setComments] = useState<string[]>([])
   const { handleLike, handleDislike } = useReviews()
   const [localReview, setLocalReview] = useState(review)
@@ -44,33 +41,56 @@ export function ReviewCard({
   const [translatedText, setTranslatedText] = useState("")
   const [isTranslating, setIsTranslating] = useState(false)
   const handleProtectedAction = useProtectedAction()
+  const { data: session } = useSession()
+  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     const fetchComments = async () => {
       try {
         const response = await fetch(`/api/comments?reviewId=${review.id}`)
         if (!response.ok) {
-          throw new Error('Failed to fetch comments')
+          throw new Error("Failed to fetch comments")
         }
         const data = await response.json()
         if (data.success) {
           setComments(data.comments.map((c: any) => c.comment))
         } else {
-          console.error('Error fetching comments:', data.error)
+          console.error("Error fetching comments:", data.error)
         }
       } catch (error) {
-        console.error('Error fetching comments:', error)
+        console.error("Error fetching comments:", error)
       }
     }
 
     fetchComments()
   }, [review.id])
 
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      if (!session?.user) {
+        setIsBookmarked(false)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/bookmarks?reviewId=${review.id}`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch bookmark status")
+        }
+        const data = await response.json()
+        setIsBookmarked(data.isBookmarked)
+      } catch (error) {
+        console.error("Error checking bookmark status:", error)
+        setIsBookmarked(false)
+      }
+    }
+
+    checkBookmarkStatus()
+  }, [review.id, session?.user])
+
   const handleContentClick = (e: React.MouseEvent) => {
-    if (
-      e.target instanceof HTMLElement && 
-      (e.target.closest('button') || e.target.closest('input'))
-    ) {
+    if (e.target instanceof HTMLElement && (e.target.closest("button") || e.target.closest("input"))) {
       return
     }
     setIsOpen(true)
@@ -78,11 +98,11 @@ export function ReviewCard({
 
   const handleAddComment = async () => {
     handleProtectedAction(async () => {
-      if (commentText.trim() === '') return
+      if (commentText.trim() === "") return
 
       await commentAction(review.id, commentText)
       setComments([...comments, commentText])
-      setCommentText('')
+      setCommentText("")
     })
   }
 
@@ -94,12 +114,12 @@ export function ReviewCard({
   const onLike = async () => {
     handleProtectedAction(async () => {
       await handleLike(review.id, localReview.hasLiked, localReview.hasDisliked)
-      setLocalReview(prev => ({
+      setLocalReview((prev) => ({
         ...prev,
         likes: prev.hasLiked ? prev.likes - 1 : prev.likes + 1,
         dislikes: prev.hasDisliked ? prev.dislikes - 1 : prev.dislikes,
         hasLiked: !prev.hasLiked,
-        hasDisliked: false
+        hasDisliked: false,
       }))
       likeAction(review.id)
     })
@@ -108,12 +128,12 @@ export function ReviewCard({
   const onDislike = async () => {
     handleProtectedAction(async () => {
       await handleDislike(review.id, localReview.hasLiked, localReview.hasDisliked)
-      setLocalReview(prev => ({
+      setLocalReview((prev) => ({
         ...prev,
         dislikes: prev.hasDisliked ? prev.dislikes - 1 : prev.dislikes + 1,
         likes: prev.hasLiked ? prev.likes - 1 : prev.likes,
         hasDisliked: !prev.hasDisliked,
-        hasLiked: false
+        hasLiked: false,
       }))
       dislikeAction(review.id)
     })
@@ -129,17 +149,17 @@ export function ReviewCard({
       setIsTranslating(true)
       // Detect if text contains Thai characters
       const containsThai = /[\u0E00-\u0E7F]/.test(review.review)
-      const targetLang = containsThai ? 'en' : 'th'
-      
-      const response = await fetch('/api/translate', {
-        method: 'POST',
+      const targetLang = containsThai ? "en" : "th"
+
+      const response = await fetch("/api/translate", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           text: review.review,
-          targetLang
-        })
+          targetLang,
+        }),
       })
 
       const data = await response.json()
@@ -147,29 +167,61 @@ export function ReviewCard({
         setTranslatedText(data.translatedText)
         setIsTranslated(true)
       } else {
-        console.error('Translation failed:', data.error)
+        console.error("Translation failed:", data.error)
       }
     } catch (error) {
-      console.error('Translation error:', error)
+      console.error("Translation error:", error)
     } finally {
       setIsTranslating(false)
     }
   }
 
-  const handleBookmark = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    handleProtectedAction(() => {
-      bookmarkAction(review.id)
-    })
+  const toggleBookmark = async () => {
+    if (!session?.user) return
+
+    setIsLoading(true)
+    try {
+      const method = isBookmarked ? "DELETE" : "POST"
+      const response = await fetch("/api/bookmarks", {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reviewId: review.id }),
+      })
+
+      if (response.ok) {
+        setIsBookmarked(!isBookmarked)
+        if (bookmarkAction) {
+          bookmarkAction(review.id)
+        }
+      } else {
+        throw new Error("Failed to toggle bookmark")
+      }
+    } catch (error) {
+      console.error("Error toggling bookmark:", error)
+    }
+    setIsLoading(false)
   }
 
   return (
     <>
-      <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800">
-        <div 
-          className="p-4 cursor-pointer"
-          onClick={handleContentClick}
-        >
+      <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800 relative">
+        <div className="p-4 cursor-pointer" onClick={handleContentClick}>
+          {/* Add bookmark button at the top right inside the card */}
+          {session?.user && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleBookmark()
+              }}
+              disabled={isLoading}
+              className="absolute top-1 right-4 text-gray-600 hover:text-gray-900"
+            >
+              {isBookmarked ? <BookmarkSolidIcon className="h-6 w-6" /> : <BookmarkIcon className="h-6 w-6" />}
+            </button>
+          )}
+
           <div className="flex gap-4">
             {/* Course Info Section */}
             <div className="w-48">
@@ -183,9 +235,7 @@ export function ReviewCard({
                     <Star
                       key={i}
                       className={`w-4 h-4 transition-transform duration-300 ${
-                        i < review.rating
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "fill-gray-200 text-gray-200"
+                        i < review.rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"
                       }`}
                     />
                   ))}
@@ -199,28 +249,19 @@ export function ReviewCard({
                 <div className="flex items-center gap-2">
                   <Avatar className="w-6 h-6 ring-2 ring-purple-200 dark:ring-purple-800">
                     <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
-                      {review.isAnonymous ? 'A' : review.userName[0]}
+                      {review.isAnonymous ? "A" : review.userName[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                      {review.isAnonymous ? 'Anonymous' : review.userName}
+                      {review.isAnonymous ? "Anonymous" : review.userName}
                     </span>
                     <span className="text-xs text-muted-foreground block">
-                      {review.timestamp ? format(new Date(review.timestamp), 'MMM d, yyyy') : ''}
+                      {review.timestamp ? format(new Date(review.timestamp), "MMM d, yyyy") : ""}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="rounded-full w-8 h-8 hover:bg-purple-50 dark:hover:bg-purple-900/30"
-                    onClick={handleBookmark}
-                  >
-                    <Bookmark className={`w-4 h-4 transition-colors duration-300 ${review.isBookmarked ? "fill-purple-500 text-purple-500" : ""}`} />
-                  </Button>
-
                   {/* Translation Button */}
                   <Button
                     variant="ghost"
@@ -244,52 +285,62 @@ export function ReviewCard({
                 </div>
               </div>
 
-              <p className="text-sm leading-relaxed mb-4">
-                {isTranslated ? translatedText : review.review}
-              </p>
+              <p className="text-sm leading-relaxed mb-4">{isTranslated ? translatedText : review.review}</p>
 
               {/* Bottom Actions Section */}
               <div className="flex items-center justify-between">
                 {/* Like/Dislike Buttons */}
                 <div className="flex items-center gap-3">
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation()
                       onLike()
                     }}
                     className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
-                      localReview.hasLiked ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300" : ""
+                      localReview.hasLiked
+                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
+                        : ""
                     }`}
                   >
-                    <ThumbsUp className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
-                      localReview.hasLiked ? "fill-purple-500 text-purple-500" : ""
-                    }`} />
-                    <span className="text-xs">{localReview.likes} {content.likes}</span>
+                    <ThumbsUp
+                      className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
+                        localReview.hasLiked ? "fill-purple-500 text-purple-500" : ""
+                      }`}
+                    />
+                    <span className="text-xs">
+                      {localReview.likes} {content.likes}
+                    </span>
                   </Button>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation()
                       onDislike()
                     }}
                     className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
-                      localReview.hasDisliked ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300" : ""
+                      localReview.hasDisliked
+                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
+                        : ""
                     }`}
                   >
-                    <ThumbsDown className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
-                      localReview.hasDisliked ? "fill-purple-500 text-purple-500" : ""
-                    }`} />
-                    <span className="text-xs">{localReview.dislikes} {content.dislikes}</span>
+                    <ThumbsDown
+                      className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
+                        localReview.hasDisliked ? "fill-purple-500 text-purple-500" : ""
+                      }`}
+                    />
+                    <span className="text-xs">
+                      {localReview.dislikes} {content.dislikes}
+                    </span>
                   </Button>
                 </div>
 
                 {/* See Reviews Button */}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full"
                   onClick={(e) => {
                     e.stopPropagation()
@@ -316,7 +367,7 @@ export function ReviewCard({
                       value={commentText}
                       onChange={(e) => setCommentText(e.target.value)}
                     />
-                    <Button 
+                    <Button
                       onClick={handleAddComment}
                       className="h-8 text-xs rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transition-all duration-300"
                     >
@@ -330,11 +381,8 @@ export function ReviewCard({
         </div>
       </Card>
 
-      <ReviewDialog 
-        review={review} 
-        open={isOpen} 
-        action={setIsOpen}
-      />
+      <ReviewDialog review={review} open={isOpen} action={setIsOpen} />
     </>
   )
 }
+

@@ -24,6 +24,7 @@ import { useProtectedAction } from '@/hooks/use-protected-action'
 import { useSession } from "next-auth/react"
 import { useAuth } from "@/contexts/auth-context"
 import { Switch } from "@/components/ui/switch"
+import { analyzeText } from '@/utils/text-analysis'
 
 interface ReviewFormProps {
   courseId: string
@@ -82,6 +83,13 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
   const handleProtectedAction = useProtectedAction()
   const { data: session } = useSession()
   const { setShowAuthModal } = useAuth()
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analysisResult, setAnalysisResult] = useState<{
+    isInappropriate: boolean;
+    confidence: number;
+    severity: 'low' | 'medium' | 'high';
+    inappropriateWords: string[];
+  } | null>(null)
 
   useEffect(() => {
     if (!session) {
@@ -192,10 +200,24 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
     setFormData({ ...formData, major: value, customMajor: value === "Others" ? formData.customMajor : "" })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    handleProtectedAction(async () => {
-      try {
+    setIsAnalyzing(true)
+    
+    try {
+      // Analyze text for inappropriate content
+      const analysis = await analyzeText(formData.review)
+      
+      if (analysis.isInappropriate) {
+        setAnalysisResult(analysis)
+        setIsAnalyzing(false)
+        return
+      }
+      
+      // Clear any previous analysis
+      setAnalysisResult(null)
+      
+      handleProtectedAction(async () => {
         const userName = session?.user?.name || "User"
 
         const review = {
@@ -230,10 +252,12 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
           action(review)
           onClose?.()
         }
-      } catch (error) {
-        console.error('Error submitting review:', error)
-      }
-    })
+      })
+    } catch (error) {
+      console.error('Error analyzing review:', error)
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
 
   return (
@@ -541,7 +565,10 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
                     ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-none" 
                     : "border-2 border-purple-200 dark:border-purple-800"
                 }`}
-                onClick={() => setFormData({ ...formData, grade })}
+                onClick={() => setFormData({ 
+                  ...formData, 
+                  grade: formData.grade === grade ? "" : grade 
+                })}
               >
                 {grade}
               </Button>
@@ -578,6 +605,69 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
             />
           </div>
 
+          {/* Warning Message */}
+          {analysisResult && analysisResult.isInappropriate && (
+            <div className="mt-6 mb-6 relative overflow-hidden">
+              <div className={`p-6 rounded-xl border-2 backdrop-blur-sm shadow-lg animate-fade-in
+                ${analysisResult.severity === 'high' 
+                  ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' 
+                  : analysisResult.severity === 'medium'
+                    ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'
+                    : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'
+                }`}
+              >
+                {/* Warning Icon */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`p-2 rounded-full 
+                    ${analysisResult.severity === 'high'
+                      ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300'
+                      : analysisResult.severity === 'medium'
+                        ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300'
+                        : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-300'
+                    }`}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className={`text-lg font-semibold
+                    ${analysisResult.severity === 'high'
+                      ? 'text-red-800 dark:text-red-200'
+                      : analysisResult.severity === 'medium'
+                        ? 'text-orange-800 dark:text-orange-200'
+                        : 'text-yellow-800 dark:text-yellow-200'
+                    }`}
+                  >
+                    {content.review.inappropriateWarning}
+                  </h3>
+                </div>
+
+                {/* Found Words */}
+                {analysisResult.inappropriateWords.length > 0 && (
+                  <div className="mb-4 p-3 rounded-lg bg-white/50 dark:bg-black/20 backdrop-blur-sm">
+                    <div className="flex flex-wrap gap-2">
+                      {analysisResult.inappropriateWords.map((word, index) => (
+                        <span key={index} 
+                          className={`px-2 py-1 rounded-full text-sm font-mono
+                            ${analysisResult.severity === 'high'
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                              : analysisResult.severity === 'medium'
+                                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300'
+                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+                            }`}
+                        >
+                          {word}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}           
+              </div>
+            </div>
+          )}
+
           <Button 
             className="w-full bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-xl py-6 font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
             disabled={!verified || !rating}
@@ -587,6 +677,13 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
           </Button>
         </div>
       </div>
+
+      {/* Remove the warning from here */}
+      {isAnalyzing && (
+        <div className="mt-4 p-4 rounded-lg bg-blue-100 text-blue-800">
+          Analyzing review content...
+        </div>
+      )}
     </div>
   )
 }

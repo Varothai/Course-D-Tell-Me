@@ -17,44 +17,47 @@ export default function BookmarksPage() {
   const { toast } = useToast()
 
   useEffect(() => {
-    fetchBookmarkedReviews()
-  }, [session])
+    const fetchBookmarkedReviews = async () => {
+      if (!session?.user) return
 
-  const fetchBookmarkedReviews = async () => {
-    if (!session) {
-      setLoading(false)
-      return
-    }
+      try {
+        // Fetch bookmarks
+        const bookmarksResponse = await fetch('/api/bookmarks')
+        if (!bookmarksResponse.ok) {
+          throw new Error('Failed to fetch bookmarks')
+        }
+        const bookmarks = await bookmarksResponse.json()
 
-    try {
-      const response = await fetch('/api/reviews/bookmark')
-      const data = await response.json()
-      
-      if (data.success) {
-        setBookmarkedReviews(data.reviews)
-      } else {
+        // Fetch review details for each bookmark
+        const reviewPromises = bookmarks.map(async (bookmark: any) => {
+          const response = await fetch(`/api/reviews/${bookmark.reviewId}`)
+          if (!response.ok) {
+            throw new Error(`Failed to fetch review ${bookmark.reviewId}`)
+          }
+          return response.json()
+        })
+
+        const reviews = await Promise.all(reviewPromises)
+        setBookmarkedReviews(reviews.filter(Boolean)) // Filter out any failed fetches
+      } catch (error) {
+        console.error('Error fetching bookmarked reviews:', error)
         toast({
           title: "Error",
           description: "Failed to fetch bookmarked reviews",
           variant: "destructive"
         })
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error("Error fetching bookmarked reviews:", error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch bookmarked reviews",
-        variant: "destructive"
-      })
-    } finally {
-      setLoading(false)
     }
-  }
+
+    fetchBookmarkedReviews()
+  }, [session?.user])
 
   const handleBookmark = async (reviewId: string) => {
     try {
-      const response = await fetch('/api/reviews/bookmark', {
-        method: 'POST',
+      const response = await fetch('/api/bookmarks', {
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -62,7 +65,7 @@ export default function BookmarksPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to toggle bookmark')
+        throw new Error('Failed to remove bookmark')
       }
 
       // Remove the review from the list when unbookmarked
@@ -73,19 +76,27 @@ export default function BookmarksPage() {
         description: "Review removed from bookmarks",
       })
     } catch (error) {
-      console.error('Failed to toggle bookmark:', error)
+      console.error('Failed to remove bookmark:', error)
       toast({
         title: "Error",
-        description: "Failed to update bookmark",
+        description: "Failed to remove bookmark",
         variant: "destructive"
       })
     }
   }
 
-  if (!session) {
+  if (!session?.user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-lg text-muted-foreground">Please sign in to view your bookmarks.</p>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-4">Please sign in to view bookmarks</h1>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-4">Loading...</h1>
       </div>
     )
   }
@@ -102,21 +113,7 @@ export default function BookmarksPage() {
           </p>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto" />
-          </div>
-        ) : bookmarkedReviews.length > 0 ? (
-          <div className="space-y-6">
-            {bookmarkedReviews.map((review) => (
-              <ReviewCard 
-                key={review.id} 
-                review={review}
-                bookmarkAction={handleBookmark}
-              />
-            ))}
-          </div>
-        ) : (
+        {bookmarkedReviews.length === 0 ? (
           <Card className="p-12 text-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
             <Book className="w-12 h-12 mx-auto mb-4 text-purple-500/50" />
             <h3 className="text-xl font-semibold text-purple-700 dark:text-purple-300 mb-2">
@@ -126,6 +123,19 @@ export default function BookmarksPage() {
               Start bookmarking reviews you want to save for later!
             </p>
           </Card>
+        ) : (
+          <div className="space-y-6">
+            {bookmarkedReviews.map((review) => (
+              <ReviewCard 
+                key={review.id} 
+                review={review}
+                likeAction={(id) => {/* implement like action */}}
+                dislikeAction={(id) => {/* implement dislike action */}}
+                commentAction={(id, comment) => {/* implement comment action */}}
+                bookmarkAction={handleBookmark}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>

@@ -52,6 +52,9 @@ export interface Review {
 }
 
 export interface LocaleContent {
+  review: any
+  profile: ReactNode
+  signOut: ReactNode
   welcome: string
   courseTitle: string
   search: string

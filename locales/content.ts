@@ -88,6 +88,13 @@ export const localeContent: Record<string, LocaleContent> = {
     majorSelection: {
       placeholder: "Please specify your major",
     },
+    review: {
+      inappropriateWarning: "Please edit your review. The content may be inappropriate.",
+      pleaseRefine: "Please refine your review to maintain a respectful community.",
+      severityLow: "Minor concerns detected",
+      severityMedium: "Moderate concerns detected",
+      severityHigh: "Significant concerns detected",
+    },
   },
   th: {
     welcome: "ยินดีต้อนรับ",
@@ -175,6 +182,13 @@ export const localeContent: Record<string, LocaleContent> = {
     trilingualProgram: "สามภาษา Trilingual",
     majorSelection: {
       placeholder: "Please specify your major",
+    },
+    review: {
+      inappropriateWarning: "กรุณาแก้ไขรีวิวของคุณ เนื่องจากพบเนื้อหาที่อาจไม่เหมาะสม",
+      pleaseRefine: "กรุณาปรับแก้รีวิวของคุณเพื่อรักษามาตรฐานของชุมชน",
+      severityLow: "ตรวจพบปัญหาเล็กน้อย",
+      severityMedium: "ตรวจพบปัญหาปานกลาง",
+      severityHigh: "ตรวจพบปัญหาที่มีนัยสำคัญ",
     },
   },
 }
