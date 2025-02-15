@@ -20,6 +20,7 @@ import { useSession } from "next-auth/react"
 interface ReviewCardProps {
   review: Review & {
     isAnonymous?: boolean
+    timestamp: string
   }
   likeAction: (id: string) => void
   dislikeAction: (id: string) => void
@@ -28,6 +29,7 @@ interface ReviewCardProps {
 }
 
 export function ReviewCard({ review, likeAction, dislikeAction, commentAction, bookmarkAction }: ReviewCardProps) {
+  console.log('Review data:', review);
   const router = useRouter()
   const [comment, setComment] = useState("")
   const [showComments, setShowComments] = useState(false)
@@ -257,7 +259,7 @@ export function ReviewCard({ review, likeAction, dislikeAction, commentAction, b
                       {review.isAnonymous ? "Anonymous" : review.userName}
                     </span>
                     <span className="text-xs text-muted-foreground block">
-                      {review.timestamp ? format(new Date(review.timestamp), "MMM d, yyyy") : ""}
+                      {review.timestamp ? format(new Date(review.timestamp), 'MMM d, yyyy') : ''}
                     </span>
                   </div>
                 </div>

@@ -30,17 +30,16 @@ export interface Review {
   userName: string
   rating: number
   review: string
-  faculty?: string
-  major?: string
-  studyPlan?: string
-  section?: string
-  readingAmount?: number
-  contentDifficulty?: number
-  teachingQuality?: number
-  programType?: string
-  electiveType?: string
-  // createdAt: Date
-  timestamp?: string
+  faculty: string
+  major: string
+  studyPlan: string
+  section: string
+  programType: string
+  electiveType: string
+  readingAmount: number
+  contentDifficulty: number
+  teachingQuality: number
+  timestamp: string
   likes: number
   dislikes: number
   hasLiked?: boolean

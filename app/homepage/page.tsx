@@ -58,10 +58,23 @@ export default function Home() {
         }
         const data = await response.json()
         if (data.success) {
-          // Sort reviews by date, newest first (as backup if API sorting fails)
-          const sortedReviews = data.reviews.sort((a: Review, b: Review) => 
+          // Format the dates and sort reviews
+          const formattedReviews = data.reviews.map((review: Review) => ({
+            ...review,
+            createdAt: new Date(review.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })
+          }))
+          
+          // Sort reviews by date (newest first)
+          const sortedReviews = formattedReviews.sort((a: Review, b: Review) => 
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           )
+          
           clearReviews()
           sortedReviews.forEach((review: Review) => addReview(review))
         }
@@ -214,21 +227,35 @@ export default function Home() {
     // Implementation of handleBookmark
   }
 
-  const handleNewReview = (review: any) => {
-    // Handle the new review submission
-    console.log(review)
-    setIsWritingReview(false)
+  const handleNewReview = async (review: any) => {
+    try {
+      // Format the date for the new review
+      const formattedReview = {
+        ...review,
+        createdAt: new Date().toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      }
+      
+      // Add the new review at the beginning of the list
+      setReviews(prevReviews => [formattedReview, ...prevReviews])
+      setIsWritingReview(false)
+    } catch (error) {
+      console.error('Error handling new review:', error)
+    }
   }
 
+  // Update the filteredReviews to maintain the sort order
   const filteredReviews = reviews
-    // First filter by course if selected
     .filter(review => selectedCourse ? review.courseId === selectedCourse.courseno : true)
-    // Then filter by program type
     .filter(review => {
       if (selectedProgram === 'all') return true;
       return review.programType === selectedProgram;
     })
-    // Then filter by elective type
     .filter(review => {
       if (selectedElective === 'all') return true;
       return review.electiveType === selectedElective;

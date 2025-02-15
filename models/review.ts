@@ -17,14 +17,30 @@ const reviewSchema = new mongoose.Schema({
   teachingQuality: { type: Number, required: true },
   grade: { type: String },
   customMajor: { type: String },
+  timestamp: {
+    type: String,
+    default: () => new Date().toLocaleString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).toUpperCase()
+  },
   bookmarkedBy: [{
     type: String,
     ref: 'User'
   }],
-  timestamp: { type: Date, default: Date.now }
-}, { timestamps: true })
+}, { 
+  timestamps: false,
+  autoIndex: true 
+})
 
-// Add this to ensure all fields are returned in the response
+// Add index for timestamp
+reviewSchema.index({ timestamp: -1 })
+
+// Update the toJSON transform
 reviewSchema.set('toJSON', {
   virtuals: true,
   transform: function(doc, ret) {
@@ -35,7 +51,7 @@ reviewSchema.set('toJSON', {
   }
 })
 
-// Rename the interface to avoid naming conflict
+// Update the interface
 export interface IReview {
   _id: string;
   courseId: string;
@@ -52,7 +68,8 @@ export interface IReview {
   readingAmount: number;
   contentDifficulty: number;
   teachingQuality: number;
-  timestamp: Date;
+  timestamp: string;
+  bookmarkedBy?: string[];
 }
 
 // Export the model as a named export

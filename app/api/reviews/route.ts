@@ -39,7 +39,14 @@ export async function POST(req: Request) {
       dislikes: 0,
       comments: [],
       isBookmarked: false,
-      createdAt: new Date()
+      timestamp: new Date().toLocaleString('en-US', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }).toUpperCase(),
     }
     console.log("Saving review to database:", newReview)
 
@@ -62,18 +69,28 @@ export async function POST(req: Request) {
 
 export async function GET() {
   try {
-    console.log("Connecting to MongoDB...")
     await connectMongoDB()
-    console.log("Fetching reviews...")
     
-    // Sort by createdAt in descending order (-1) to get newest first
-    const reviews = await Review.find()
-      .sort({ createdAt: -1 })
+    const reviews = await Review.find({})
+      .sort({ timestamp: -1 })
+      .lean()
       .exec()
     
-    console.log(`Found ${reviews.length} reviews`)
-    
-    const transformedReviews = reviews.map(review => review.toJSON())
+    const transformedReviews = reviews.map(review => {
+      const { _id, __v, ...rest } = review
+      return {
+        ...rest,
+        id: _id.toString(),
+        timestamp: review.timestamp || new Date().toLocaleString('en-US', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }).toUpperCase()
+      }
+    })
     
     return NextResponse.json({ success: true, reviews: transformedReviews })
   } catch (error) {
@@ -99,7 +116,7 @@ export async function PATCH(request: Request) {
     }
 
     console.log("Updated review:", updatedReview);
-    return NextResponse.json({ success: true, review: updatedReview });
+    return NextResponse.json({ success: true, review: updatedReview.toJSON() });
   } catch (error) {
     console.error("Error updating review:", error);
     return NextResponse.json({
