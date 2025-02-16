@@ -45,7 +45,13 @@ export interface Review {
   hasLiked?: boolean
   hasDisliked?: boolean
   isBookmarked?: boolean
-  comments?: string[]
+  comments: {
+    _id: string;
+    comment: string;
+    userName: string;
+    userEmail?: string;
+    createdAt: Date;
+  }[];
   isAnonymous?: boolean
   grade?: string
 }

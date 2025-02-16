@@ -1,5 +1,21 @@
 import mongoose from "mongoose"
 
+const commentSchema = new mongoose.Schema({
+  comment: {
+    type: String,
+    required: true,
+  },
+  userName: {
+    type: String,
+    required: true,
+  },
+  userEmail: String,
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+})
+
 const reviewSchema = new mongoose.Schema({
   courseId: { type: String, required: true },
   courseName: { type: String, required: true },
@@ -32,6 +48,11 @@ const reviewSchema = new mongoose.Schema({
     type: String,
     ref: 'User'
   }],
+  comments: {
+    type: [commentSchema],
+    default: [],
+    required: true
+  },
 }, { 
   timestamps: false,
   autoIndex: true 
@@ -70,6 +91,13 @@ export interface IReview {
   teachingQuality: number;
   timestamp: string;
   bookmarkedBy?: string[];
+  comments: {
+    _id: string;
+    comment: string;
+    userName: string;
+    userEmail?: string;
+    createdAt: Date;
+  }[];
 }
 
 // Export the model as a named export

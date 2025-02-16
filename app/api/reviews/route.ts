@@ -3,6 +3,7 @@ import { Review } from "@/models/review"
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "../auth/[...nextauth]/route"
+import { ObjectId } from 'mongodb'
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
@@ -80,6 +81,7 @@ export async function GET() {
       const { _id, __v, ...rest } = review
       return {
         ...rest,
+        _id: _id.toString(),
         id: _id.toString(),
         timestamp: review.timestamp || new Date().toLocaleString('en-US', {
           day: '2-digit',
@@ -103,20 +105,64 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const { reviewId, action } = await request.json();
-    console.log("Received PATCH request:", { reviewId, action });
+    const { reviewId, action, comment } = await request.json();
     await connectMongoDB();
 
-    const update = action === 'like' ? { $inc: { likes: 1 } } : { $inc: { dislikes: 1 } };
-    const updatedReview = await Review.findByIdAndUpdate(reviewId, update, { new: true });
+    let updatedReview;
 
-    if (!updatedReview) {
-      throw new Error('Review not found');
+    if (action === 'like') {
+      updatedReview = await Review.findById(reviewId);
+      if (!updatedReview) {
+        return NextResponse.json({ error: "Review not found" }, { status: 404 });
+      }
+      updatedReview.likes += 1;
+      await updatedReview.save();
+    } else if (action === 'dislike') {
+      updatedReview = await Review.findById(reviewId);
+      if (!updatedReview) {
+        return NextResponse.json({ error: "Review not found" }, { status: 404 });
+      }
+      updatedReview.dislikes += 1;
+      await updatedReview.save();
+    } else if (action === 'comment') {
+      updatedReview = await Review.findById(reviewId);
+      
+      if (!updatedReview) {
+        return NextResponse.json({ error: "Review not found" }, { status: 404 });
+      }
+
+      const newComment = {
+        comment: comment,
+        userName: session.user?.name || 'Anonymous',
+        userEmail: session.user?.email,
+        createdAt: new Date()
+      };
+
+      updatedReview.comments = updatedReview.comments || [];
+      updatedReview.comments.push(newComment);
+      await updatedReview.save();
+    } else {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
-    console.log("Updated review:", updatedReview);
-    return NextResponse.json({ success: true, review: updatedReview.toJSON() });
+    // Transform the review data for response
+    const transformedReview = {
+      ...updatedReview.toObject(),
+      _id: updatedReview._id.toString(),
+      id: updatedReview._id.toString()
+    };
+
+    return NextResponse.json({ 
+      success: true, 
+      review: transformedReview
+    });
   } catch (error) {
     console.error("Error updating review:", error);
     return NextResponse.json({

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Star, ThumbsUp, ThumbsDown, ExternalLink, Languages } from "lucide-react"
+import { Star, ThumbsUp, ThumbsDown, ExternalLink, Languages, ChevronDown, ChevronUp, MessageSquare } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -16,19 +16,28 @@ import { useProtectedAction } from "@/hooks/use-protected-action"
 import { BookmarkIcon } from "@heroicons/react/24/outline"
 import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid"
 import { useSession } from "next-auth/react"
+import { toast } from "@/components/ui/use-toast"
+
+interface Comment {
+  _id: string;
+  comment: string;
+  userName: string;
+  userEmail?: string;
+  createdAt: Date;
+}
 
 interface ReviewCardProps {
   review: Review & {
     isAnonymous?: boolean
     timestamp: string
+    _id: string
   }
   likeAction: (id: string) => void
   dislikeAction: (id: string) => void
-  commentAction: (id: string, comment: string) => void
   bookmarkAction: (id: string) => void
 }
 
-export function ReviewCard({ review, likeAction, dislikeAction, commentAction, bookmarkAction }: ReviewCardProps) {
+export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction }: ReviewCardProps) {
   console.log('Review data:', review);
   const router = useRouter()
   const [comment, setComment] = useState("")
@@ -36,7 +45,7 @@ export function ReviewCard({ review, likeAction, dislikeAction, commentAction, b
   const [isOpen, setIsOpen] = useState(false)
   const { content } = useLanguage()
   const [commentText, setCommentText] = useState("")
-  const [comments, setComments] = useState<string[]>([])
+  const [comments, setComments] = useState<Comment[]>(review.comments || [])
   const { handleLike, handleDislike } = useReviews()
   const [localReview, setLocalReview] = useState(review)
   const [isTranslated, setIsTranslated] = useState(false)
@@ -46,27 +55,8 @@ export function ReviewCard({ review, likeAction, dislikeAction, commentAction, b
   const { data: session } = useSession()
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        const response = await fetch(`/api/comments?reviewId=${review.id}`)
-        if (!response.ok) {
-          throw new Error("Failed to fetch comments")
-        }
-        const data = await response.json()
-        if (data.success) {
-          setComments(data.comments.map((c: any) => c.comment))
-        } else {
-          console.error("Error fetching comments:", data.error)
-        }
-      } catch (error) {
-        console.error("Error fetching comments:", error)
-      }
-    }
-
-    fetchComments()
-  }, [review.id])
+  const [expandedComments, setExpandedComments] = useState(false)
+  const [newComment, setNewComment] = useState("")
 
   useEffect(() => {
     const checkBookmarkStatus = async () => {
@@ -76,7 +66,7 @@ export function ReviewCard({ review, likeAction, dislikeAction, commentAction, b
       }
 
       try {
-        const response = await fetch(`/api/bookmarks?reviewId=${review.id}`)
+        const response = await fetch(`/api/bookmarks?reviewId=${review._id}`)
         if (!response.ok) {
           throw new Error("Failed to fetch bookmark status")
         }
@@ -89,7 +79,7 @@ export function ReviewCard({ review, likeAction, dislikeAction, commentAction, b
     }
 
     checkBookmarkStatus()
-  }, [review.id, session?.user])
+  }, [review._id, session?.user])
 
   const handleContentClick = (e: React.MouseEvent) => {
     if (e.target instanceof HTMLElement && (e.target.closest("button") || e.target.closest("input"))) {
@@ -99,23 +89,63 @@ export function ReviewCard({ review, likeAction, dislikeAction, commentAction, b
   }
 
   const handleAddComment = async () => {
-    handleProtectedAction(async () => {
-      if (commentText.trim() === "") return
+    if (!session) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to comment",
+        variant: "destructive"
+      });
+      return;
+    }
 
-      await commentAction(review.id, commentText)
-      setComments([...comments, commentText])
-      setCommentText("")
-    })
-  }
+    if (!newComment.trim()) return;
+
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reviewId: review._id,
+          action: 'comment',
+          comment: newComment.trim()
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to post comment');
+      }
+
+      if (data.success) {
+        const newComments = data.review.comments || [];
+        setComments(newComments);
+        setNewComment('');
+        toast({
+          title: "Success",
+          description: "Comment posted successfully"
+        });
+      }
+    } catch (error) {
+      console.error('Error posting comment:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to post comment",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleViewInCourse = (e: React.MouseEvent) => {
     e.stopPropagation()
-    router.push(`/course/${review.courseId}?reviewId=${review.id}`)
+    router.push(`/course/${review.courseId}?reviewId=${review._id}`)
   }
 
   const onLike = async () => {
     handleProtectedAction(async () => {
-      await handleLike(review.id, localReview.hasLiked, localReview.hasDisliked)
+      await handleLike(review._id, localReview.hasLiked, localReview.hasDisliked)
       setLocalReview((prev) => ({
         ...prev,
         likes: prev.hasLiked ? prev.likes - 1 : prev.likes + 1,
@@ -123,13 +153,13 @@ export function ReviewCard({ review, likeAction, dislikeAction, commentAction, b
         hasLiked: !prev.hasLiked,
         hasDisliked: false,
       }))
-      likeAction(review.id)
+      likeAction(review._id)
     })
   }
 
   const onDislike = async () => {
     handleProtectedAction(async () => {
-      await handleDislike(review.id, localReview.hasLiked, localReview.hasDisliked)
+      await handleDislike(review._id, localReview.hasLiked, localReview.hasDisliked)
       setLocalReview((prev) => ({
         ...prev,
         dislikes: prev.hasDisliked ? prev.dislikes - 1 : prev.dislikes + 1,
@@ -137,7 +167,7 @@ export function ReviewCard({ review, likeAction, dislikeAction, commentAction, b
         hasDisliked: !prev.hasDisliked,
         hasLiked: false,
       }))
-      dislikeAction(review.id)
+      dislikeAction(review._id)
     })
   }
 
@@ -189,13 +219,13 @@ export function ReviewCard({ review, likeAction, dislikeAction, commentAction, b
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ reviewId: review.id }),
+        body: JSON.stringify({ reviewId: review._id }),
       })
 
       if (response.ok) {
         setIsBookmarked(!isBookmarked)
         if (bookmarkAction) {
-          bookmarkAction(review.id)
+          bookmarkAction(review._id)
         }
       } else {
         throw new Error("Failed to toggle bookmark")
@@ -355,29 +385,86 @@ export function ReviewCard({ review, likeAction, dislikeAction, commentAction, b
               </div>
 
               {/* Comments Section */}
-              {showComments && (
-                <div className="mt-4 space-y-3">
-                  {comments.map((comment, index) => (
-                    <div key={index} className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-2">
-                      <p className="text-xs">{comment}</p>
-                    </div>
-                  ))}
-                  <div className="flex gap-2 mt-3">
-                    <Input
-                      className="flex-1 h-8 text-xs rounded-full bg-white/50 dark:bg-gray-900/50 border-purple-200 dark:border-purple-800 focus:ring-purple-500 focus:border-purple-500"
-                      placeholder={content.addComment}
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                    />
-                    <Button
-                      onClick={handleAddComment}
-                      className="h-8 text-xs rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg transition-all duration-300"
-                    >
-                      {content.post}
-                    </Button>
+              <div className="border-t mt-4 pt-4">
+                <button
+                  onClick={() => setExpandedComments(!expandedComments)}
+                  className="w-full flex items-center justify-between gap-2 mb-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 p-2 rounded-lg transition-colors group"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <h3 className="text-lg font-semibold">
+                      Comments ({comments.length})
+                    </h3>
                   </div>
-                </div>
-              )}
+                  <div className="text-purple-600 dark:text-purple-400">
+                    {expandedComments ? (
+                      <ChevronUp className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    )}
+                  </div>
+                </button>
+
+                {expandedComments && (
+                  <div className="space-y-4">
+                    {/* Comment Input */}
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Write a comment..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAddComment();
+                          }
+                        }}
+                      />
+                      <Button
+                        onClick={handleAddComment}
+                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                        disabled={!newComment.trim() || !session}
+                      >
+                        Post
+                      </Button>
+                    </div>
+
+                    {/* Comments List */}
+                    <div className="space-y-4">
+                      {comments.map((comment) => (
+                        <div
+                          key={comment._id}
+                          className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Avatar className="w-6 h-6">
+                              <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
+                                {comment.userName[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
+                              {comment.userName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            {comment.comment}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
