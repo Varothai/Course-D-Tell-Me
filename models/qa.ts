@@ -9,6 +9,9 @@ const commentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  userEmail: {
+    type: String,
+  },
   timestamp: {
     type: String,
     default: () => new Date().toLocaleString('en-US', {
@@ -31,6 +34,9 @@ const questionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  userEmail: {
+    type: String,
+  },
   timestamp: {
     type: String,
     default: () => new Date().toLocaleString('en-US', {
@@ -41,14 +47,6 @@ const questionSchema = new mongoose.Schema({
       minute: '2-digit',
       hour12: true
     }).toUpperCase()
-  },
-  likes: {
-    type: Number,
-    default: 0
-  },
-  dislikes: {
-    type: Number,
-    default: 0
   },
   isBookmarked: {
     type: Boolean,
