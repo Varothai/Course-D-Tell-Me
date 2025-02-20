@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Star, ThumbsUp, ThumbsDown, ExternalLink, Languages, ChevronDown, ChevronUp, MessageSquare } from "lucide-react"
+import { Star, ThumbsUp, ThumbsDown, ExternalLink, Languages, ChevronDown, ChevronUp, MessageSquare, MoreVertical, Edit, Trash, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,11 @@ import { BookmarkIcon } from "@heroicons/react/24/outline"
 import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid"
 import { useSession } from "next-auth/react"
 import { toast } from "@/components/ui/use-toast"
+import { DropdownMenu } from "@/components/ui/dropdown-menu"
+import { DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { MoreHorizontal } from "lucide-react"
+import { DeleteAlertDialog } from "@/components/delete-alert-dialog"
+import { ReviewForm } from './review-form'
 
 interface Comment {
   _id: string;
@@ -35,10 +40,12 @@ interface ReviewCardProps {
   likeAction: (id: string) => void
   dislikeAction: (id: string) => void
   bookmarkAction: (id: string) => void
+  onDelete?: (id: string) => void
+  onEdit?: (reviewId: string, updatedReview: Review) => void
 }
 
-export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction }: ReviewCardProps) {
-  console.log('Review data:', review);
+export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, onDelete, onEdit }: ReviewCardProps) {
+  // console.log('Review data:', review);
   const router = useRouter()
   const [comment, setComment] = useState("")
   const [showComments, setShowComments] = useState(false)
@@ -57,6 +64,9 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction }
   const [isLoading, setIsLoading] = useState(false)
   const [expandedComments, setExpandedComments] = useState(false)
   const [newComment, setNewComment] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   useEffect(() => {
     const checkBookmarkStatus = async () => {
@@ -236,11 +246,104 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction }
     setIsLoading(false)
   }
 
+  const handleEdit = () => {
+    setIsEditing(true)
+  }
+
+  const handleEditComplete = (updatedReview: Review) => {
+    setIsEditing(false)
+    // Update the local review state with the edited review
+    setLocalReview(updatedReview)
+    // Call the onEdit callback
+    onEdit?.(review._id, updatedReview)
+  }
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/reviews/${review._id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete review');
+      }
+
+      toast({
+        title: "Success",
+        description: "Your review has been deleted",
+      });
+      
+      if (onDelete) {
+        onDelete(review.id || review._id);
+      }
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete review. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg p-4">
+        <ReviewForm
+          initialData={review}
+          isEditing={true}
+          onEditComplete={handleEditComplete}
+          onCancel={() => setIsEditing(false)}
+        />
+      </Card>
+    )
+  }
+
   return (
     <>
+      <DeleteAlertDialog 
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDelete}
+        isDeleting={isDeleting}
+      />
+
       <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800 relative">
         <div className="p-4 cursor-pointer" onClick={handleContentClick}>
-          {/* Add bookmark button at the top right inside the card */}
+          {/* Add dropdown menu to top-right corner */}
+          <div className="absolute top-2 right-2">
+            {session?.user?.name === review.userName && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleEdit}>
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteDialog(true);
+                    }}
+                  >
+                    <Trash className="w-4 h-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+
+          {/* Add bookmark button to the left of the dropdown */}
           {session?.user && (
             <button
               onClick={(e) => {
@@ -248,7 +351,7 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction }
                 toggleBookmark()
               }}
               disabled={isLoading}
-              className="absolute top-1 right-4 text-gray-600 hover:text-gray-900"
+              className="absolute top-1 right-12 text-gray-600 hover:text-gray-900"
             >
               {isBookmarked ? <BookmarkSolidIcon className="h-6 w-6" /> : <BookmarkIcon className="h-6 w-6" />}
             </button>
@@ -319,61 +422,81 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction }
 
               <p className="text-sm leading-relaxed mb-4">{isTranslated ? translatedText : review.review}</p>
 
-              {/* Bottom Actions Section */}
-              <div className="flex items-center justify-between">
-                {/* Like/Dislike Buttons */}
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onLike()
-                    }}
-                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
-                      localReview.hasLiked
-                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
-                        : ""
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                {/* Like Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onLike()
+                  }}
+                  className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                    localReview.hasLiked
+                      ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
+                      : ""
+                  }`}
+                >
+                  <ThumbsUp
+                    className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
+                      localReview.hasLiked ? "fill-purple-500 text-purple-500" : ""
                     }`}
-                  >
-                    <ThumbsUp
-                      className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
-                        localReview.hasLiked ? "fill-purple-500 text-purple-500" : ""
-                      }`}
-                    />
-                    <span className="text-xs">
-                      {localReview.likes} {content.likes}
-                    </span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDislike()
-                    }}
-                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
-                      localReview.hasDisliked
-                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
-                        : ""
+                  />
+                  <span className="text-xs">
+                    {localReview.likes} {content.likes}
+                  </span>
+                </Button>
+
+                {/* Dislike Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDislike()
+                  }}
+                  className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                    localReview.hasDisliked
+                      ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
+                      : ""
+                  }`}
+                >
+                  <ThumbsDown
+                    className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
+                      localReview.hasDisliked ? "fill-purple-500 text-purple-500" : ""
                     }`}
-                  >
-                    <ThumbsDown
-                      className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
-                        localReview.hasDisliked ? "fill-purple-500 text-purple-500" : ""
-                      }`}
-                    />
-                    <span className="text-xs">
-                      {localReview.dislikes} {content.dislikes}
-                    </span>
-                  </Button>
-                </div>
+                  />
+                  <span className="text-xs">
+                    {localReview.dislikes} {content.dislikes}
+                  </span>
+                </Button>
+
+                {/* Comments Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setExpandedComments(!expandedComments)
+                  }}
+                  className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                    expandedComments
+                      ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
+                      : ""
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+                  <span className="text-xs">
+                    {comments.length} {content.comments}
+                  </span>
+                </Button>
 
                 {/* See Reviews Button */}
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full"
+                  className="h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full ml-auto"
                   onClick={(e) => {
                     e.stopPropagation()
                     router.push(`/course/${review.courseId}`)
@@ -385,86 +508,65 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction }
               </div>
 
               {/* Comments Section */}
-              <div className="border-t mt-4 pt-4">
-                <button
-                  onClick={() => setExpandedComments(!expandedComments)}
-                  className="w-full flex items-center justify-between gap-2 mb-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 p-2 rounded-lg transition-colors group"
-                >
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                    <h3 className="text-lg font-semibold">
-                      Comments ({comments.length})
-                    </h3>
+              {expandedComments && (
+                <div className="border-t mt-4 pt-4">
+                  {/* Comment Input */}
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      placeholder="Write a comment..."
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleAddComment();
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={handleAddComment}
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                      disabled={!newComment.trim() || !session}
+                    >
+                      Post
+                    </Button>
                   </div>
-                  <div className="text-purple-600 dark:text-purple-400">
-                    {expandedComments ? (
-                      <ChevronUp className="w-5 h-5 transition-transform group-hover:scale-110" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 transition-transform group-hover:scale-110" />
-                    )}
-                  </div>
-                </button>
 
-                {expandedComments && (
+                  {/* Comments List */}
                   <div className="space-y-4">
-                    {/* Comment Input */}
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Write a comment..."
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleAddComment();
-                          }
-                        }}
-                      />
-                      <Button
-                        onClick={handleAddComment}
-                        className="bg-purple-600 hover:bg-purple-700 text-white"
-                        disabled={!newComment.trim() || !session}
+                    {comments.map((comment) => (
+                      <div
+                        key={comment._id}
+                        className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
                       >
-                        Post
-                      </Button>
-                    </div>
-
-                    {/* Comments List */}
-                    <div className="space-y-4">
-                      {comments.map((comment) => (
-                        <div
-                          key={comment._id}
-                          className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <Avatar className="w-6 h-6">
-                              <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
-                                {comment.userName[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
-                              {comment.userName}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-700 dark:text-gray-300">
-                            {comment.comment}
-                          </p>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Avatar className="w-6 h-6">
+                            <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
+                              {comment.userName[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
+                            {comment.userName}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
                         </div>
-                      ))}
-                    </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          {comment.comment}
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

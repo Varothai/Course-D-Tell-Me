@@ -22,6 +22,7 @@ export interface Course {
 }
 
 export interface Review {
+  _id?: string
   createdAt: string | number | Date
   id: string
   courseId: string

@@ -25,12 +25,17 @@ import { useSession } from "next-auth/react"
 import { useAuth } from "@/contexts/auth-context"
 import { Switch } from "@/components/ui/switch"
 import { analyzeText } from '@/utils/text-analysis'
+import { toast } from "@/components/ui/use-toast"
 
 interface ReviewFormProps {
-  courseId: string
-  courseName: string
-  action: (review: any) => void
+  courseId?: string
+  courseName?: string
+  action?: (review: any) => void
   onClose?: () => void
+  initialData?: Review
+  isEditing?: boolean
+  onEditComplete?: (review: Review) => void
+  onCancel?: () => void
 }
 
 interface SuggestionsFetchRequestedParams {
@@ -55,7 +60,16 @@ interface ReviewFormData {
   grade?: string;
 }
 
-export function ReviewForm({ courseId, courseName, action, onClose }: ReviewFormProps) {
+export function ReviewForm({ 
+  courseId, 
+  courseName, 
+  action, 
+  onClose,
+  initialData,
+  isEditing,
+  onEditComplete,
+  onCancel 
+}: ReviewFormProps) {
   const { content, language } = useLanguage()
   const { addReview } = useReviews()
   const [rating, setRating] = useState(0)
@@ -63,8 +77,8 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
   const [verified, setVerified] = useState(false)
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [formData, setFormData] = useState({
-    courseNo: courseId,
-    courseName: courseName,
+    courseNo: courseId || "",
+    courseName: courseName || "",
     faculty: "",
     major: "",
     customMajor: "",
@@ -126,6 +140,27 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
 
     fetchCourses();
   }, []);
+
+  useEffect(() => {
+    if (initialData && isEditing) {
+      setFormData({
+        courseNo: initialData.courseId,
+        courseName: initialData.courseName,
+        faculty: initialData.faculty,
+        major: initialData.major,
+        studyPlan: initialData.studyPlan,
+        section: initialData.section,
+        grade: initialData.grade || "",
+        readingAmount: initialData.readingAmount,
+        contentDifficulty: initialData.contentDifficulty,
+        teachingQuality: initialData.teachingQuality,
+        review: initialData.review,
+        electiveType: initialData.electiveType,
+        customMajor: "",
+      })
+      setRating(initialData.rating)
+    }
+  }, [initialData, isEditing])
 
   const getSuggestions = (value: string, field: 'courseno' | 'title_short_en') => {
     const inputValue = value.trim().toLowerCase();
@@ -205,7 +240,6 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
     setIsAnalyzing(true)
     
     try {
-      // Analyze text for inappropriate content
       const analysis = await analyzeText(formData.review)
       
       if (analysis.isInappropriate) {
@@ -214,47 +248,70 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
         return
       }
       
-      // Clear any previous analysis
       setAnalysisResult(null)
       
-      handleProtectedAction(async () => {
-        const userName = session?.user?.name || "User"
+      const reviewData = {
+        courseId: formData.courseNo,
+        courseName: formData.courseName,
+        userName: isAnonymous ? "Anonymous" : session?.user?.name || "User",
+        rating,
+        review: formData.review,
+        faculty: formData.faculty,
+        major: formData.major === "Others" ? formData.customMajor : formData.major,
+        studyPlan: formData.studyPlan,
+        section: formData.section,
+        readingAmount: formData.readingAmount,
+        contentDifficulty: formData.contentDifficulty,
+        teachingQuality: formData.teachingQuality,
+        programType: formData.studyPlan,
+        electiveType: formData.electiveType,
+        isAnonymous,
+        grade: formData.grade || undefined,
+        timestamp: new Date().toISOString(),
+      }
 
-        const review = {
-          courseId: formData.courseNo,
-          courseName: formData.courseName,
-          userName: isAnonymous ? "Anonymous" : userName,
-          rating,
-          review: formData.review,
-          faculty: formData.faculty,
-          major: formData.major === "Others" ? formData.customMajor : formData.major,
-          studyPlan: formData.studyPlan,
-          section: formData.section,
-          readingAmount: formData.readingAmount,
-          contentDifficulty: formData.contentDifficulty,
-          teachingQuality: formData.teachingQuality,
-          programType: formData.studyPlan,
-          electiveType: formData.electiveType,
-          isAnonymous,
-          grade: formData.grade || undefined,
+      if (isEditing && initialData) {
+        const response = await fetch(`/api/reviews/${initialData._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(reviewData),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to update review')
         }
-        
+
+        const data = await response.json()
+        if (data.success) {
+          onEditComplete?.(data.review)
+          toast({
+            title: "Success",
+            description: "Review updated successfully",
+          })
+        }
+      } else {
         const response = await fetch('/api/reviews', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(review),
+          body: JSON.stringify(reviewData),
         })
 
         if (response.ok) {
-          addReview(review)
-          action(review)
+          action?.(reviewData)
           onClose?.()
         }
-      })
+      }
     } catch (error) {
-      console.error('Error analyzing review:', error)
+      console.error('Error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to save review. Please try again.",
+        variant: "destructive"
+      })
     } finally {
       setIsAnalyzing(false)
     }
@@ -668,13 +725,25 @@ export function ReviewForm({ courseId, courseName, action, onClose }: ReviewForm
             </div>
           )}
 
-          <Button 
-            className="w-full bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-xl py-6 font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
-            disabled={!verified || !rating}
-            onClick={handleSubmit}
-          >
-            {content.post}
-          </Button>
+          <div className="flex gap-4 mt-4">
+            <Button 
+              className="flex-1 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white"
+              disabled={!verified || !rating}
+              onClick={handleSubmit}
+            >
+              {isEditing ? 'Update Review' : content.post}
+            </Button>
+            
+            {isEditing && (
+              <Button 
+                variant="outline"
+                className="flex-1"
+                onClick={onCancel}
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
