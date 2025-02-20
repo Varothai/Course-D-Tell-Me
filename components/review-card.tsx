@@ -22,6 +22,7 @@ import { DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/co
 import { MoreHorizontal } from "lucide-react"
 import { DeleteAlertDialog } from "@/components/delete-alert-dialog"
 import { ReviewForm } from './review-form'
+import { Modal } from "./modal"
 
 interface Comment {
   _id: string;
@@ -66,7 +67,7 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
   const [newComment, setNewComment] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   useEffect(() => {
     const checkBookmarkStatus = async () => {
@@ -92,10 +93,13 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
   }, [review._id, session?.user])
 
   const handleContentClick = (e: React.MouseEvent) => {
-    if (e.target instanceof HTMLElement && (e.target.closest("button") || e.target.closest("input"))) {
-      return
+    if (e.target instanceof HTMLElement && 
+      (e.target.closest('[role="menuitem"]') || 
+       e.target.closest('[role="menu"]') ||
+       e.target.closest('button'))) {
+      return;
     }
-    setIsOpen(true)
+    setIsOpen(true);
   }
 
   const handleAddComment = async () => {
@@ -246,12 +250,8 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
     setIsLoading(false)
   }
 
-  const handleEdit = () => {
-    setIsEditing(true)
-  }
-
   const handleEditComplete = (updatedReview: Review) => {
-    setIsEditing(false)
+    setShowEditModal(false)
     // Update the local review state with the edited review
     setLocalReview(updatedReview)
     // Call the onEdit callback
@@ -290,31 +290,10 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
     }
   };
 
-  if (isEditing) {
-    return (
-      <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg p-4">
-        <ReviewForm
-          initialData={review}
-          isEditing={true}
-          onEditComplete={handleEditComplete}
-          onCancel={() => setIsEditing(false)}
-        />
-      </Card>
-    )
-  }
-
   return (
     <>
-      <DeleteAlertDialog 
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
-        onConfirm={handleDelete}
-        isDeleting={isDeleting}
-      />
-
       <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800 relative">
-        <div className="p-4 cursor-pointer" onClick={handleContentClick}>
-          {/* Add dropdown menu to top-right corner */}
+        <div className="p-4">
           <div className="absolute top-2 right-2">
             {session?.user?.name === review.userName && (
               <DropdownMenu>
@@ -325,7 +304,13 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleEdit}>
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowEditModal(true);
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem
@@ -343,234 +328,233 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
             )}
           </div>
 
-          {/* Add bookmark button to the left of the dropdown */}
-          {session?.user && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                toggleBookmark()
-              }}
-              disabled={isLoading}
-              className="absolute top-1 right-12 text-gray-600 hover:text-gray-900"
-            >
-              {isBookmarked ? <BookmarkSolidIcon className="h-6 w-6" /> : <BookmarkIcon className="h-6 w-6" />}
-            </button>
-          )}
-
-          <div className="flex gap-4">
-            {/* Course Info Section */}
-            <div className="w-48">
-              <div className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-3">
-                <div className="font-mono text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  {review.courseId}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">{review.courseName}</div>
-                <div className="flex mt-1.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-4 h-4 transition-transform duration-300 ${
-                        i < review.rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Review Content Section */}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Avatar className="w-6 h-6 ring-2 ring-purple-200 dark:ring-purple-800">
-                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
-                      {review.isAnonymous ? "A" : review.userName[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                      {review.isAnonymous ? "Anonymous" : review.userName}
-                    </span>
-                    <span className="text-xs text-muted-foreground block">
-                      {review.timestamp ? format(new Date(review.timestamp), 'MMM d, yyyy') : ''}
-                    </span>
+          <div onClick={handleContentClick} className="cursor-pointer">
+            <div className="flex gap-4">
+              <div className="w-48">
+                <div className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-3">
+                  <div className="font-mono text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    {review.courseId}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{review.courseName}</div>
+                  <div className="flex mt-1.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-4 h-4 transition-transform duration-300 ${
+                          i < review.rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"
+                        }`}
+                      />
+                    ))}
                   </div>
                 </div>
-                <div className="flex items-center">
-                  {/* Translation Button */}
+              </div>
+
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Avatar className="w-6 h-6 ring-2 ring-purple-200 dark:ring-purple-800">
+                      <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
+                        {review.isAnonymous ? "A" : review.userName[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                        {review.isAnonymous ? "Anonymous" : review.userName}
+                      </span>
+                      <span className="text-xs text-muted-foreground block">
+                        {review.timestamp ? format(new Date(review.timestamp), 'MMM d, yyyy') : ''}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleTranslate()
+                      }}
+                      className="ml-2 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300"
+                      disabled={isTranslating}
+                    >
+                      <Languages className="w-4 h-4 mr-2" />
+                      {isTranslating ? (
+                        <span className="text-xs">Translating...</span>
+                      ) : isTranslated ? (
+                        <span className="text-xs">Show Original</span>
+                      ) : (
+                        <span className="text-xs">Translate</span>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <p className="text-sm leading-relaxed mb-4">{isTranslated ? translatedText : review.review}</p>
+
+                <div className="flex items-center gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleTranslate()
+                      onLike()
                     }}
-                    className="ml-2 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300"
-                    disabled={isTranslating}
+                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                      localReview.hasLiked
+                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
+                        : ""
+                    }`}
                   >
-                    <Languages className="w-4 h-4 mr-2" />
-                    {isTranslating ? (
-                      <span className="text-xs">Translating...</span>
-                    ) : isTranslated ? (
-                      <span className="text-xs">Show Original</span>
-                    ) : (
-                      <span className="text-xs">Translate</span>
-                    )}
+                    <ThumbsUp
+                      className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
+                        localReview.hasLiked ? "fill-purple-500 text-purple-500" : ""
+                      }`}
+                    />
+                    <span className="text-xs">
+                      {localReview.likes} {content.likes}
+                    </span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDislike()
+                    }}
+                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                      localReview.hasDisliked
+                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
+                        : ""
+                    }`}
+                  >
+                    <ThumbsDown
+                      className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
+                        localReview.hasDisliked ? "fill-purple-500 text-purple-500" : ""
+                      }`}
+                    />
+                    <span className="text-xs">
+                      {localReview.dislikes} {content.dislikes}
+                    </span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setExpandedComments(!expandedComments)
+                    }}
+                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                      expandedComments
+                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
+                        : ""
+                    }`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+                    <span className="text-xs">
+                      {comments.length} {content.comments}
+                    </span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full ml-auto"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/course/${review.courseId}`)
+                    }}
+                  >
+                    <ExternalLink className="w-3 h-3 mr-1.5" />
+                    {content.seeReviews}
                   </Button>
                 </div>
-              </div>
 
-              <p className="text-sm leading-relaxed mb-4">{isTranslated ? translatedText : review.review}</p>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                {/* Like Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onLike()
-                  }}
-                  className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
-                    localReview.hasLiked
-                      ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
-                      : ""
-                  }`}
-                >
-                  <ThumbsUp
-                    className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
-                      localReview.hasLiked ? "fill-purple-500 text-purple-500" : ""
-                    }`}
-                  />
-                  <span className="text-xs">
-                    {localReview.likes} {content.likes}
-                  </span>
-                </Button>
-
-                {/* Dislike Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDislike()
-                  }}
-                  className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
-                    localReview.hasDisliked
-                      ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
-                      : ""
-                  }`}
-                >
-                  <ThumbsDown
-                    className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
-                      localReview.hasDisliked ? "fill-purple-500 text-purple-500" : ""
-                    }`}
-                  />
-                  <span className="text-xs">
-                    {localReview.dislikes} {content.dislikes}
-                  </span>
-                </Button>
-
-                {/* Comments Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setExpandedComments(!expandedComments)
-                  }}
-                  className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
-                    expandedComments
-                      ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
-                      : ""
-                  }`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
-                  <span className="text-xs">
-                    {comments.length} {content.comments}
-                  </span>
-                </Button>
-
-                {/* See Reviews Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full ml-auto"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    router.push(`/course/${review.courseId}`)
-                  }}
-                >
-                  <ExternalLink className="w-3 h-3 mr-1.5" />
-                  {content.seeReviews}
-                </Button>
-              </div>
-
-              {/* Comments Section */}
-              {expandedComments && (
-                <div className="border-t mt-4 pt-4">
-                  {/* Comment Input */}
-                  <div className="flex gap-2 mb-4">
-                    <Input
-                      placeholder="Write a comment..."
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleAddComment();
-                        }
-                      }}
-                    />
-                    <Button
-                      onClick={handleAddComment}
-                      className="bg-purple-600 hover:bg-purple-700 text-white"
-                      disabled={!newComment.trim() || !session}
-                    >
-                      Post
-                    </Button>
-                  </div>
-
-                  {/* Comments List */}
-                  <div className="space-y-4">
-                    {comments.map((comment) => (
-                      <div
-                        key={comment._id}
-                        className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
+                {expandedComments && (
+                  <div className="border-t mt-4 pt-4">
+                    <div className="flex gap-2 mb-4">
+                      <Input
+                        placeholder="Write a comment..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAddComment();
+                          }
+                        }}
+                      />
+                      <Button
+                        onClick={handleAddComment}
+                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                        disabled={!newComment.trim() || !session}
                       >
-                        <div className="flex items-center gap-2 mb-2">
-                          <Avatar className="w-6 h-6">
-                            <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
-                              {comment.userName[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
-                            {comment.userName}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                        Post
+                      </Button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {comments.map((comment) => (
+                        <div
+                          key={comment._id}
+                          className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Avatar className="w-6 h-6">
+                              <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
+                                {comment.userName[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
+                              {comment.userName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            {comment.comment}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
-                          {comment.comment}
-                        </p>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
       </Card>
+
+      <Modal 
+        isOpen={showEditModal} 
+        onClose={() => setShowEditModal(false)}
+      >
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Edit Review</h2>
+          <ReviewForm
+            initialData={review}
+            isEditing={true}
+            onEditComplete={handleEditComplete}
+            onCancel={() => setShowEditModal(false)}
+          />
+        </div>
+      </Modal>
+
+      <DeleteAlertDialog 
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDelete}
+        isDeleting={isDeleting}
+      />
 
       <ReviewDialog review={review} open={isOpen} action={setIsOpen} />
     </>
