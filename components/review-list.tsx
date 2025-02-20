@@ -9,17 +9,21 @@ import { useLanguage } from "@/providers/language-provider"
 import { ReviewCard } from "@/components/review-card"
 import type { Review } from "@/types/review"
 import { useSearchParams } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface ReviewListProps {
   reviews: Review[]
 }
 
-export function ReviewList({ reviews: initialReviews }: ReviewListProps) {
+export default function ReviewList({ reviews }: ReviewListProps) {
   const { content } = useLanguage()
   const searchParams = useSearchParams()
   const highlightedReviewId = searchParams?.get('reviewId') || null
-  const [reviews, setReviews] = useState(initialReviews)
+  const [reviewsState, setReviews] = useState(reviews)
+
+  useEffect(() => {
+    setReviews(reviews)
+  }, [reviews])
 
   const handleLike = async (id: string) => {
     // ... existing like logic
@@ -38,7 +42,7 @@ export function ReviewList({ reviews: initialReviews }: ReviewListProps) {
   }
 
   const handleDelete = (deletedReviewId: string) => {
-    setReviews(reviews.filter(review => 
+    setReviews(reviewsState.filter(review => 
       (review.id !== deletedReviewId) && (review._id !== deletedReviewId)
     ));
   }
@@ -55,12 +59,12 @@ export function ReviewList({ reviews: initialReviews }: ReviewListProps) {
 
   return (
     <div className="space-y-4">
-      {reviews.map((review) => (
+      {reviewsState.map((review) => (
         <div
-          key={review.id}
-          id={`review-${review.id}`}
+          key={review._id || review.id}
+          id={`review-${review._id || review.id}`}
           className={`transition-all duration-300 ${
-            highlightedReviewId === review.id ? 'ring-2 ring-primary ring-offset-2' : ''
+            highlightedReviewId === (review._id || review.id) ? 'ring-2 ring-primary ring-offset-2' : ''
           }`}
         >
           <ReviewCard

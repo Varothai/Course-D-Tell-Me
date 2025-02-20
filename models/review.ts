@@ -93,5 +93,9 @@ export interface IReview {
   }[];
 }
 
+export interface ReviewFormProps {
+  onReviewAdded: (review: Review) => void
+}
+
 // Export the model as a named export
 export const Review = mongoose.models.Review || mongoose.model('Review', reviewSchema) 

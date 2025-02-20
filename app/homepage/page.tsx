@@ -227,30 +227,31 @@ export default function Home() {
     // Implementation of handleBookmark
   }
 
-  const handleNewReview = async (review: any) => {
-    try {
-      // Format the date for the new review
-      const formattedReview = {
-        ...review,
-        createdAt: new Date().toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      }
-      
-      // Add the new review at the beginning of the list
-      setReviews(prevReviews => [formattedReview, ...prevReviews])
-      setIsWritingReview(false)
-    } catch (error) {
-      console.error('Error handling new review:', error)
+  const handleNewReview = (newReview: Review) => {
+    // Format the date for display
+    const formattedReview = {
+      ...newReview,
+      createdAt: new Date(newReview.timestamp).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     }
+    addReview(formattedReview)
+    setIsWritingReview(false)
   }
 
   // Update the filteredReviews to maintain the sort order
   const filteredReviews = reviews
+    .sort((a, b) => {
+      // Convert timestamps to Date objects for comparison
+      const dateA = new Date(a.timestamp)
+      const dateB = new Date(b.timestamp)
+      // Sort in descending order (newest first)
+      return dateB.getTime() - dateA.getTime()
+    })
     .filter(review => selectedCourse ? review.courseId === selectedCourse.courseno : true)
     .filter(review => {
       if (selectedProgram === 'all') return true;

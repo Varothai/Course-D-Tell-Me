@@ -235,7 +235,7 @@ export function ReviewForm({
     setFormData({ ...formData, major: value, customMajor: value === "Others" ? formData.customMajor : "" })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setIsAnalyzing(true)
     
@@ -301,8 +301,28 @@ export function ReviewForm({
         })
 
         if (response.ok) {
-          action?.(reviewData)
+          const { review: newReview } = await response.json()
+          // Clear the form
+          setFormData({
+            courseNo: "",
+            courseName: "",
+            faculty: "",
+            major: "",
+            customMajor: "",
+            studyPlan: "",
+            section: "",
+            grade: "",
+            readingAmount: 0,
+            contentDifficulty: 0,
+            teachingQuality: 0,
+            review: "",
+            electiveType: "none",
+          })
+          setRating(0)
+          // Hide the form
           onClose?.()
+          // Update the reviews list by calling the onReviewAdded prop
+          action?.(newReview)
         }
       }
     } catch (error) {

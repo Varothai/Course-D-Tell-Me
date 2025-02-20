@@ -362,7 +362,7 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
                   <div className="flex items-center gap-2">
                     <Avatar className="w-6 h-6 ring-2 ring-purple-200 dark:ring-purple-800">
                       <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
-                        {review.isAnonymous ? "A" : review.userName[0]}
+                        {/* {review.isAnonymous ? "A" : review.userName[0]} */}
                       </AvatarFallback>
                     </Avatar>
                     <div>
