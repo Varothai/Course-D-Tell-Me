@@ -35,14 +35,7 @@ const reviewSchema = new mongoose.Schema({
   customMajor: { type: String },
   timestamp: {
     type: String,
-    default: () => new Date().toLocaleString('en-US', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }).toUpperCase()
+    default: () => new Date().toISOString()
   },
   bookmarkedBy: [{
     type: String,

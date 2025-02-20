@@ -40,14 +40,7 @@ export async function POST(req: Request) {
       dislikes: 0,
       comments: [],
       isBookmarked: false,
-      timestamp: new Date().toLocaleString('en-US', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      }).toUpperCase(),
+      timestamp: new Date().toISOString(),
     }
     console.log("Saving review to database:", newReview)
 

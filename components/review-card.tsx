@@ -93,10 +93,13 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
   }, [review._id, session?.user])
 
   const handleContentClick = (e: React.MouseEvent) => {
-    if (e.target instanceof HTMLElement && 
-      (e.target.closest('[role="menuitem"]') || 
-       e.target.closest('[role="menu"]') ||
-       e.target.closest('button'))) {
+    if (e.target instanceof HTMLElement && (
+      e.target.closest('[role="menuitem"]') || 
+      e.target.closest('[role="menu"]') ||
+      e.target.closest('button') ||
+      e.target.closest('input') ||
+      e.target.closest('.comments-section')
+    )) {
       return;
     }
     setIsOpen(true);
@@ -290,6 +293,11 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
     }
   };
 
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return format(date, 'MMM d, yyyy h:mm a'); // This will display like "Jan 15, 2024 2:30 PM"
+  };
+
   return (
     <>
       <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800 relative">
@@ -362,7 +370,7 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
                         {review.isAnonymous ? "Anonymous" : review.userName}
                       </span>
                       <span className="text-xs text-muted-foreground block">
-                        {review.timestamp ? format(new Date(review.timestamp), 'MMM d, yyyy') : ''}
+                        {review.timestamp ? formatTimestamp(review.timestamp) : ''}
                       </span>
                     </div>
                   </div>
@@ -472,7 +480,10 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
                 </div>
 
                 {expandedComments && (
-                  <div className="border-t mt-4 pt-4">
+                  <div 
+                    className="border-t mt-4 pt-4 comments-section" 
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex gap-2 mb-4">
                       <Input
                         placeholder="Write a comment..."
@@ -487,7 +498,10 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
                         }}
                       />
                       <Button
-                        onClick={handleAddComment}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddComment();
+                        }}
                         className="bg-purple-600 hover:bg-purple-700 text-white"
                         disabled={!newComment.trim() || !session}
                       >
