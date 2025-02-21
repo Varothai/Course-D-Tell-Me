@@ -28,13 +28,24 @@ import { useSession } from "next-auth/react"
 interface ReviewWithUserInteraction extends Review {
   hasLiked?: boolean;
   hasDisliked?: boolean;
+  _id: string;
+  timestamp: string;
+  comments: Comment[];
+}
+
+interface Comment {
+  _id: string;
+  comment: string;
+  userName: string;
+  userEmail?: string;
+  createdAt: Date;
 }
 
 export default function Home() {
   const { theme, toggleTheme } = useTheme()
   const { content, language, toggleLanguage } = useLanguage()
   const [searchQuery, setSearchQuery] = useState("")
-  const { reviews, addReview, clearReviews } = useReviews()
+  const { addReview, clearReviews } = useReviews()
   const [selectedFaculty, setSelectedFaculty] = useState("")
   const [selectedProgram, setSelectedProgram] = useState("all")
   const [selectedElective, setSelectedElective] = useState("all")
@@ -47,6 +58,7 @@ export default function Home() {
   const [suggestions, setSuggestions] = useState<Array<{ courseno: string; title_short_en: string }>>([])
   const [selectedCourse, setSelectedCourse] = useState<{ courseno: string; title_short_en: string } | null>(null)
   const { data: session } = useSession()
+  const [reviews, setReviews] = useState<ReviewWithUserInteraction[]>([])
 
   // Fetch reviews when component mounts
   useEffect(() => {
@@ -75,8 +87,7 @@ export default function Home() {
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           )
           
-          clearReviews()
-          sortedReviews.forEach((review: Review) => addReview(review))
+          setReviews(sortedReviews)
         }
       } catch (error) {
         console.error('Error fetching reviews:', error)
@@ -264,6 +275,24 @@ export default function Home() {
 
   const isGoogleUser = () => {
     return session?.user?.provider === 'google'
+  }
+
+  const handleDelete = (deletedReviewId: string) => {
+    setReviews(prevReviews => 
+      prevReviews.filter(review => 
+        (review.id !== deletedReviewId) && (review._id !== deletedReviewId)
+      )
+    );
+  }
+
+  const handleEdit = (reviewId: string, updatedReview: Review) => {
+    setReviews(prevReviews => 
+      prevReviews.map(review => 
+        (review.id === reviewId || review._id === reviewId) 
+          ? { ...updatedReview, _id: review._id, timestamp: review.timestamp }
+          : review
+      )
+    );
   }
 
   return (
@@ -518,6 +547,8 @@ export default function Home() {
                   dislikeAction={handleDislike}
                   commentAction={handleComment}
                   bookmarkAction={handleBookmark}
+                  onDelete={handleDelete}
+                  onEdit={handleEdit}
                 />
               </div>
             ))}
