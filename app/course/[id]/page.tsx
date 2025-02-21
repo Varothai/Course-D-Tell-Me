@@ -12,11 +12,27 @@ import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { PenLine, ChartPie, Star, Users } from "lucide-react"
 
+interface ReviewWithUserInteraction extends Review {
+  hasLiked?: boolean;
+  hasDisliked?: boolean;
+  _id: string;
+  timestamp: string;
+  comments: Comment[];
+}
+
+interface Comment {
+  _id: string;
+  comment: string;
+  userName: string;
+  userEmail?: string;
+  createdAt: Date;
+}
+
 export default function CoursePage() {
   const params = useParams<{ id: string }>()
   const courseId = params?.id || ''
   const { content } = useLanguage()
-  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviews, setReviews] = useState<ReviewWithUserInteraction[]>([])
   const [ratingData, setRatingData] = useState<Record<number, number>>({})
   const [gradeData, setGradeData] = useState<Record<string, number>>({})
   const [courseName, setCourseName] = useState("")
@@ -43,11 +59,19 @@ export default function CoursePage() {
         const data = await reviewResponse.json()
         
         if (data.success) {
-          // Filter reviews to ensure only this course's reviews are shown
-          const courseReviews = data.reviews.filter((review: Review) => 
-            review.courseId === courseId
-          )
-          setReviews(courseReviews)
+          // Filter and format reviews for this course
+          const courseReviews = data.reviews
+            .filter((review: Review) => review.courseId === courseId)
+            .map((review: Review) => ({
+              ...review,
+              _id: review._id || review.id,
+              timestamp: review.timestamp || review.createdAt,
+              comments: review.comments || [],
+              hasLiked: false,
+              hasDisliked: false
+            }));
+
+          setReviews(courseReviews);
 
           // Calculate distributions only for this course's reviews
           const ratingCounts: Record<number, number> = {}
@@ -73,9 +97,93 @@ export default function CoursePage() {
     }
   }, [courseId])
 
-  function setShowReviewForm(arg0: boolean): void {
-    throw new Error("Function not implemented.")
-  }
+  const handleLike = async (reviewId: string, hasLiked?: boolean, hasDisliked?: boolean) => {
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reviewId, action: 'like' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to like review');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setReviews(prevReviews => 
+          prevReviews.map(review => 
+            review._id === reviewId 
+              ? {
+                  ...review,
+                  likes: hasLiked ? review.likes - 1 : review.likes + 1,
+                  dislikes: hasDisliked ? review.dislikes - 1 : review.dislikes,
+                  hasLiked: !hasLiked,
+                  hasDisliked: false
+                }
+              : review
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error liking review:', error);
+    }
+  };
+
+  const handleDislike = async (reviewId: string, hasLiked?: boolean, hasDisliked?: boolean) => {
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reviewId, action: 'dislike' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to dislike review');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setReviews(prevReviews => 
+          prevReviews.map(review => 
+            review._id === reviewId 
+              ? {
+                  ...review,
+                  dislikes: hasDisliked ? review.dislikes - 1 : review.dislikes + 1,
+                  likes: hasLiked ? review.likes - 1 : review.likes,
+                  hasDisliked: !hasDisliked,
+                  hasLiked: false
+                }
+              : review
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error disliking review:', error);
+    }
+  };
+
+  const handleDelete = (deletedReviewId: string) => {
+    setReviews(prevReviews => 
+      prevReviews.filter(review => 
+        (review.id !== deletedReviewId) && (review._id !== deletedReviewId)
+      )
+    );
+  };
+
+  const handleEdit = (reviewId: string, updatedReview: Review) => {
+    setReviews(prevReviews => 
+      prevReviews.map(review => 
+        (review.id === reviewId || review._id === reviewId) 
+          ? { ...updatedReview, _id: review._id, timestamp: review.timestamp }
+          : review
+      )
+    );
+  };
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-8">
@@ -154,12 +262,14 @@ export default function CoursePage() {
         <div className="space-y-6">
           {reviews.length > 0 ? (
             reviews.map((review) => (
-              <div key={review.id} className="transform hover:scale-[1.02] transition-all duration-200">
+              <div key={review._id} className="transition-all duration-200">
                 <ReviewCard
+                  key={review._id}
                   review={review}
-                  likeAction={(id) => {/* ... */}}
-                  dislikeAction={(id) => {/* ... */}}
-                  commentAction={(id, comment) => {/* ... */}}
+                  likeAction={handleLike}
+                  dislikeAction={handleDislike}
+                  onDelete={handleDelete}
+                  onEdit={handleEdit}
                   bookmarkAction={(id) => {/* ... */}}
                 />
               </div>

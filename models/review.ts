@@ -41,6 +41,16 @@ const reviewSchema = new mongoose.Schema({
     type: String,
     ref: 'User'
   }],
+  likes: {
+    type: [String],
+    default: [],
+    required: true
+  },
+  dislikes: {
+    type: [String],
+    default: [],
+    required: true
+  },
   comments: {
     type: [commentSchema],
     default: [],
@@ -84,6 +94,8 @@ export interface IReview {
   teachingQuality: number;
   timestamp: string;
   bookmarkedBy?: string[];
+  likes: string[];
+  dislikes: string[];
   comments: {
     _id: string;
     comment: string;

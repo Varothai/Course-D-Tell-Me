@@ -226,32 +226,53 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
   }
 
   const toggleBookmark = async () => {
-    if (!session?.user) return
+    if (!session?.user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to bookmark reviews",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const method = isBookmarked ? "DELETE" : "POST"
+      const method = isBookmarked ? "DELETE" : "POST";
       const response = await fetch("/api/bookmarks", {
         method,
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ reviewId: review._id }),
-      })
+      });
 
-      if (response.ok) {
-        setIsBookmarked(!isBookmarked)
-        if (bookmarkAction) {
-          bookmarkAction(review._id)
-        }
-      } else {
-        throw new Error("Failed to toggle bookmark")
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to toggle bookmark");
       }
+
+      setIsBookmarked(!isBookmarked);
+      if (bookmarkAction) {
+        bookmarkAction(review._id);
+      }
+
+      toast({
+        title: isBookmarked ? "Bookmark removed" : "Review bookmarked",
+        description: isBookmarked 
+          ? "Review removed from your bookmarks" 
+          : "Review saved to your bookmarks page",
+      });
     } catch (error) {
-      console.error("Error toggling bookmark:", error)
+      console.error("Error toggling bookmark:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update bookmark",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false)
-  }
+  };
 
   const handleEditComplete = (updatedReview: Review) => {
     setShowEditModal(false)
@@ -476,6 +497,30 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
                   >
                     <ExternalLink className="w-3 h-3 mr-1.5" />
                     {content.seeReviews}
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleProtectedAction(toggleBookmark);
+                    }}
+                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                      isBookmarked ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300" : ""
+                    }`}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : isBookmarked ? (
+                      <BookmarkSolidIcon className="w-3.5 h-3.5 mr-1.5 text-purple-500" />
+                    ) : (
+                      <BookmarkIcon className="w-3.5 h-3.5 mr-1.5" />
+                    )}
+                    <span className="text-xs">
+                      {isBookmarked ? "Bookmarked" : "Bookmark"}
+                    </span>
                   </Button>
                 </div>
 

@@ -64,4 +64,30 @@ export async function PUT(
     console.error('[REVIEW_UPDATE]', error)
     return NextResponse.json({ error: "Failed to update review" }, { status: 500 })
   }
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: { reviewId: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const review = await Review.findById(params.reviewId);
+    
+    if (!review) {
+      return NextResponse.json({ error: "Review not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(review);
+  } catch (error) {
+    console.error("Error fetching review:", error);
+    return NextResponse.json(
+      { error: "Error fetching review" },
+      { status: 500 }
+    );
+  }
 } 

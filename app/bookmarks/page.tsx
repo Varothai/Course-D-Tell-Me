@@ -18,36 +18,54 @@ export default function BookmarksPage() {
 
   useEffect(() => {
     const fetchBookmarkedReviews = async () => {
-      if (!session?.user) return
+      if (!session?.user) return;
 
       try {
+        setLoading(true);
         // Fetch bookmarks
-        const bookmarksResponse = await fetch('/api/bookmarks')
+        const bookmarksResponse = await fetch('/api/bookmarks');
         if (!bookmarksResponse.ok) {
-          throw new Error('Failed to fetch bookmarks')
+          throw new Error('Failed to fetch bookmarks');
         }
-        const bookmarks = await bookmarksResponse.json()
+        const bookmarks = await bookmarksResponse.json();
 
         // Fetch review details for each bookmark
         const reviewPromises = bookmarks.map(async (bookmark: any) => {
-          const response = await fetch(`/api/reviews/${bookmark.reviewId}`)
-          if (!response.ok) {
-            throw new Error(`Failed to fetch review ${bookmark.reviewId}`)
+          try {
+            const response = await fetch(`/api/reviews/${bookmark.reviewId}/`);
+            if (!response.ok) {
+              console.error(`Failed to fetch review ${bookmark.reviewId}`);
+              return null;
+            }
+            const review = await response.json();
+            return {
+              ...review,
+              id: review._id, // Ensure we have id for compatibility
+              _id: review._id, // Ensure we have _id for compatibility
+              timestamp: review.createdAt || review.timestamp // Handle timestamp field
+            };
+          } catch (error) {
+            console.error(`Error fetching review ${bookmark.reviewId}:`, error);
+            return null;
           }
-          return response.json()
-        })
+        });
 
-        const reviews = await Promise.all(reviewPromises)
-        setBookmarkedReviews(reviews.filter(Boolean)) // Filter out any failed fetches
+        const reviews = await Promise.all(reviewPromises);
+        // Filter out any failed fetches and sort by timestamp
+        const validReviews = reviews
+          .filter(Boolean)
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          
+        setBookmarkedReviews(validReviews);
       } catch (error) {
-        console.error('Error fetching bookmarked reviews:', error)
+        console.error('Error fetching bookmarked reviews:', error);
         toast({
           title: "Error",
           description: "Failed to fetch bookmarked reviews",
           variant: "destructive"
-        })
+        });
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
@@ -56,34 +74,40 @@ export default function BookmarksPage() {
 
   const handleBookmark = async (reviewId: string) => {
     try {
+      setLoading(true);
       const response = await fetch('/api/bookmarks', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ reviewId }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to remove bookmark')
+        throw new Error('Failed to remove bookmark');
       }
 
-      // Remove the review from the list when unbookmarked
-      setBookmarkedReviews(prev => prev.filter(review => review.id !== reviewId))
+      // Remove the review from the list
+      setBookmarkedReviews(prev => prev.filter(review => review._id === reviewId));
       
       toast({
         title: "Success",
         description: "Review removed from bookmarks",
-      })
+      });
+
+      // Refresh the bookmarks list
+      fetchBookmarkedReviews();
     } catch (error) {
-      console.error('Failed to remove bookmark:', error)
+      console.error('Failed to remove bookmark:', error);
       toast({
         title: "Error",
         description: "Failed to remove bookmark",
         variant: "destructive"
-      })
+      });
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   if (!session?.user) {
     return (

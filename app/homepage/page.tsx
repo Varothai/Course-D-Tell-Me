@@ -31,6 +31,8 @@ interface ReviewWithUserInteraction extends Review {
   _id: string;
   timestamp: string;
   comments: Comment[];
+  likes: string[];    // Array of user IDs who liked
+  dislikes: string[]; // Array of user IDs who disliked
 }
 
 interface Comment {
@@ -70,6 +72,7 @@ export default function Home() {
         }
         const data = await response.json()
         if (data.success) {
+          const userId = session?.user?.email;
           // Format the dates and sort reviews
           const formattedReviews = data.reviews.map((review: Review) => ({
             ...review,
@@ -79,7 +82,11 @@ export default function Home() {
               day: 'numeric',
               hour: '2-digit',
               minute: '2-digit'
-            })
+            }),
+            likes: review.likes || [],
+            dislikes: review.dislikes || [],
+            hasLiked: userId ? review.likes?.includes(userId) : false,
+            hasDisliked: userId ? review.dislikes?.includes(userId) : false
           }))
           
           // Sort reviews by date (newest first)
@@ -95,7 +102,7 @@ export default function Home() {
     }
 
     fetchReviews()
-  }, [])
+  }, [session?.user?.email])
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -157,14 +164,21 @@ export default function Home() {
     },
   }
 
-  const handleLike = async (id: string) => {
+  const handleLike = async (reviewId: string) => {
     try {
+      const userId = session?.user?.email;
+      if (!userId) return;
+
       const response = await fetch('/api/reviews', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ reviewId: id, action: 'like' }),
+        body: JSON.stringify({ 
+          reviewId,
+          action: 'like',
+          userId 
+        }),
       });
 
       if (!response.ok) {
@@ -173,24 +187,40 @@ export default function Home() {
 
       const data = await response.json();
       if (data.success) {
-        console.log('Review liked successfully');
-        // Optionally update the UI with the new like count
-      } else {
-        console.error('Error liking review:', data.error);
+        setReviews(prevReviews => 
+          prevReviews.map(review => 
+            review._id === reviewId 
+              ? {
+                  ...review,
+                  likes: data.likes || review.likes,
+                  dislikes: data.dislikes || review.dislikes,
+                  hasLiked: data.likes?.includes(userId),
+                  hasDisliked: data.dislikes?.includes(userId)
+                }
+              : review
+          )
+        );
       }
     } catch (error) {
       console.error('Error liking review:', error);
     }
   };
 
-  const handleDislike = async (id: string) => {
+  const handleDislike = async (reviewId: string) => {
     try {
+      const userId = session?.user?.email;
+      if (!userId) return;
+
       const response = await fetch('/api/reviews', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ reviewId: id, action: 'dislike' }),
+        body: JSON.stringify({ 
+          reviewId,
+          action: 'dislike',
+          userId 
+        }),
       });
 
       if (!response.ok) {
@@ -199,10 +229,19 @@ export default function Home() {
 
       const data = await response.json();
       if (data.success) {
-        console.log('Review disliked successfully');
-        // Optionally update the UI with the new dislike count
-      } else {
-        console.error('Error disliking review:', data.error);
+        setReviews(prevReviews => 
+          prevReviews.map(review => 
+            review._id === reviewId 
+              ? {
+                  ...review,
+                  likes: data.likes || review.likes,
+                  dislikes: data.dislikes || review.dislikes,
+                  hasLiked: data.likes?.includes(userId),
+                  hasDisliked: data.dislikes?.includes(userId)
+                }
+              : review
+          )
+        );
       }
     } catch (error) {
       console.error('Error disliking review:', error);
@@ -540,7 +579,7 @@ export default function Home() {
           </h3>
           <div className="space-y-6">
             {filteredReviews.map((review) => (
-              <div key={review.id} className="transition-all duration-300">
+              <div key={review._id} className="transition-all duration-300">
                 <ReviewCard 
                   review={review}
                   likeAction={handleLike}
