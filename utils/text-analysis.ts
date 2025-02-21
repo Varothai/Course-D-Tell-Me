@@ -17,7 +17,7 @@ const inappropriateWords = {
     // Add more Thai inappropriate words
   ],
   en: [
-    'fuck', 'shit', 'bitch', 'ass', 'dick', 'pussy', 'cunt', 'bastard',
+    'fuck', 'shit', 'bitch', 'ass', 'dick', 'pussy', 'cunt', 'bastard','asshole',
     // Add more English inappropriate words
   ]
 };

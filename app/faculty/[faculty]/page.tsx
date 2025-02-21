@@ -14,10 +14,22 @@ import { formatDistanceToNow, format } from 'date-fns'
 import { useSession } from "next-auth/react"
 import Autosuggest from "react-autosuggest"
 import Papa from "papaparse"
+import { ReviewCard } from "@/components/review-card"
 
 interface ReviewWithUserInteraction extends Review {
   hasLiked?: boolean;
   hasDisliked?: boolean;
+  _id: string;
+  timestamp: string;
+  comments: Comment[];
+}
+
+interface Comment {
+  _id: string;
+  comment: string;
+  userName: string;
+  userEmail?: string;
+  createdAt: Date;
 }
 
 export default function FacultyReviewsPage() {
@@ -50,11 +62,13 @@ export default function FacultyReviewsPage() {
         
         const data = await response.json()
         if (data.success) {
-          // Sort reviews by date, newest first
-          const sortedReviews = data.reviews.sort((a: Review, b: Review) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          )
-          setReviews(sortedReviews)
+          const formattedReviews = data.reviews.map((review: any) => ({
+            ...review,
+            _id: review._id || review.id,
+            timestamp: review.timestamp || review.createdAt,
+            comments: review.comments || []
+          }))
+          setReviews(formattedReviews)
         } else {
           throw new Error(data.error || 'Failed to fetch reviews')
         }
@@ -186,6 +200,22 @@ export default function FacultyReviewsPage() {
         : review
     ));
   };
+
+  const handleDelete = (deletedReviewId: string) => {
+    setReviews(reviews.filter(review => 
+      (review.id !== deletedReviewId) && (review._id !== deletedReviewId)
+    ));
+  }
+
+  const handleEdit = (reviewId: string, updatedReview: Review) => {
+    setReviews(prevReviews => 
+      prevReviews.map(review => 
+        (review.id === reviewId || review._id === reviewId) 
+          ? updatedReview
+          : review
+      )
+    );
+  }
 
   if (loading) {
     return <div>Loading...</div>
@@ -338,106 +368,14 @@ export default function FacultyReviewsPage() {
         <div className="space-y-6">
           {filteredReviews.length > 0 ? (
             filteredReviews.map((review) => (
-              <Card 
-                key={review.id} 
-                className="group hover:shadow-lg transition-all duration-300 overflow-hidden bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800"
-                onClick={() => handleContentClick(review)}
-              >
-                <div className="p-6">
-                  {/* Course Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <div className="font-mono text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                        {review.courseId}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{review.courseName}</div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-5 h-5 transition-colors ${
-                            i < review.rating
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "fill-gray-200 text-gray-200"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Review Content */}
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Avatar className="w-8 h-8 border-2 border-purple-200 dark:border-purple-800">
-                        <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white">
-                          {review.userName[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium text-purple-700 dark:text-purple-300">
-                          {review.userName}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {review.timestamp ? format(new Date(review.timestamp), 'MMM d, yyyy') : ''}
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {review.review}
-                    </p>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleLikeClick(review.id)
-                      }}
-                      className={`hover:bg-purple-50 dark:hover:bg-purple-900/30 ${
-                        review.hasLiked ? "text-purple-600 dark:text-purple-400" : ""
-                      }`}
-                    >
-                      <ThumbsUp className={`w-4 h-4 mr-2 ${review.hasLiked ? "fill-current" : ""}`} />
-                      {review.likes} {content.likes}
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDislikeClick(review.id)
-                      }}
-                      className={`hover:bg-purple-50 dark:hover:bg-purple-900/30 ${
-                        review.hasDisliked ? "text-purple-600 dark:text-purple-400" : ""
-                      }`}
-                    >
-                      <ThumbsDown className={`w-4 h-4 mr-2 ${review.hasDisliked ? "fill-current" : ""}`} />
-                      {review.dislikes} {content.dislikes}
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="hover:bg-purple-50 dark:hover:bg-purple-900/30"
-                    >
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      {review.comments?.length || 0} {content.comments}
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className={`hover:bg-purple-50 dark:hover:bg-purple-900/30 ml-auto ${
-                        review.isBookmarked ? "text-purple-600 dark:text-purple-400" : ""
-                      }`}
-                    >
-                      <Bookmark className={`w-4 h-4 ${review.isBookmarked ? "fill-current" : ""}`} />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
+              <ReviewCard
+                key={review._id}
+                review={review}
+                likeAction={handleLike}
+                dislikeAction={handleDislike}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+              />
             ))
           ) : (
             <Card className="p-12 text-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">

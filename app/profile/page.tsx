@@ -9,13 +9,31 @@ import { Book } from "lucide-react"
 import { Review } from "@/types/review"
 import { useToast } from "@/components/ui/use-toast"
 import { ReviewCard } from "@/components/review-card"
+import { useReviews } from "@/providers/reviews-provider"
+
+interface ReviewWithUserInteraction extends Review {
+  hasLiked?: boolean;
+  hasDisliked?: boolean;
+  _id: string;
+  timestamp: string;
+  comments: Comment[];
+}
+
+interface Comment {
+  _id: string;
+  comment: string;
+  userName: string;
+  userEmail?: string;
+  createdAt: Date;
+}
 
 export default function ProfilePage() {
   const { data: session } = useSession()
   const { content } = useLanguage()
-  const [userReviews, setUserReviews] = useState<Review[]>([])
+  const [userReviews, setUserReviews] = useState<ReviewWithUserInteraction[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const { handleLike, handleDislike } = useReviews()
 
   useEffect(() => {
     fetchUserReviews()
@@ -32,7 +50,14 @@ export default function ProfilePage() {
       const data = await response.json()
       
       if (data.success) {
-        setUserReviews(data.reviews)
+        // Format reviews to match required interface
+        const formattedReviews = data.reviews.map((review: any) => ({
+          ...review,
+          _id: review._id || review.id,
+          timestamp: review.timestamp || review.createdAt,
+          comments: review.comments || []
+        }))
+        setUserReviews(formattedReviews)
       } else {
         toast({
           title: "Error",
@@ -52,12 +77,22 @@ export default function ProfilePage() {
     }
   }
 
-  const handleLike = async (reviewId: string) => {
-    // Implement like functionality
+  const handleDelete = (deletedReviewId: string) => {
+    setUserReviews(reviews => 
+      reviews.filter(review => 
+        (review.id !== deletedReviewId) && (review._id !== deletedReviewId)
+      )
+    );
   }
 
-  const handleDislike = async (reviewId: string) => {
-    // Implement dislike functionality
+  const handleEdit = (reviewId: string, updatedReview: Review) => {
+    setUserReviews(prevReviews => 
+      prevReviews.map(review => 
+        (review.id === reviewId || review._id === reviewId) 
+          ? updatedReview
+          : review
+      )
+    );
   }
 
   const handleComment = async (reviewId: string, comment: string) => {
@@ -122,12 +157,12 @@ export default function ProfilePage() {
             <div className="space-y-6">
               {userReviews.map((review) => (
                 <ReviewCard 
-                  key={review.id} 
+                  key={review._id}
                   review={review}
                   likeAction={handleLike}
                   dislikeAction={handleDislike}
-                  commentAction={handleComment}
-                  bookmarkAction={handleBookmark}
+                  onDelete={handleDelete}
+                  onEdit={handleEdit}
                 />
               ))}
             </div>
