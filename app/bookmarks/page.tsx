@@ -1,20 +1,38 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
-import { useLanguage } from "@/providers/language-provider"
-import { Card } from "@/components/ui/card"
-import { Book } from "lucide-react"
-import { Review } from "@/types/review"
-import { useToast } from "@/components/ui/use-toast"
 import { ReviewCard } from "@/components/review-card"
+import { useLanguage } from "@/providers/language-provider"
+import { useSession } from "next-auth/react"
+import { useToast } from "@/components/ui/use-toast"
+import { Book } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import type { Review } from "@/types/review"
+import { useReviews } from "@/providers/reviews-provider"
+
+interface ReviewWithUserInteraction extends Review {
+  hasLiked?: boolean;
+  hasDisliked?: boolean;
+  _id: string;
+  timestamp: string;
+  comments: Comment[];
+}
+
+interface Comment {
+  _id: string;
+  comment: string;
+  userName: string;
+  userEmail?: string;
+  createdAt: Date;
+}
 
 export default function BookmarksPage() {
-  const { data: session } = useSession()
   const { content } = useLanguage()
-  const [bookmarkedReviews, setBookmarkedReviews] = useState<Review[]>([])
+  const [bookmarkedReviews, setBookmarkedReviews] = useState<ReviewWithUserInteraction[]>([])
   const [loading, setLoading] = useState(true)
+  const { data: session } = useSession()
   const { toast } = useToast()
+  const { handleLike, handleDislike } = useReviews()
 
   useEffect(() => {
     const fetchBookmarkedReviews = async () => {
@@ -40,9 +58,9 @@ export default function BookmarksPage() {
             const review = await response.json();
             return {
               ...review,
-              id: review._id, // Ensure we have id for compatibility
-              _id: review._id, // Ensure we have _id for compatibility
-              timestamp: review.createdAt || review.timestamp // Handle timestamp field
+              _id: review._id || review.id,
+              timestamp: review.timestamp || review.createdAt,
+              comments: review.comments || []
             };
           } catch (error) {
             console.error(`Error fetching review ${bookmark.reviewId}:`, error);
@@ -51,11 +69,7 @@ export default function BookmarksPage() {
         });
 
         const reviews = await Promise.all(reviewPromises);
-        // Filter out any failed fetches and sort by timestamp
-        const validReviews = reviews
-          .filter(Boolean)
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-          
+        const validReviews = reviews.filter(Boolean);
         setBookmarkedReviews(validReviews);
       } catch (error) {
         console.error('Error fetching bookmarked reviews:', error);
@@ -67,10 +81,28 @@ export default function BookmarksPage() {
       } finally {
         setLoading(false);
       }
-    }
+    };
 
-    fetchBookmarkedReviews()
-  }, [session?.user])
+    fetchBookmarkedReviews();
+  }, [session?.user]);
+
+  const handleDelete = (deletedReviewId: string) => {
+    setBookmarkedReviews(reviews => 
+      reviews.filter(review => 
+        (review.id !== deletedReviewId) && (review._id !== deletedReviewId)
+      )
+    );
+  };
+
+  const handleEdit = (reviewId: string, updatedReview: Review) => {
+    setBookmarkedReviews(prevReviews => 
+      prevReviews.map(review => 
+        (review.id === reviewId || review._id === reviewId) 
+          ? { ...updatedReview, _id: review._id, timestamp: review.timestamp }
+          : review
+      )
+    );
+  };
 
   const handleBookmark = async (reviewId: string) => {
     try {
@@ -88,15 +120,12 @@ export default function BookmarksPage() {
       }
 
       // Remove the review from the list
-      setBookmarkedReviews(prev => prev.filter(review => review._id === reviewId));
+      setBookmarkedReviews(prev => prev.filter(review => review._id !== reviewId));
       
       toast({
         title: "Success",
         description: "Review removed from bookmarks",
       });
-
-      // Refresh the bookmarks list
-      fetchBookmarkedReviews();
     } catch (error) {
       console.error('Failed to remove bookmark:', error);
       toast({
@@ -109,22 +138,7 @@ export default function BookmarksPage() {
     }
   };
 
-  if (!session?.user) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-4">Please sign in to view bookmarks</h1>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-4">Loading...</h1>
-      </div>
-    )
-  }
-
+  // Return JSX
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
@@ -137,7 +151,26 @@ export default function BookmarksPage() {
           </p>
         </div>
 
-        {bookmarkedReviews.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto" />
+          </div>
+        ) : bookmarkedReviews.length > 0 ? (
+          <div className="space-y-6">
+            {bookmarkedReviews.map((review) => (
+              <ReviewCard 
+                key={review._id}
+                review={review}
+                likeAction={handleLike}
+                dislikeAction={handleDislike}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+                bookmarkAction={handleBookmark}
+                initialBookmarkState={true}
+              />
+            ))}
+          </div>
+        ) : (
           <Card className="p-12 text-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
             <Book className="w-12 h-12 mx-auto mb-4 text-purple-500/50" />
             <h3 className="text-xl font-semibold text-purple-700 dark:text-purple-300 mb-2">
@@ -147,21 +180,8 @@ export default function BookmarksPage() {
               Start bookmarking reviews you want to save for later!
             </p>
           </Card>
-        ) : (
-          <div className="space-y-6">
-            {bookmarkedReviews.map((review) => (
-              <ReviewCard 
-                key={review.id} 
-                review={review}
-                likeAction={(id) => {/* implement like action */}}
-                dislikeAction={(id) => {/* implement dislike action */}}
-                commentAction={(id, comment) => {/* implement comment action */}}
-                bookmarkAction={handleBookmark}
-              />
-            ))}
-          </div>
         )}
       </div>
     </div>
-  )
+  );
 } 

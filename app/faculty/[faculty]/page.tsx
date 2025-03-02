@@ -317,6 +317,22 @@ export default function FacultyReviewsPage() {
               >
                 {content.internationalProgram}
               </Button>
+              <Button
+                size="sm"
+                variant={selectedProgram === 'bilingual' ? 'default' : 'outline'}
+                className="rounded-full text-xs"
+                onClick={() => setSelectedProgram('bilingual')}
+              >
+                {content.bilingualProgram}
+              </Button>
+              <Button
+                size="sm"
+                variant={selectedProgram === 'trilingual' ? 'default' : 'outline'}
+                className="rounded-full text-xs"
+                onClick={() => setSelectedProgram('trilingual')}
+              >
+                {content.trilingualProgram}
+              </Button>
             </div>
           </div>
 

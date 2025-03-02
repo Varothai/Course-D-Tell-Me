@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Star } from "lucide-react"
+import { Star, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -36,6 +36,7 @@ interface ReviewFormProps {
   isEditing?: boolean
   onEditComplete?: (review: Review) => void
   onCancel?: () => void
+  onSubmitSuccess?: () => void
 }
 
 interface SuggestionsFetchRequestedParams {
@@ -68,7 +69,8 @@ export function ReviewForm({
   initialData,
   isEditing,
   onEditComplete,
-  onCancel 
+  onCancel,
+  onSubmitSuccess,
 }: ReviewFormProps) {
   const { content, language } = useLanguage()
   const { addReview } = useReviews()
@@ -104,6 +106,7 @@ export function ReviewForm({
     severity: 'low' | 'medium' | 'high';
     inappropriateWords: string[];
   } | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (!session) {
@@ -235,8 +238,10 @@ export function ReviewForm({
     setFormData({ ...formData, major: value, customMajor: value === "Others" ? formData.customMajor : "" })
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
+    if (!verified || !rating) return
+    
+    setIsSubmitting(true)
     setIsAnalyzing(true)
     
     try {
@@ -302,6 +307,7 @@ export function ReviewForm({
 
         if (response.ok) {
           const { review: newReview } = await response.json()
+          
           // Clear the form
           setFormData({
             courseNo: "",
@@ -319,10 +325,18 @@ export function ReviewForm({
             electiveType: "none",
           })
           setRating(0)
-          // Hide the form
-          onClose?.()
-          // Update the reviews list by calling the onReviewAdded prop
+
+          // Update UI and show success message
           action?.(newReview)
+          toast({
+            title: "Success!",
+            description: "Your review has been posted",
+            duration: 3000,
+          })
+
+          // Close form and trigger success callback
+          onClose?.()
+          onSubmitSuccess?.()
         }
       }
     } catch (error) {
@@ -334,6 +348,7 @@ export function ReviewForm({
       })
     } finally {
       setIsAnalyzing(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -748,10 +763,19 @@ export function ReviewForm({
           <div className="flex gap-4 mt-4">
             <Button 
               className="flex-1 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white"
-              disabled={!verified || !rating}
+              disabled={!verified || !rating || isSubmitting}
               onClick={handleSubmit}
             >
-              {isEditing ? 'Update Review' : content.post}
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Posting...</span>
+                </div>
+              ) : isEditing ? (
+                'Update Review'
+              ) : (
+                content.post
+              )}
             </Button>
             
             {isEditing && (

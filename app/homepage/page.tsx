@@ -278,19 +278,8 @@ export default function Home() {
   }
 
   const handleNewReview = (newReview: Review) => {
-    // Format the date for display
-    const formattedReview = {
-      ...newReview,
-      createdAt: new Date(newReview.timestamp).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    }
-    addReview(formattedReview)
-    setIsWritingReview(false)
+    // Add the new review to the beginning of the list
+    setReviews(prev => [newReview, ...prev])
   }
 
   // Update the filteredReviews to maintain the sort order
@@ -414,13 +403,17 @@ export default function Home() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
-                <ReviewForm 
-                  courseId=""
-                  courseName=""
-                  action={handleNewReview}
+                <ReviewForm
                   onClose={() => {
                     const closeButton = document.querySelector('[aria-label="Close"]') as HTMLButtonElement
                     closeButton?.click()
+                  }}
+                  action={handleNewReview}
+                  onSubmitSuccess={() => {
+                    // Additional success handling if needed
+                    setTimeout(() => {
+                      // Any additional UI updates
+                    }, 3000)
                   }}
                 />
               </DialogContent>

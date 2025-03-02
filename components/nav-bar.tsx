@@ -70,6 +70,10 @@ export function NavBar() {
     }
   }
 
+  const isGoogleUser = () => {
+    return session?.user?.provider === 'google';
+  };
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
@@ -173,12 +177,14 @@ export function NavBar() {
                       </DropdownMenuItem>
                     </Link>
 
-                    <Link href="/history">
-                      <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 mt-1 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
-                        <History className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
-                        <span className="font-medium">{content.history}</span>
-                      </DropdownMenuItem>
-                    </Link>
+                    {!isGoogleUser() && (
+                      <Link href="/history">
+                        <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 mt-1 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
+                          <History className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+                          <span className="font-medium">{content.history}</span>
+                        </DropdownMenuItem>
+                      </Link>
+                    )}
 
                     <div className="h-px my-2 bg-gradient-to-r from-transparent via-purple-200 dark:via-purple-800 to-transparent" />
                     <DropdownMenuItem 

@@ -22,6 +22,9 @@ model Review {
   teachingQuality   Int
   grade            String
   major            String
+  reports           Report[]
+  reportCount       Int      @default(0)
+  isHidden          Boolean  @default(false)
 }
 
 model Comment {
@@ -30,4 +33,16 @@ model Comment {
   reviewId  String
   review    Review   @relation(fields: [reviewId], references: [id])
   timestamp DateTime @default(now())
+}
+
+model Report {
+  id           String   @id @default(cuid())
+  reviewId     String
+  review       Review   @relation(fields: [reviewId], references: [id])
+  reporterId   String   // ID of user who reported
+  reason       String   // Reason for reporting
+  createdAt    DateTime @default(now())
+
+  @@unique([reviewId, reporterId]) // Prevents multiple reports from same user
+  @@index([reviewId])
 } 

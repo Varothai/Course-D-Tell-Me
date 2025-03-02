@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Star, ThumbsUp, ThumbsDown, ExternalLink, Languages, ChevronDown, ChevronUp, MessageSquare, MoreVertical, Edit, Trash, Loader2 } from "lucide-react"
+import { Star, ThumbsUp, ThumbsDown, ExternalLink, Languages, ChevronDown, ChevronUp, MessageSquare, MoreVertical, Edit, Trash, Loader2, Flag } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -23,6 +23,15 @@ import { MoreHorizontal } from "lucide-react"
 import { DeleteAlertDialog } from "@/components/delete-alert-dialog"
 import { ReviewForm } from './review-form'
 import { Modal } from "./modal"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 
 interface Comment {
   _id: string;
@@ -43,9 +52,18 @@ interface ReviewCardProps {
   bookmarkAction: (id: string) => void
   onDelete?: (id: string) => void
   onEdit?: (reviewId: string, updatedReview: Review) => void
+  initialBookmarkState?: boolean
 }
 
-export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, onDelete, onEdit }: ReviewCardProps) {
+export function ReviewCard({ 
+  review, 
+  likeAction, 
+  dislikeAction, 
+  bookmarkAction, 
+  onDelete, 
+  onEdit,
+  initialBookmarkState = false
+}: ReviewCardProps) {
   // console.log('Review data:', review);
   const router = useRouter()
   const [comment, setComment] = useState("")
@@ -61,18 +79,26 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
   const [isTranslating, setIsTranslating] = useState(false)
   const handleProtectedAction = useProtectedAction()
   const { data: session } = useSession()
-  const [isBookmarked, setIsBookmarked] = useState(false)
+  const [isBookmarked, setIsBookmarked] = useState(initialBookmarkState)
   const [isLoading, setIsLoading] = useState(false)
   const [expandedComments, setExpandedComments] = useState(false)
   const [newComment, setNewComment] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false)
+  const [isReporting, setIsReporting] = useState(false)
+  const [reportReason, setReportReason] = useState('')
 
   useEffect(() => {
     const checkBookmarkStatus = async () => {
       if (!session?.user) {
         setIsBookmarked(false)
+        return
+      }
+
+      if (initialBookmarkState) {
+        setIsBookmarked(true)
         return
       }
 
@@ -90,7 +116,7 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
     }
 
     checkBookmarkStatus()
-  }, [review._id, session?.user])
+  }, [review._id, session?.user, initialBookmarkState])
 
   const handleContentClick = (e: React.MouseEvent) => {
     if (e.target instanceof HTMLElement && (
@@ -277,7 +303,13 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
   const handleEditComplete = (updatedReview: Review) => {
     setShowEditModal(false)
     // Update the local review state with the edited review
-    setLocalReview(updatedReview)
+    setLocalReview({
+      ...localReview,
+      ...updatedReview,
+      _id: review._id,
+      timestamp: review.timestamp,
+      isAnonymous: review.isAnonymous
+    })
     // Call the onEdit callback
     onEdit?.(review._id, updatedReview)
   }
@@ -318,6 +350,56 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
     const date = new Date(timestamp);
     return format(date, 'MMM d, yyyy h:mm a'); // This will display like "Jan 15, 2024 2:30 PM"
   };
+
+  const handleReport = async () => {
+    if (!reportReason) {
+      toast({
+        title: "Error",
+        description: "Please select a reason for reporting",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      setIsReporting(true)
+      const response = await fetch('/api/reviews/report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reviewId: review._id,
+          reason: reportReason,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to report review')
+      }
+
+      setIsReportDialogOpen(false)
+      toast({
+        title: "Success",
+        description: "Review reported successfully"
+      })
+      
+      // If review is now hidden, you might want to refresh the page or update the UI
+      if (data.review.isHidden) {
+        router.refresh()
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to report review',
+        variant: "destructive"
+      })
+    } finally {
+      setIsReporting(false)
+    }
+  }
 
   return (
     <>
@@ -522,6 +604,54 @@ export function ReviewCard({ review, likeAction, dislikeAction, bookmarkAction, 
                       {isBookmarked ? "Bookmarked" : "Bookmark"}
                     </span>
                   </Button>
+
+                  {/* Only show report button if the review is not from the current user */}
+                  {session?.user?.name !== review.userName && (
+                    <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-muted-foreground">
+                          <Flag className="h-4 w-4 mr-2" />
+                          Report
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Report Review</DialogTitle>
+                          <DialogDescription>
+                            Please select a reason for reporting this review. Multiple reports may result in the review being hidden.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 mt-4">
+                          <Select onValueChange={setReportReason} value={reportReason}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a reason" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="inappropriate">Inappropriate Content</SelectItem>
+                              <SelectItem value="spam">Spam</SelectItem>
+                              <SelectItem value="harassment">Harassment</SelectItem>
+                              <SelectItem value="misinformation">Misinformation</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => setIsReportDialogOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={handleReport}
+                              disabled={isReporting || !reportReason}
+                            >
+                              {isReporting ? 'Reporting...' : 'Submit Report'}
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
 
                 {expandedComments && (
