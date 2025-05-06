@@ -503,7 +503,7 @@ export function ReviewCard({
                 <p className="text-sm leading-relaxed mb-4">{isTranslated ? translatedText : review.review}</p>
 
                 <div className="flex items-center gap-2">
-                  <Button
+                  {/* <Button
                     variant="ghost"
                     size="sm"
                     onClick={(e) => {
@@ -547,7 +547,7 @@ export function ReviewCard({
                     <span className="text-xs">
                       {localReview.dislikes} {content.dislikes}
                     </span>
-                  </Button>
+                  </Button> */}
 
                   <Button
                     variant="ghost"

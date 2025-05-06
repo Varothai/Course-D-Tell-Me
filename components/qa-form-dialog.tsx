@@ -1,7 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -15,11 +21,19 @@ interface QAFormDialogProps {
   open: boolean
   action: (open: boolean) => void
   submitAction: (question: string) => void
+  initialQuestion?: string
+  mode?: "create" | "edit"
 }
 
-export function QAFormDialog({ open, action, submitAction }: QAFormDialogProps) {
+export function QAFormDialog({ 
+  open, 
+  action, 
+  submitAction, 
+  initialQuestion = "",
+  mode = "create" 
+}: QAFormDialogProps) {
   const { content } = useLanguage()
-  const [question, setQuestion] = useState("")
+  const [question, setQuestion] = useState(initialQuestion)
   const [verified, setVerified] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const handleProtectedAction = useProtectedAction()
@@ -33,42 +47,51 @@ export function QAFormDialog({ open, action, submitAction }: QAFormDialogProps) 
     }
   }, [open, session, setShowAuthModal, action])
 
+  useEffect(() => {
+    if (open) {
+      setQuestion(initialQuestion)
+    }
+  }, [open, initialQuestion])
+
   if (!session) {
     return null
   }
 
-  const handleSubmit = async () => {
-    handleProtectedAction(async () => {
-      if (!question.trim() || !verified || isSubmitting) return
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (question.trim()) {
+      handleProtectedAction(async () => {
+        if (!question.trim() || !verified || isSubmitting) return
 
-      setIsSubmitting(true)
-      try {
-        const response = await fetch('/api/qa', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            question: question.trim(),
-            userName: "User", 
-          }),
-        })
+        setIsSubmitting(true)
+        try {
+          const response = await fetch('/api/qa', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              question: question.trim(),
+              userName: "User", 
+            }),
+          })
 
-        const data = await response.json()
-        if (response.ok) {
-          submitAction(question)
-          setQuestion("")
-          setVerified(false)
-          action(false)
-        } else {
-          console.error("Failed to submit question:", data.error)
+          const data = await response.json()
+          if (response.ok) {
+            submitAction(question)
+            setQuestion("")
+            setVerified(false)
+            action(false)
+          } else {
+            console.error("Failed to submit question:", data.error)
+          }
+        } catch (error) {
+          console.error("Error submitting question:", error)
+        } finally {
+          setIsSubmitting(false)
         }
-      } catch (error) {
-        console.error("Error submitting question:", error)
-      } finally {
-        setIsSubmitting(false)
-      }
-    })
+      })
+    }
   }
 
   return (
@@ -84,14 +107,16 @@ export function QAFormDialog({ open, action, submitAction }: QAFormDialogProps) 
 
         <DialogHeader>
           <DialogTitle className="text-center text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            {content.askQuestion}
+            {mode === "create" ? content.askQuestion : "Edit Question"}
           </DialogTitle>
-          <p className="text-center mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Share your questions with the community
-          </p>
+          <DialogDescription>
+            {mode === "create" 
+              ? "Share your question with the community" 
+              : "Update your question"}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
             <Textarea
               placeholder={content.questionPlaceholder}
@@ -114,18 +139,15 @@ export function QAFormDialog({ open, action, submitAction }: QAFormDialogProps) 
             </label>
           </div>
 
-          <Button
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl py-6 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group relative overflow-hidden"
-            disabled={!question.trim() || !verified || isSubmitting}
-            onClick={handleSubmit}
-          >
-            <span className="relative z-10 flex items-center gap-2">
-              {isSubmitting ? content.posting : content.postQuestion}
-              {!isSubmitting && <MessageCircleQuestion className="w-4 h-4 animate-bounce" />}
-            </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
-          </Button>
-        </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => action(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!question.trim() || !verified || isSubmitting}>
+              {mode === "create" ? content.postQuestion : "Save Changes"}
+            </Button>
+          </div>
+        </form>
 
         <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
           Your question will be visible to all users

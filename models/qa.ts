@@ -13,15 +13,8 @@ const commentSchema = new mongoose.Schema({
     type: String,
   },
   timestamp: {
-    type: String,
-    default: () => new Date().toLocaleString('en-US', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }).toUpperCase()
+    type: Date,
+    default: Date.now
   }
 })
 
@@ -38,24 +31,16 @@ const questionSchema = new mongoose.Schema({
     type: String,
   },
   timestamp: {
-    type: String,
-    default: () => new Date().toLocaleString('en-US', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }).toUpperCase()
+    type: Date,
+    default: Date.now
   },
   isBookmarked: {
     type: Boolean,
     default: false
   },
   comments: [commentSchema]
-}, { 
-  versionKey: false,
-  collection: 'questions'
+}, {
+  timestamps: false // Disable automatic timestamp updates
 })
 
 export const Question = mongoose.models.Question || mongoose.model("Question", questionSchema)

@@ -5,11 +5,13 @@ import { useLanguage } from "@/providers/language-provider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark, ChevronDown, ChevronUp } from 'lucide-react'
+import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark, ChevronDown, ChevronUp, MoreVertical, Edit, Trash } from 'lucide-react'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { QAFormDialog } from "@/components/qa-form-dialog"
 import { useSession } from "next-auth/react"
 import { useToast } from "@/components/ui/use-toast"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DeleteDialog } from "@/components/delete-dialog"
 
 interface Comment {
   _id?: string
@@ -36,6 +38,9 @@ export default function QAPage() {
   const { data: session } = useSession()
   const { toast } = useToast()
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({})
+  const [qaToEdit, setQaToEdit] = useState<QA | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   
   useEffect(() => {
     fetchQuestions()
@@ -170,6 +175,81 @@ export default function QAPage() {
     }))
   }
 
+  const handleEditQuestion = async (question: string) => {
+    if (!qaToEdit) return
+
+    try {
+      const response = await fetch(`/api/qa/${qaToEdit._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ question }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Instead of modifying state directly, fetch fresh data
+        await fetchQuestions()
+        setShowEditModal(false)
+        setQaToEdit(null)
+        toast({
+          title: "Success",
+          description: "Your question has been updated",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update your question",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error updating question:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update your question",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDeleteQuestion = async () => {
+    if (!qaToEdit) return
+
+    try {
+      const response = await fetch(`/api/qa/${qaToEdit._id}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setQAs(prevQAs => prevQAs.filter(qa => qa._id !== qaToEdit._id))
+        setShowDeleteDialog(false)
+        setQaToEdit(null)
+        toast({
+          title: "Success",
+          description: "Your question has been deleted",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to delete your question",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting question:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete your question",
+        variant: "destructive"
+      })
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
@@ -211,27 +291,75 @@ export default function QAPage() {
           submitAction={handleNewQuestion}
         />
 
+        <QAFormDialog
+          open={showEditModal}
+          action={setShowEditModal}
+          submitAction={handleEditQuestion}
+          initialQuestion={qaToEdit?.question}
+          mode="edit"
+        />
+
+        <DeleteDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          onConfirm={handleDeleteQuestion}
+        />
+
         {/* Questions List */}
         <div className="space-y-6 bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-8">
           {qas.map((qa) => (
             <div key={qa._id} className="transition-all duration-300">
               <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800">
                 <div className="p-6">
-                  {/* User Info */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <Avatar className="w-10 h-10 ring-2 ring-purple-200 dark:ring-purple-800">
-                      <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white">
-                        {qa.userName[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-semibold text-purple-700 dark:text-purple-300">
-                        {qa.userName}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {qa.timestamp}
+                  {/* Top section with user info and dropdown */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-10 h-10 ring-2 ring-purple-200 dark:ring-purple-800">
+                        <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white">
+                          {qa.userName[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-semibold text-purple-700 dark:text-purple-300">
+                          {qa.userName}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {qa.timestamp}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Edit/Delete Dropdown */}
+                    {session?.user?.name === qa.userName && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setQaToEdit(qa);
+                              setShowEditModal(true);
+                            }}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-600 dark:text-red-400"
+                            onClick={() => {
+                              setQaToEdit(qa);
+                              setShowDeleteDialog(true);
+                            }}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                   
                   {/* Question Content */}
