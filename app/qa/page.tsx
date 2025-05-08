@@ -5,13 +5,14 @@ import { useLanguage } from "@/providers/language-provider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark, ChevronDown, ChevronUp, MoreVertical, Edit, Trash, Search } from 'lucide-react'
+import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark, ChevronDown, ChevronUp, MoreVertical, Edit, Trash, Search, MoreHorizontal } from 'lucide-react'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { QAFormDialog } from "@/components/qa-form-dialog"
 import { useSession } from "next-auth/react"
 import { useToast } from "@/components/ui/use-toast"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DeleteDialog } from "@/components/delete-dialog"
+import { DeleteAlertDialog } from "@/components/delete-alert-dialog"
 
 interface Comment {
   _id?: string
@@ -43,6 +44,11 @@ export default function QAPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editingCommentText, setEditingCommentText] = useState('')
+  const [isDeletingComment, setIsDeletingComment] = useState(false)
+  const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false)
+  const [commentToDelete, setCommentToDelete] = useState<{qaId: string, commentId: string} | null>(null)
   
   useEffect(() => {
     fetchQuestions()
@@ -276,6 +282,106 @@ export default function QAPage() {
     }
   }
 
+  const handleEditComment = async (qaId: string, commentId: string, newText: string) => {
+    try {
+      const response = await fetch(`/api/qa/${qaId}/comment`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          commentId,
+          content: newText.trim()
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to edit comment');
+      }
+
+      if (data.success) {
+        // Update the local state with the edited comment
+        setQAs(prevQAs => prevQAs.map(qa => {
+          if (qa._id === qaId) {
+            return {
+              ...qa,
+              comments: qa.comments.map(comment => 
+                comment._id === commentId ? data.comment : comment
+              )
+            }
+          }
+          return qa
+        }));
+        setEditingCommentId(null);
+        setEditingCommentText('');
+        toast({
+          title: "Success",
+          description: "Comment edited successfully"
+        });
+      }
+    } catch (error) {
+      console.error('Error editing comment:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to edit comment",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteComment = async () => {
+    if (!commentToDelete) return;
+
+    setIsDeletingComment(true);
+    try {
+      const response = await fetch(`/api/qa/${commentToDelete.qaId}/comment`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          commentId: commentToDelete.commentId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete comment');
+      }
+
+      if (data.success) {
+        // Update the local state by removing the deleted comment
+        setQAs(prevQAs => prevQAs.map(qa => {
+          if (qa._id === commentToDelete.qaId) {
+            return {
+              ...qa,
+              comments: qa.comments.filter(comment => comment._id !== commentToDelete.commentId)
+            }
+          }
+          return qa
+        }));
+        setShowDeleteCommentDialog(false);
+        setCommentToDelete(null);
+        toast({
+          title: "Success",
+          description: "Comment deleted successfully"
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete comment",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeletingComment(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
@@ -444,20 +550,85 @@ export default function QAPage() {
                               key={comment._id} 
                               className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
                             >
-                              <div className="flex items-center gap-2 mb-2">
-                                <Avatar className="w-6 h-6">
-                                  <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
-                                    {comment.userName[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
-                                  {comment.userName}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {comment.timestamp}
-                                </span>
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="w-6 h-6">
+                                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
+                                      {comment.userName[0]}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
+                                    {comment.userName}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {comment.timestamp}
+                                  </span>
+                                </div>
+                                {session?.user?.email === comment.userEmail && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" className="h-8 w-8 p-0">
+                                        <span className="sr-only">Open menu</span>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem 
+                                        onClick={() => {
+                                          setEditingCommentId(comment._id);
+                                          setEditingCommentText(comment.content);
+                                        }}
+                                      >
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-red-600 focus:text-red-700"
+                                        onClick={() => {
+                                          setCommentToDelete({ qaId: qa._id, commentId: comment._id });
+                                          setShowDeleteCommentDialog(true);
+                                        }}
+                                      >
+                                        <Trash className="w-4 h-4 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
                               </div>
-                              <p className="text-sm text-gray-700 dark:text-gray-300">{comment.content}</p>
+                              {editingCommentId === comment._id ? (
+                                <div className="flex gap-2 mt-2">
+                                  <Input
+                                    value={editingCommentText}
+                                    onChange={(e) => setEditingCommentText(e.target.value)}
+                                    className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleEditComment(qa._id, comment._id, editingCommentText);
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    onClick={() => handleEditComment(qa._id, comment._id, editingCommentText)}
+                                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                                    disabled={!editingCommentText.trim()}
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingCommentId(null);
+                                      setEditingCommentText('');
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-700 dark:text-gray-300">{comment.content}</p>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -495,6 +666,16 @@ export default function QAPage() {
             </div>
           ))}
         </div>
+
+        {/* Add DeleteCommentDialog */}
+        <DeleteAlertDialog 
+          open={showDeleteCommentDialog}
+          onOpenChange={setShowDeleteCommentDialog}
+          onConfirm={handleDeleteComment}
+          isDeleting={isDeletingComment}
+          title="Delete Comment"
+          description="Are you sure you want to delete this comment? This action cannot be undone."
+        />
       </div>
     </div>
   )
