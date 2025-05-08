@@ -46,16 +46,41 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await connectMongoDB()
-    const qas = await Question.find().sort({ timestamp: -1 })
-    return NextResponse.json({ success: true, qas })
+    
+    // Get search query from URL
+    const { searchParams } = new URL(request.url)
+    const searchQuery = searchParams.get('search')?.toLowerCase() || ''
+    
+    // Build search query
+    const query = searchQuery 
+      ? { 
+          $or: [
+            { question: { $regex: searchQuery, $options: 'i' } },
+            { userName: { $regex: searchQuery, $options: 'i' } }
+          ]
+        }
+      : {}
+    
+    // Get questions with search filter
+    const qas = await Question.find(query)
+      .sort({ timestamp: -1 })  // Sort by timestamp descending
+      .lean()  // Convert to plain JavaScript objects
+      .exec()
+
+    // Ensure each question has a unique _id
+    const uniqueQAs = Array.from(
+      new Map(qas.map((qa: any) => [qa._id.toString(), qa])).values()
+    )
+
+    return NextResponse.json({ success: true, qas: uniqueQAs })
   } catch (error) {
-    console.error("Error fetching Q&As:", error)
-    return NextResponse.json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    }, { status: 500 })
+    console.error("Error fetching questions:", error)
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    )
   }
 } 

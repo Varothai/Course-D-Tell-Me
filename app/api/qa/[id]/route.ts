@@ -31,20 +31,28 @@ export async function PUT(
     }
 
     // Update the question
-    const updatedQuestion = await Question.findByIdAndUpdate(
+    const result = await Question.findByIdAndUpdate(
       params.id,
-      { question },
-      { new: true }
+      { 
+        $set: { 
+          question: question,
+        }
+      },
+      { 
+        new: true,
+        runValidators: true,
+        context: 'query'
+      }
     )
 
-    if (!updatedQuestion) {
+    if (!result) {
       return NextResponse.json(
         { error: "Failed to update question" },
         { status: 400 }
       )
     }
 
-    return NextResponse.json({ success: true, question: updatedQuestion })
+    return NextResponse.json({ success: true, qa: result })
   } catch (error) {
     console.error("Error updating question:", error)
     return NextResponse.json(

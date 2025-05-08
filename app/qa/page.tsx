@@ -5,7 +5,7 @@ import { useLanguage } from "@/providers/language-provider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark, ChevronDown, ChevronUp, MoreVertical, Edit, Trash } from 'lucide-react'
+import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark, ChevronDown, ChevronUp, MoreVertical, Edit, Trash, Search } from 'lucide-react'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { QAFormDialog } from "@/components/qa-form-dialog"
 import { useSession } from "next-auth/react"
@@ -41,21 +41,43 @@ export default function QAPage() {
   const [qaToEdit, setQaToEdit] = useState<QA | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
   
   useEffect(() => {
     fetchQuestions()
   }, [])
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = async (search?: string) => {
     try {
-      const response = await fetch('/api/qa')
+      setIsSearching(true)
+      const url = search 
+        ? `/api/qa?search=${encodeURIComponent(search)}`
+        : '/api/qa'
+        
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       const data = await response.json()
       if (data.success) {
-        setQAs(data.qas)
+        const sortedQAs = data.qas.sort((a: QA, b: QA) => {
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        })
+        setQAs(sortedQAs)
       }
     } catch (error) {
       console.error("Error fetching questions:", error)
+    } finally {
+      setIsSearching(false)
     }
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    fetchQuestions(searchQuery)
   }
 
   const handleNewQuestion = async (question: string) => {
@@ -190,8 +212,10 @@ export default function QAPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Instead of modifying state directly, fetch fresh data
-        await fetchQuestions()
+        // Update the state with the returned question data
+        setQAs(prevQAs => prevQAs.map(qa => 
+          qa._id === qaToEdit._id ? data.qa : qa
+        ))
         setShowEditModal(false)
         setQaToEdit(null)
         toast({
@@ -283,6 +307,29 @@ export default function QAPage() {
               {content.writeQA}
             </Button>
           </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-8">
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Input
+                type="text"
+                placeholder="Search questions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-white/90 dark:bg-gray-800/90 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
+              />
+            </div>
+            <Button 
+              type="submit"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              disabled={isSearching}
+            >
+              {isSearching ? 'Searching...' : 'Search'}
+            </Button>
+          </form>
         </div>
 
         <QAFormDialog
