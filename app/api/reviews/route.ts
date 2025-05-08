@@ -105,7 +105,9 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const { reviewId, action, comment } = await request.json();
+    const body = await request.json();
+    const { reviewId, action, comment, commentId, newComment } = body;
+    
     await connectMongoDB();
 
     let updatedReview;
@@ -140,6 +142,50 @@ export async function PATCH(request: Request) {
 
       updatedReview.comments = updatedReview.comments || [];
       updatedReview.comments.push(newComment);
+      await updatedReview.save();
+    } else if (action === 'editComment') {
+      updatedReview = await Review.findById(reviewId);
+      
+      if (!updatedReview) {
+        return NextResponse.json({ error: "Review not found" }, { status: 404 });
+      }
+
+      const commentIndex = updatedReview.comments.findIndex(
+        (c: any) => c._id.toString() === commentId
+      );
+
+      if (commentIndex === -1) {
+        return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+      }
+
+      // Check if the user is the comment owner
+      if (updatedReview.comments[commentIndex].userEmail !== session.user?.email) {
+        return NextResponse.json({ error: "Unauthorized to edit this comment" }, { status: 403 });
+      }
+
+      updatedReview.comments[commentIndex].comment = newComment;
+      await updatedReview.save();
+    } else if (action === 'deleteComment') {
+      updatedReview = await Review.findById(reviewId);
+      
+      if (!updatedReview) {
+        return NextResponse.json({ error: "Review not found" }, { status: 404 });
+      }
+
+      const commentIndex = updatedReview.comments.findIndex(
+        (c: any) => c._id.toString() === commentId
+      );
+
+      if (commentIndex === -1) {
+        return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+      }
+
+      // Check if the user is the comment owner
+      if (updatedReview.comments[commentIndex].userEmail !== session.user?.email) {
+        return NextResponse.json({ error: "Unauthorized to delete this comment" }, { status: 403 });
+      }
+
+      updatedReview.comments.splice(commentIndex, 1);
       await updatedReview.save();
     } else {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });

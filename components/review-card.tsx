@@ -89,6 +89,11 @@ export function ReviewCard({
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false)
   const [isReporting, setIsReporting] = useState(false)
   const [reportReason, setReportReason] = useState('')
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editingCommentText, setEditingCommentText] = useState('')
+  const [isDeletingComment, setIsDeletingComment] = useState(false)
+  const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false)
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null)
 
   useEffect(() => {
     const checkBookmarkStatus = async () => {
@@ -401,6 +406,92 @@ export function ReviewCard({
     }
   }
 
+  const handleEditComment = async (commentId: string, newText: string) => {
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reviewId: review._id,
+          action: 'editComment',
+          commentId,
+          newComment: newText.trim()
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to edit comment');
+      }
+
+      if (data.success) {
+        const newComments = data.review.comments || [];
+        setComments(newComments);
+        setEditingCommentId(null);
+        setEditingCommentText('');
+        toast({
+          title: "Success",
+          description: "Comment edited successfully"
+        });
+      }
+    } catch (error) {
+      console.error('Error editing comment:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to edit comment",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteComment = async () => {
+    if (!commentToDelete) return;
+
+    setIsDeletingComment(true);
+    try {
+      const response = await fetch('/api/reviews', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reviewId: review._id,
+          action: 'deleteComment',
+          commentId: commentToDelete
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete comment');
+      }
+
+      if (data.success) {
+        const newComments = data.review.comments || [];
+        setComments(newComments);
+        setShowDeleteCommentDialog(false);
+        setCommentToDelete(null);
+        toast({
+          title: "Success",
+          description: "Comment deleted successfully"
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete comment",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeletingComment(false);
+    }
+  };
+
   return (
     <>
       <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800 relative">
@@ -690,28 +781,93 @@ export function ReviewCard({
                           key={comment._id}
                           className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
                         >
-                          <div className="flex items-center gap-2 mb-2">
-                            <Avatar className="w-6 h-6">
-                              <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
-                                {comment.userName[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
-                              {comment.userName}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="w-6 h-6">
+                                <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
+                                  {comment.userName[0]}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
+                                {comment.userName}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                            {session?.user?.email === comment.userEmail && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem 
+                                    onClick={() => {
+                                      setEditingCommentId(comment._id);
+                                      setEditingCommentText(comment.comment);
+                                    }}
+                                  >
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-red-600 focus:text-red-700"
+                                    onClick={() => {
+                                      setCommentToDelete(comment._id);
+                                      setShowDeleteCommentDialog(true);
+                                    }}
+                                  >
+                                    <Trash className="w-4 h-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </div>
-                          <p className="text-sm text-gray-700 dark:text-gray-300">
-                            {comment.comment}
-                          </p>
+                          {editingCommentId === comment._id ? (
+                            <div className="flex gap-2 mt-2">
+                              <Input
+                                value={editingCommentText}
+                                onChange={(e) => setEditingCommentText(e.target.value)}
+                                className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleEditComment(comment._id, editingCommentText);
+                                  }
+                                }}
+                              />
+                              <Button
+                                onClick={() => handleEditComment(comment._id, editingCommentText)}
+                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                                disabled={!editingCommentText.trim()}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingCommentId(null);
+                                  setEditingCommentText('');
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                              {comment.comment}
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -743,6 +899,15 @@ export function ReviewCard({
         onOpenChange={setShowDeleteDialog}
         onConfirm={handleDelete}
         isDeleting={isDeleting}
+      />
+
+      <DeleteAlertDialog 
+        open={showDeleteCommentDialog}
+        onOpenChange={setShowDeleteCommentDialog}
+        onConfirm={handleDeleteComment}
+        isDeleting={isDeletingComment}
+        title="Delete Comment"
+        description="Are you sure you want to delete this comment? This action cannot be undone."
       />
 
       <ReviewDialog review={review} open={isOpen} action={setIsOpen} />

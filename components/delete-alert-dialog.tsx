@@ -15,13 +15,17 @@ interface DeleteAlertDialogProps {
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
   isDeleting: boolean
+  title?: string
+  description?: string
 }
 
-export function DeleteAlertDialog({ 
-  open, 
-  onOpenChange, 
-  onConfirm, 
-  isDeleting 
+export function DeleteAlertDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+  isDeleting,
+  title = "Delete Review",
+  description = "Are you sure you want to delete this review? This action cannot be undone."
 }: DeleteAlertDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -29,10 +33,10 @@ export function DeleteAlertDialog({
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
             <Trash className="w-5 h-5" />
-            Delete Review
+            {title}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-gray-600 dark:text-gray-300">
-            This action cannot be undone. This will permanently delete your review.
+            {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

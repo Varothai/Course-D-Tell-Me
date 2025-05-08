@@ -98,12 +98,14 @@ export default function QAPage() {
         },
         body: JSON.stringify({
           question,
+          userEmail: session.user?.email
         }),
       })
       
       const data = await response.json()
       
       if (response.ok && data.success) {
+        // Add the new question to the beginning of the list
         setQAs(prevQas => [data.qa, ...prevQas])
         setIsWriting(false)
         toast({

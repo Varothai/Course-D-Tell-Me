@@ -33,10 +33,16 @@ export async function POST(req: Request) {
 
     const qa = await Question.create({
       question,
-      userName: session.user?.name || "Anonymous"
+      userName: session.user?.name || "Anonymous",
+      userEmail: session.user?.email
     })
+
+    // Convert to plain object and ensure _id is a string
+    const qaObj = qa.toObject()
+    qaObj._id = qaObj._id.toString()
+    qaObj.id = qaObj._id
     
-    return NextResponse.json({ success: true, qa }, { status: 201 })
+    return NextResponse.json({ success: true, qa: qaObj }, { status: 201 })
   } catch (error) {
     console.error("Error creating Q&A:", error)
     return NextResponse.json({ 
