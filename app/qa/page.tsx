@@ -36,6 +36,7 @@ export default function QAPage() {
   const [qas, setQAs] = useState<QA[]>([])
   const [comments, setComments] = useState<Record<string, string>>({})
   const [isWriting, setIsWriting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { data: session } = useSession()
   const { toast } = useToast()
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({})
@@ -96,7 +97,12 @@ export default function QAPage() {
       return
     }
 
+    if (isSubmitting) {
+      return
+    }
+
     try {
+      setIsSubmitting(true)
       const response = await fetch('/api/qa', {
         method: 'POST',
         headers: {
@@ -132,6 +138,8 @@ export default function QAPage() {
         description: "Failed to post your question",
         variant: "destructive"
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -218,10 +226,6 @@ export default function QAPage() {
       })
 
       const data = await response.json()
-
-      console.log("Returned data.qa from backend:", data.qa);
-      console.log("qaToEdit._id:", qaToEdit._id);
-      console.log("Current QAs:", qas.map(q => q._id));
 
       if (response.ok) {
         // Update the state with the returned question data

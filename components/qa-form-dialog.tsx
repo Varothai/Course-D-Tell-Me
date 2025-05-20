@@ -65,26 +65,10 @@ export function QAFormDialog({
 
         setIsSubmitting(true)
         try {
-          const response = await fetch('/api/qa', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              question: question.trim(),
-              userName: "User", 
-            }),
-          })
-
-          const data = await response.json()
-          if (response.ok) {
-            submitAction(question)
-            setQuestion("")
-            setVerified(false)
-            action(false)
-          } else {
-            console.error("Failed to submit question:", data.error)
-          }
+          submitAction(question.trim())
+          setQuestion("")
+          setVerified(false)
+          action(false)
         } catch (error) {
           console.error("Error submitting question:", error)
         } finally {

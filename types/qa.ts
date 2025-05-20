@@ -1,5 +1,5 @@
 export interface QA {
-  _id: string
+  id: string
   question: string
   answer: string
   courseId: string

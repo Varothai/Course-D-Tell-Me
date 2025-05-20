@@ -13,6 +13,13 @@ export async function POST(req: Request) {
 
   try {
     const { question } = await req.json()
+    console.log('Attempting to create new Q&A:', {
+      question,
+      userName: session.user?.name,
+      userEmail: session.user?.email,
+      timestamp: new Date().toISOString()
+    })
+    
     await connectMongoDB()
     
     // Check if a similar question was recently posted by the same user
@@ -35,6 +42,13 @@ export async function POST(req: Request) {
       question,
       userName: session.user?.name || "Anonymous",
       userEmail: session.user?.email
+    })
+
+    console.log('Successfully created Q&A:', {
+      _id: qa._id,
+      question: qa.question,
+      userName: qa.userName,
+      timestamp: qa.timestamp
     })
 
     // Convert to plain object and ensure _id is a string
