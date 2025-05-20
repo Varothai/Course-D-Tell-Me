@@ -219,6 +219,10 @@ export default function QAPage() {
 
       const data = await response.json()
 
+      console.log("Returned data.qa from backend:", data.qa);
+      console.log("qaToEdit._id:", qaToEdit._id);
+      console.log("Current QAs:", qas.map(q => q._id));
+
       if (response.ok) {
         // Update the state with the returned question data
         setQAs(prevQAs => prevQAs.map(qa => 

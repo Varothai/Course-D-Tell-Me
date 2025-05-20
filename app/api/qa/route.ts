@@ -16,20 +16,20 @@ export async function POST(req: Request) {
     await connectMongoDB()
     
     // Check if a similar question was recently posted by the same user
-    const recentQuestion = await Question.findOne({
-      question,
-      userName: session.user?.name,
-      timestamp: {
-        $gte: new Date(Date.now() - 5000).toLocaleString() // Within last 5 seconds
-      }
-    })
+    // const recentQuestion = await Question.findOne({
+    //   question,
+    //   userName: session.user?.name,
+    //   timestamp: {
+    //     $gte: new Date(Date.now() - 5000).toLocaleString() // Within last 5 seconds
+    //   }
+    // })
 
-    if (recentQuestion) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Please wait before posting again" 
-      }, { status: 429 })
-    }
+    // if (recentQuestion) {
+    //   return NextResponse.json({ 
+    //     success: false, 
+    //     error: "Please wait before posting again" 
+    //   }, { status: 429 })
+    // }
 
     const qa = await Question.create({
       question,
