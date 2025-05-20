@@ -19,6 +19,7 @@ const commentSchema = new mongoose.Schema({
 const reviewSchema = new mongoose.Schema({
   courseId: { type: String, required: true },
   courseName: { type: String, required: true },
+  userId: { type: String, required: true },
   userName: { type: String, required: true },
   rating: { type: Number, required: true },
   review: { type: String, required: true },
@@ -33,29 +34,17 @@ const reviewSchema = new mongoose.Schema({
   teachingQuality: { type: Number, required: true },
   grade: { type: String },
   customMajor: { type: String },
-  timestamp: {
-    type: String,
-    default: () => new Date().toISOString()
-  },
-  bookmarkedBy: [{
-    type: String,
-    ref: 'User'
+  likes: { type: Number, default: 0 },
+  dislikes: { type: Number, default: 0 },
+  comments: [{
+    _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+    comment: { type: String, required: true },
+    userName: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
   }],
-  likes: {
-    type: [String],
-    default: [],
-    required: true
-  },
-  dislikes: {
-    type: [String],
-    default: [],
-    required: true
-  },
-  comments: {
-    type: [commentSchema],
-    default: [],
-    required: true
-  },
+  isBookmarked: { type: Boolean, default: false },
+  isAnonymous: { type: Boolean, default: false },
+  timestamp: { type: Date, default: Date.now }
 }, { 
   timestamps: false,
   autoIndex: true 
@@ -80,6 +69,7 @@ export interface IReview {
   _id: string;
   courseId: string;
   courseName: string;
+  userId: string;
   userName: string;
   rating: number;
   review: string;
@@ -89,20 +79,22 @@ export interface IReview {
   section: string;
   programType: string;
   electiveType: string;
-  readingAmount: number;
-  contentDifficulty: number;
-  teachingQuality: number;
-  timestamp: string;
-  bookmarkedBy?: string[];
-  likes: string[];
-  dislikes: string[];
-  comments: {
+  readingAmount: string;
+  contentDifficulty: string;
+  teachingQuality: string;
+  grade: string;
+  customMajor?: string;
+  likes: number;
+  dislikes: number;
+  comments: Array<{
     _id: string;
     comment: string;
     userName: string;
-    userEmail?: string;
     createdAt: Date;
-  }[];
+  }>;
+  isBookmarked: boolean;
+  isAnonymous: boolean;
+  timestamp: Date;
 }
 
 export interface ReviewFormProps {

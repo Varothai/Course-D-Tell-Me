@@ -46,6 +46,7 @@ interface ReviewCardProps {
     isAnonymous?: boolean
     timestamp: string
     _id: string
+    userId: string
   }
   likeAction: (id: string) => void
   dislikeAction: (id: string) => void
@@ -94,6 +95,8 @@ export function ReviewCard({
   const [isDeletingComment, setIsDeletingComment] = useState(false)
   const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false)
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null)
+
+  const canEdit = session?.user?.id === review.userId
 
   useEffect(() => {
     const checkBookmarkStatus = async () => {
@@ -497,7 +500,7 @@ export function ReviewCard({
       <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800 relative">
         <div className="p-4">
           <div className="absolute top-2 right-2">
-            {session?.user?.name === review.userName && (
+            {canEdit && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-8 w-8 p-0">
@@ -556,7 +559,7 @@ export function ReviewCard({
                   <div className="flex items-center gap-2">
                     <Avatar className="w-6 h-6 ring-2 ring-purple-200 dark:ring-purple-800">
                       <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
-                        {/* {review.isAnonymous ? "A" : review.userName[0]} */}
+                        {review.isAnonymous ? "A" : review.userName[0]}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -801,7 +804,7 @@ export function ReviewCard({
                                 })}
                               </span>
                             </div>
-                            {session?.user?.email === comment.userEmail && (
+                            {session?.user?.name === comment.userName && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" className="h-8 w-8 p-0">

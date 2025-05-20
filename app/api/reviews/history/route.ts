@@ -14,7 +14,7 @@ export async function GET() {
   try {
     await connectMongoDB()
     const reviews = await Review.find({ 
-      userName: session.user?.name 
+      userId: session.user?.id 
     }).sort({ timestamp: -1 })
 
     return NextResponse.json({ success: true, reviews })

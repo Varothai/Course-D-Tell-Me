@@ -22,7 +22,8 @@ export async function POST(req: Request) {
     const newReview = {
       courseId: review.courseId,
       courseName: review.courseName,
-      userName: review.userName,
+      userId: session.user?.id,
+      userName: review.isAnonymous ? "Anonymous" : session.user?.name,
       rating: review.rating,
       review: review.review,
       faculty: review.faculty,
@@ -40,7 +41,8 @@ export async function POST(req: Request) {
       dislikes: 0,
       comments: [],
       isBookmarked: false,
-      timestamp: new Date().toISOString(),
+      isAnonymous: review.isAnonymous || false,
+      timestamp: new Date()
     }
     console.log("Saving review to database:", newReview)
 
@@ -71,7 +73,7 @@ export async function GET() {
       .exec()
     
     const transformedReviews = reviews.map(review => {
-      const { _id, __v, ...rest } = review
+      const { _id, __v, ...rest } = review as { _id: { toString: () => string }, __v: any, [key: string]: any }
       return {
         ...rest,
         _id: _id.toString(),
@@ -136,7 +138,6 @@ export async function PATCH(request: Request) {
       const newComment = {
         comment: comment,
         userName: session.user?.name || 'Anonymous',
-        userEmail: session.user?.email,
         createdAt: new Date()
       };
 
@@ -159,7 +160,7 @@ export async function PATCH(request: Request) {
       }
 
       // Check if the user is the comment owner
-      if (updatedReview.comments[commentIndex].userEmail !== session.user?.email) {
+      if (updatedReview.comments[commentIndex].userName !== session.user?.name) {
         return NextResponse.json({ error: "Unauthorized to edit this comment" }, { status: 403 });
       }
 
@@ -181,7 +182,7 @@ export async function PATCH(request: Request) {
       }
 
       // Check if the user is the comment owner
-      if (updatedReview.comments[commentIndex].userEmail !== session.user?.email) {
+      if (updatedReview.comments[commentIndex].userName !== session.user?.name) {
         return NextResponse.json({ error: "Unauthorized to delete this comment" }, { status: 403 });
       }
 
