@@ -7,7 +7,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
+    if (!session?.user?.name) {
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     // Check if user already reported this review
     const existingReport = await db.collection('reports').findOne({
       reviewId: reviewId,
-      reporterId: session.user.email
+      reporterId: session.user.name
     })
 
     if (existingReport) {
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     // Create report
     const report = await db.collection('reports').insertOne({
       reviewId: reviewId,
-      reporterId: session.user.email,
+      reporterId: session.user.name,
       reason: reason,
       createdAt: new Date()
     })

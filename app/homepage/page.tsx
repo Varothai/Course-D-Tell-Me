@@ -25,14 +25,16 @@ import Autosuggest from "react-autosuggest"
 import Papa from "papaparse"
 import { useSession } from "next-auth/react"
 
-interface ReviewWithUserInteraction extends Review {
+interface ReviewWithUserInteraction extends Omit<Review, 'likes' | 'dislikes'> {
+  likes: string[];
+  dislikes: string[];
   hasLiked?: boolean;
   hasDisliked?: boolean;
   _id: string;
   timestamp: string;
   comments: Comment[];
-  likes: string[];    // Array of user IDs who liked
-  dislikes: string[]; // Array of user IDs who disliked
+  isAnonymous?: boolean;
+  userId: string;
 }
 
 interface Comment {
@@ -61,10 +63,14 @@ export default function Home() {
   const [selectedCourse, setSelectedCourse] = useState<{ courseno: string; title_short_en: string } | null>(null)
   const { data: session } = useSession()
   const [reviews, setReviews] = useState<ReviewWithUserInteraction[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Fetch reviews when component mounts
   useEffect(() => {
     const fetchReviews = async () => {
+      setIsLoading(true)
+      setError(null)
       try {
         const response = await fetch('/api/reviews')
         if (!response.ok) {
@@ -76,6 +82,8 @@ export default function Home() {
           // Format the dates and sort reviews
           const formattedReviews = data.reviews.map((review: Review) => ({
             ...review,
+            _id: review._id || review.id,
+            userId: review.userId,
             createdAt: new Date(review.createdAt).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'long',
@@ -83,14 +91,16 @@ export default function Home() {
               hour: '2-digit',
               minute: '2-digit'
             }),
-            likes: review.likes || [],
-            dislikes: review.dislikes || [],
-            hasLiked: userId ? review.likes?.includes(userId) : false,
-            hasDisliked: userId ? review.dislikes?.includes(userId) : false
-          }))
+            likes: Array.isArray(review.likes) ? review.likes : [],
+            dislikes: Array.isArray(review.dislikes) ? review.dislikes : [],
+            hasLiked: userId ? (Array.isArray(review.likes) ? review.likes.includes(userId) : false) : false,
+            hasDisliked: userId ? (Array.isArray(review.dislikes) ? review.dislikes.includes(userId) : false) : false,
+            isAnonymous: review.isAnonymous || false,
+            timestamp: review.timestamp || new Date(review.createdAt).toISOString()
+          })) as ReviewWithUserInteraction[]
           
           // Sort reviews by date (newest first)
-          const sortedReviews = formattedReviews.sort((a: Review, b: Review) => 
+          const sortedReviews = formattedReviews.sort((a, b) => 
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           )
           
@@ -98,10 +108,27 @@ export default function Home() {
         }
       } catch (error) {
         console.error('Error fetching reviews:', error)
+        setError('Failed to load reviews. Please try again.')
+      } finally {
+        setIsLoading(false)
       }
     }
 
     fetchReviews()
+  }, []) // Remove session dependency from initial fetch
+
+  // Update likes/dislikes when session changes
+  useEffect(() => {
+    if (session?.user?.email && reviews.length > 0) {
+      const userEmail = session.user.email;
+      setReviews(prevReviews => 
+        prevReviews.map(review => ({
+          ...review,
+          hasLiked: review.likes.includes(userEmail),
+          hasDisliked: review.dislikes.includes(userEmail)
+        }))
+      )
+    }
   }, [session?.user?.email])
 
   useEffect(() => {
@@ -192,10 +219,10 @@ export default function Home() {
             review._id === reviewId 
               ? {
                   ...review,
-                  likes: data.likes || review.likes,
-                  dislikes: data.dislikes || review.dislikes,
-                  hasLiked: data.likes?.includes(userId),
-                  hasDisliked: data.dislikes?.includes(userId)
+                  likes: Array.isArray(data.likes) ? data.likes : review.likes,
+                  dislikes: Array.isArray(data.dislikes) ? data.dislikes : review.dislikes,
+                  hasLiked: Array.isArray(data.likes) ? data.likes.includes(userId) : review.hasLiked,
+                  hasDisliked: Array.isArray(data.dislikes) ? data.dislikes.includes(userId) : review.hasDisliked
                 }
               : review
           )
@@ -234,10 +261,10 @@ export default function Home() {
             review._id === reviewId 
               ? {
                   ...review,
-                  likes: data.likes || review.likes,
-                  dislikes: data.dislikes || review.dislikes,
-                  hasLiked: data.likes?.includes(userId),
-                  hasDisliked: data.dislikes?.includes(userId)
+                  likes: Array.isArray(data.likes) ? data.likes : review.likes,
+                  dislikes: Array.isArray(data.dislikes) ? data.dislikes : review.dislikes,
+                  hasLiked: Array.isArray(data.likes) ? data.likes.includes(userId) : review.hasLiked,
+                  hasDisliked: Array.isArray(data.dislikes) ? data.dislikes.includes(userId) : review.hasDisliked
                 }
               : review
           )
@@ -570,21 +597,35 @@ export default function Home() {
           <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
             {content.allReviews}
           </h3>
-          <div className="space-y-6">
-            {filteredReviews.map((review) => (
-              <div key={review._id} className="transition-all duration-300">
-                <ReviewCard 
-                  review={review}
-                  likeAction={handleLike}
-                  dislikeAction={handleDislike}
-                  commentAction={handleComment}
-                  bookmarkAction={handleBookmark}
-                  onDelete={handleDelete}
-                  onEdit={handleEdit}
-                />
-              </div>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center items-center min-h-[200px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center text-red-500 p-4">
+              {error}
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="text-center text-gray-500 p-4">
+              No reviews found
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {filteredReviews.map((review) => (
+                <div key={review._id} className="transition-all duration-300">
+                  <ReviewCard 
+                    review={review}
+                    likeAction={handleLike}
+                    dislikeAction={handleDislike}
+                    commentAction={handleComment}
+                    bookmarkAction={handleBookmark}
+                    onDelete={handleDelete}
+                    onEdit={handleEdit}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

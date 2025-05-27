@@ -500,7 +500,7 @@ export function ReviewCard({
       <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800 relative">
         <div className="p-4">
           <div className="absolute top-2 right-2">
-            {canEdit && (
+            {canEdit ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-8 w-8 p-0">
@@ -530,12 +530,32 @@ export function ReviewCard({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsReportDialogOpen(true);
+                    }}
+                  >
+                    <Flag className="w-4 h-4 mr-2" />
+                    Report
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
 
           <div onClick={handleContentClick} className="cursor-pointer">
-            <div className="flex gap-4">
-              <div className="w-48">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="w-full sm:w-48">
                 <div className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-3">
                   <div className="font-mono text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     {review.courseId}
@@ -555,7 +575,7 @@ export function ReviewCard({
               </div>
 
               <div className="flex-1">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2">
                     <Avatar className="w-6 h-6 ring-2 ring-purple-200 dark:ring-purple-800">
                       <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
@@ -596,53 +616,7 @@ export function ReviewCard({
 
                 <p className="text-sm leading-relaxed mb-4">{isTranslated ? translatedText : review.review}</p>
 
-                <div className="flex items-center gap-2">
-                  {/* <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onLike()
-                    }}
-                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
-                      localReview.hasLiked
-                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
-                        : ""
-                    }`}
-                  >
-                    <ThumbsUp
-                      className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
-                        localReview.hasLiked ? "fill-purple-500 text-purple-500" : ""
-                      }`}
-                    />
-                    <span className="text-xs">
-                      {localReview.likes} {content.likes}
-                    </span>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDislike()
-                    }}
-                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
-                      localReview.hasDisliked
-                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
-                        : ""
-                    }`}
-                  >
-                    <ThumbsDown
-                      className={`w-3.5 h-3.5 mr-1.5 transition-transform duration-300 hover:scale-110 ${
-                        localReview.hasDisliked ? "fill-purple-500 text-purple-500" : ""
-                      }`}
-                    />
-                    <span className="text-xs">
-                      {localReview.dislikes} {content.dislikes}
-                    </span>
-                  </Button> */}
-
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -665,7 +639,7 @@ export function ReviewCard({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full ml-auto"
+                    className="h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full"
                     onClick={(e) => {
                       e.stopPropagation()
                       router.push(`/course/${review.courseId}`)
@@ -698,54 +672,6 @@ export function ReviewCard({
                       {isBookmarked ? "Bookmarked" : "Bookmark"}
                     </span>
                   </Button>
-
-                  {/* Only show report button if the review is not from the current user */}
-                  {session?.user?.name !== review.userName && (
-                    <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-muted-foreground">
-                          <Flag className="h-4 w-4 mr-2" />
-                          Report
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Report Review</DialogTitle>
-                          <DialogDescription>
-                            Please select a reason for reporting this review. Multiple reports may result in the review being hidden.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 mt-4">
-                          <Select onValueChange={setReportReason} value={reportReason}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a reason" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="inappropriate">Inappropriate Content</SelectItem>
-                              <SelectItem value="spam">Spam</SelectItem>
-                              <SelectItem value="harassment">Harassment</SelectItem>
-                              <SelectItem value="misinformation">Misinformation</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <div className="flex justify-end space-x-2">
-                            <Button
-                              variant="outline"
-                              onClick={() => setIsReportDialogOpen(false)}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              onClick={handleReport}
-                              disabled={isReporting || !reportReason}
-                            >
-                              {isReporting ? 'Reporting...' : 'Submit Report'}
-                            </Button>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  )}
                 </div>
 
                 {expandedComments && (
@@ -753,7 +679,7 @@ export function ReviewCard({
                     className="border-t mt-4 pt-4 comments-section" 
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="flex gap-2 mb-4">
+                    <div className="flex flex-col sm:flex-row gap-2 mb-4">
                       <Input
                         placeholder="Write a comment..."
                         value={newComment}
@@ -784,7 +710,7 @@ export function ReviewCard({
                           key={comment._id}
                           className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
                         >
-                          <div className="flex items-center justify-between mb-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2">
                               <Avatar className="w-6 h-6">
                                 <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
@@ -837,7 +763,7 @@ export function ReviewCard({
                             )}
                           </div>
                           {editingCommentId === comment._id ? (
-                            <div className="flex gap-2 mt-2">
+                            <div className="flex flex-col sm:flex-row gap-2 mt-2">
                               <Input
                                 value={editingCommentText}
                                 onChange={(e) => setEditingCommentText(e.target.value)}
@@ -849,22 +775,24 @@ export function ReviewCard({
                                   }
                                 }}
                               />
-                              <Button
-                                onClick={() => handleEditComment(comment._id, editingCommentText)}
-                                className="bg-purple-600 hover:bg-purple-700 text-white"
-                                disabled={!editingCommentText.trim()}
-                              >
-                                Save
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => {
-                                  setEditingCommentId(null);
-                                  setEditingCommentText('');
-                                }}
-                              >
-                                Cancel
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() => handleEditComment(comment._id, editingCommentText)}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                                  disabled={!editingCommentText.trim()}
+                                >
+                                  Save
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingCommentId(null);
+                                    setEditingCommentText('');
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
                             </div>
                           ) : (
                             <p className="text-sm text-gray-700 dark:text-gray-300">
@@ -914,6 +842,45 @@ export function ReviewCard({
       />
 
       <ReviewDialog review={review} open={isOpen} action={setIsOpen} />
+
+      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Report Review</DialogTitle>
+            <DialogDescription>
+              Please select a reason for reporting this review. Multiple reports may result in the review being hidden.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <Select onValueChange={setReportReason} value={reportReason}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a reason" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="inappropriate">Inappropriate Content</SelectItem>
+                <SelectItem value="spam">Spam</SelectItem>
+                <SelectItem value="harassment">Harassment</SelectItem>
+                <SelectItem value="misinformation">Misinformation</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex justify-end space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsReportDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleReport}
+                disabled={isReporting || !reportReason}
+              >
+                {isReporting ? 'Reporting...' : 'Submit Report'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

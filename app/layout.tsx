@@ -13,6 +13,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Course D Tell-Me",
   description: "Share and discover course reviews",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
 }
 
 export default function RootLayout({
@@ -28,8 +29,12 @@ export default function RootLayout({
             <LanguageProvider>
               <ReviewProvider>
                 <ReviewsProvider>
-                  <NavBar />
-                  {children}
+                  <div className="min-h-screen flex flex-col">
+                    <NavBar />
+                    <main className="flex-1 container mx-auto px-4 py-6">
+                      {children}
+                    </main>
+                  </div>
                 </ReviewsProvider>
               </ReviewProvider>
             </LanguageProvider>
