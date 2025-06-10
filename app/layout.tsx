@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   title: "Course D Tell-Me",
   description: "Share and discover course reviews",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+  icons: {
+    icon: '/elephant-mascot.png',
+  },
 }
 
 export default function RootLayout({
@@ -23,6 +26,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/elephant-mascot.png" />
+      </head>
       <body className={inter.className}>
         <AuthProvider>
           <ThemeProvider>

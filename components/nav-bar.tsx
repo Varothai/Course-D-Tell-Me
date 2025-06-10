@@ -113,7 +113,7 @@ export function NavBar() {
               <img
                 src="/elephant-mascot.png" 
                 alt="Cute elephant mascot"
-                className="w-full h-full object-contain animate-bounce-gentle"
+                className="w-full h-full object-contain"
               />
             </div>
             <Link 
