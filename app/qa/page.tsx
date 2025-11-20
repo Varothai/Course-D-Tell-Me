@@ -5,7 +5,7 @@ import { useLanguage } from "@/providers/language-provider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark, ChevronDown, ChevronUp, MoreVertical, Edit, Trash, Search, MoreHorizontal } from 'lucide-react'
+import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark, ChevronDown, ChevronUp, MoreVertical, Edit, Trash, Search, MoreHorizontal, Building2, Globe } from 'lucide-react'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { QAFormDialog } from "@/components/qa-form-dialog"
 import { useSession } from "next-auth/react"
@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DeleteDialog } from "@/components/delete-dialog"
 import { DeleteAlertDialog } from "@/components/delete-alert-dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Comment {
   _id?: string
@@ -20,6 +21,7 @@ interface Comment {
   userName: string
   timestamp: string
   userEmail?: string
+  userProvider?: 'google' | 'cmu'
 }
 
 interface QA {
@@ -28,7 +30,22 @@ interface QA {
   userName: string
   timestamp: string
   userEmail?: string
+  userProvider?: 'google' | 'cmu'
   comments: Comment[]
+}
+
+// Helper function to determine provider from email or stored provider
+const getProvider = (userProvider?: string, userEmail?: string): 'google' | 'cmu' | null => {
+  if (userProvider === 'cmu' || userProvider === 'google') {
+    return userProvider as 'google' | 'cmu'
+  }
+  if (userEmail?.endsWith('@cmu.ac.th')) {
+    return 'cmu'
+  }
+  if (userProvider) {
+    return userProvider as 'google' | 'cmu'
+  }
+  return null
 }
 
 export default function QAPage() {
@@ -40,6 +57,7 @@ export default function QAPage() {
   const { data: session } = useSession()
   const { toast } = useToast()
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({})
+  const [commentSortOrder, setCommentSortOrder] = useState<Record<string, 'newest' | 'oldest'>>({})
   const [qaToEdit, setQaToEdit] = useState<QA | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -170,13 +188,19 @@ export default function QAPage() {
 
       const data = await response.json()
       
-      if (response.ok) {
+      if (response.ok && data.success) {
+        // Ensure the comment has a properly formatted _id
+        const newComment = {
+          ...data.comment,
+          _id: data.comment._id?.toString() || data.comment._id || ''
+        }
+        
         // Update the local state with the new comment
         setQAs(prevQAs => prevQAs.map(qa => {
           if (qa._id === qaId) {
             return {
               ...qa,
-              comments: [...qa.comments, data.comment]
+              comments: [...qa.comments, newComment]
             }
           }
           return qa
@@ -315,9 +339,16 @@ export default function QAPage() {
           if (qa._id === qaId) {
             return {
               ...qa,
-              comments: qa.comments.map(comment => 
-                comment._id === commentId ? data.comment : comment
-              )
+              comments: qa.comments.map(comment => {
+                const commentIdStr = comment._id?.toString() || comment._id;
+                if (commentIdStr === commentId) {
+                  return {
+                    ...data.comment,
+                    _id: data.comment._id?.toString() || data.comment._id || commentId
+                  };
+                }
+                return comment;
+              })
             }
           }
           return qa
@@ -366,7 +397,10 @@ export default function QAPage() {
           if (qa._id === commentToDelete.qaId) {
             return {
               ...qa,
-              comments: qa.comments.filter(comment => comment._id !== commentToDelete.commentId)
+              comments: qa.comments.filter(comment => {
+                const commentIdStr = comment._id?.toString() || comment._id;
+                return commentIdStr !== commentToDelete.commentId;
+              })
             }
           }
           return qa
@@ -391,17 +425,26 @@ export default function QAPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen relative bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/50 dark:from-slate-950 dark:via-indigo-950/50 dark:to-purple-950/30 overflow-hidden">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 dark:from-indigo-600/10 dark:to-purple-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-gradient-to-br from-pink-400/20 to-rose-400/20 dark:from-pink-600/10 dark:to-rose-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-gradient-to-tr from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)]" />
+      </div>
+      
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 relative z-10">
         {/* Header Section with Mascot */}
-        <div className="relative mb-12 bg-white/80 dark:bg-gray-800/80 rounded-3xl p-8 backdrop-blur-sm shadow-lg transition-all duration-300 overflow-hidden">
+        <div className="relative mb-6 sm:mb-12 bg-white/80 dark:bg-gray-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-8 backdrop-blur-sm shadow-lg transition-all duration-300 overflow-hidden">
           {/* Decorative background elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-200/30 to-pink-200/30 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-200/30 to-purple-200/30 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2" />
+          <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 bg-gradient-to-br from-purple-200/30 to-pink-200/30 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 bg-gradient-to-tr from-blue-200/30 to-purple-200/30 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2" />
 
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-8">
-              <div className="relative w-24 h-24 group">
+          <div className="relative flex flex-col sm:flex-row items-center sm:items-center justify-between gap-4 sm:gap-0">
+            <div className="flex items-center gap-4 sm:gap-8 w-full sm:w-auto">
+              <div className="relative w-16 h-16 sm:w-24 sm:h-24 group flex-shrink-0">
                 <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-75 group-hover:opacity-100 blur transition-all duration-500" />
                 <div className="relative bg-white dark:bg-gray-800 rounded-full p-2">
                   <img
@@ -411,14 +454,14 @@ export default function QAPage() {
                   />
                 </div>
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Q&A Forum
               </h1>
             </div>
 
             <Button 
               onClick={() => setIsWriting(true)}
-              className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white rounded-full px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+              className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white rounded-full px-4 sm:px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-full sm:w-auto text-sm sm:text-base"
             >
               {content.writeQA}
             </Button>
@@ -426,8 +469,8 @@ export default function QAPage() {
         </div>
 
         {/* Search Bar */}
-        <div className="mb-8">
-          <form onSubmit={handleSearch} className="flex gap-2">
+        <div className="mb-6 sm:mb-8">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <Input
@@ -435,12 +478,12 @@ export default function QAPage() {
                 placeholder="Search questions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white/90 dark:bg-gray-800/90 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
+                className="pl-10 bg-white/90 dark:bg-gray-800/90 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-base"
               />
             </div>
             <Button 
               type="submit"
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto min-h-[44px]"
               disabled={isSearching}
             >
               {isSearching ? 'Searching...' : 'Search'}
@@ -469,24 +512,45 @@ export default function QAPage() {
         />
 
         {/* Questions List */}
-        <div className="space-y-6 bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-8">
+        <div className="space-y-4 sm:space-y-6 bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-4 sm:p-8">
           {qas.map((qa) => (
             <div key={qa._id} className="transition-all duration-300">
               <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800">
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   {/* Top section with user info and dropdown */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="w-10 h-10 ring-2 ring-purple-200 dark:ring-purple-800">
-                        <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white">
+                  <div className="flex items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                      <Avatar className="w-8 h-8 sm:w-10 sm:h-10 ring-2 ring-purple-200 dark:ring-purple-800 flex-shrink-0">
+                        <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs sm:text-sm">
                           {qa.userName[0]}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <div className="font-semibold text-purple-700 dark:text-purple-300">
-                          {qa.userName}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-purple-700 dark:text-purple-300 text-sm sm:text-base truncate">
+                            {qa.userName}
+                          </span>
+                          {(() => {
+                            const provider = getProvider(qa.userProvider, qa.userEmail)
+                            if (provider === 'cmu') {
+                              return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                  <Building2 className="w-3 h-3" />
+                                  CMU
+                                </span>
+                              )
+                            } else if (provider === 'google') {
+                              return (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                  <Globe className="w-3 h-3" />
+                                  Google
+                                </span>
+                              )
+                            }
+                            return null
+                          })()}
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-xs sm:text-sm text-muted-foreground">
                           {qa.timestamp}
                         </div>
                       </div>
@@ -496,7 +560,7 @@ export default function QAPage() {
                     {session?.user?.name === qa.userName && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800">
+                          <Button variant="ghost" className="h-9 w-9 sm:h-8 sm:w-8 p-0 hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -526,123 +590,181 @@ export default function QAPage() {
                   </div>
                   
                   {/* Question Content */}
-                  <p className="mb-6 text-lg">{qa.question}</p>
+                  <p className="mb-4 sm:mb-6 text-base sm:text-lg break-words">{qa.question}</p>
                   
                   {/* Comments Section */}
-                  <div className="border-t pt-4">
+                  <div className="border-t pt-2">
                     <button
                       onClick={() => toggleComments(qa._id)}
-                      className="w-full flex items-center justify-between gap-2 mb-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 p-2 rounded-lg transition-colors group"
+                      className="w-full flex items-center justify-between gap-2 mb-2 hover:bg-gray-50 dark:hover:bg-gray-900/50 p-1.5 rounded-md transition-colors group"
                     >
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                        <h3 className="text-lg font-semibold">
+                      <div className="flex items-center gap-1.5">
+                        <MessageSquare className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                        <h3 className="text-sm font-semibold">
                           Comments ({qa.comments.length})
                         </h3>
                       </div>
-                      <div className="text-purple-600 dark:text-purple-400">
+                      <div className="text-purple-600 dark:text-purple-400 flex-shrink-0">
                         {expandedComments[qa._id] ? (
-                          <ChevronUp className="w-5 h-5 transition-transform group-hover:scale-110" />
+                          <ChevronUp className="w-4 h-4 transition-transform group-hover:scale-110" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 transition-transform group-hover:scale-110" />
+                          <ChevronDown className="w-4 h-4 transition-transform group-hover:scale-110" />
                         )}
                       </div>
                     </button>
                     
                     {expandedComments[qa._id] && (
                       <>
+                        {/* Comment Sort Control */}
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-muted-foreground">Sort by:</span>
+                          <Select
+                            value={commentSortOrder[qa._id] || 'newest'}
+                            onValueChange={(value: 'newest' | 'oldest') => {
+                              setCommentSortOrder(prev => ({ ...prev, [qa._id]: value }))
+                            }}
+                          >
+                            <SelectTrigger className="w-28 h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="newest">Newest</SelectItem>
+                              <SelectItem value="oldest">Oldest</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                         {/* Existing Comments */}
-                        <div className="space-y-4 mb-4">
-                          {qa.comments.map((comment) => (
+                        <div className="space-y-2 mb-2">
+                          {[...qa.comments].sort((a, b) => {
+                            const sortOrder = commentSortOrder[qa._id] || 'newest'
+                            const dateA = new Date(a.timestamp).getTime()
+                            const dateB = new Date(b.timestamp).getTime()
+                            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
+                          }).map((comment) => (
                             <div 
                               key={comment._id} 
-                              className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
+                              className="bg-gray-50 dark:bg-gray-900/50 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
                             >
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="w-6 h-6">
-                                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
+                              <div className="flex items-start sm:items-center justify-between mb-1 gap-2">
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+                                  <Avatar className="w-5 h-5 flex-shrink-0">
+                                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-[10px]">
                                       {comment.userName[0]}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
+                                  <span className="font-medium text-xs text-purple-700 dark:text-purple-300 truncate">
                                     {comment.userName}
                                   </span>
-                                  <span className="text-xs text-muted-foreground">
+                                  {(() => {
+                                    const provider = getProvider(comment.userProvider, comment.userEmail)
+                                    if (provider === 'cmu') {
+                                      return (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                          <Building2 className="w-3 h-3" />
+                                          CMU
+                                        </span>
+                                      )
+                                    } else if (provider === 'google') {
+                                      return (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                          <Globe className="w-3 h-3" />
+                                          Google
+                                        </span>
+                                      )
+                                    }
+                                    return null
+                                  })()}
+                                  <span className="text-xs text-muted-foreground hidden sm:inline">
                                     {comment.timestamp}
                                   </span>
                                 </div>
-                                {session?.user?.email === comment.userEmail && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" className="h-8 w-8 p-0">
-                                        <span className="sr-only">Open menu</span>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem 
-                                        onClick={() => {
-                                          setEditingCommentId(comment._id);
-                                          setEditingCommentText(comment.content);
-                                        }}
-                                      >
-                                        <Edit className="w-4 h-4 mr-2" />
-                                        Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        className="text-red-600 focus:text-red-700"
-                                        onClick={() => {
-                                          setCommentToDelete({ qaId: qa._id, commentId: comment._id });
-                                          setShowDeleteCommentDialog(true);
-                                        }}
-                                      >
-                                        <Trash className="w-4 h-4 mr-2" />
-                                        Delete
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <span className="text-xs text-muted-foreground sm:hidden">
+                                    {comment.timestamp}
+                                  </span>
+                                  {session?.user?.email === comment.userEmail && (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-9 w-9 sm:h-8 sm:w-8 p-0">
+                                          <span className="sr-only">Open menu</span>
+                                          <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem 
+                                          onClick={() => {
+                                            const commentId = comment._id?.toString() || comment._id || '';
+                                            setEditingCommentId(commentId);
+                                            setEditingCommentText(comment.content);
+                                          }}
+                                        >
+                                          <Edit className="w-4 h-4 mr-2" />
+                                          Edit
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          className="text-red-600 focus:text-red-700"
+                                          onClick={() => {
+                                            const commentId = comment._id?.toString() || comment._id || '';
+                                            setCommentToDelete({ qaId: qa._id, commentId });
+                                            setShowDeleteCommentDialog(true);
+                                          }}
+                                        >
+                                          <Trash className="w-4 h-4 mr-2" />
+                                          Delete
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  )}
+                                </div>
                               </div>
-                              {editingCommentId === comment._id ? (
-                                <div className="flex gap-2 mt-2">
+                              {editingCommentId && comment._id && String(editingCommentId) === String(comment._id) ? (
+                                <div className="flex flex-col sm:flex-row gap-1.5 mt-1.5">
                                   <Input
                                     value={editingCommentText}
                                     onChange={(e) => setEditingCommentText(e.target.value)}
-                                    className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
+                                    className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm h-8"
                                     onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                      if (e.key === 'Enter' && !e.shiftKey && comment._id) {
                                         e.preventDefault();
-                                        handleEditComment(qa._id, comment._id, editingCommentText);
+                                        const commentId = comment._id.toString() || comment._id;
+                                        handleEditComment(qa._id, commentId, editingCommentText);
                                       }
                                     }}
                                   />
-                                  <Button
-                                    onClick={() => handleEditComment(qa._id, comment._id, editingCommentText)}
-                                    className="bg-purple-600 hover:bg-purple-700 text-white"
-                                    disabled={!editingCommentText.trim()}
-                                  >
-                                    Save
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditingCommentId(null);
-                                      setEditingCommentText('');
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
+                                  <div className="flex gap-1.5">
+                                    <Button
+                                      onClick={() => {
+                                        if (comment._id) {
+                                          const commentId = comment._id.toString() || comment._id;
+                                          handleEditComment(qa._id, commentId, editingCommentText);
+                                        }
+                                      }}
+                                      className="bg-purple-600 hover:bg-purple-700 text-white flex-1 sm:flex-none h-8 text-xs px-3"
+                                      disabled={!editingCommentText.trim() || !comment._id}
+                                    >
+                                      Save
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingCommentId(null);
+                                        setEditingCommentText('');
+                                      }}
+                                      className="h-8 text-xs px-3"
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
                                 </div>
                               ) : (
-                                <p className="text-sm text-gray-700 dark:text-gray-300">{comment.content}</p>
+                                <p className="text-xs text-gray-700 dark:text-gray-300 break-words leading-relaxed">{comment.content}</p>
                               )}
                             </div>
                           ))}
                         </div>
 
                         {/* Add Comment Form */}
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-1.5 mt-2">
                           <Input
                             placeholder="Write a comment..."
                             value={comments[qa._id] || ''}
@@ -650,7 +772,7 @@ export default function QAPage() {
                               ...prev,
                               [qa._id]: e.target.value
                             }))}
-                            className="bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
+                            className="bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm flex-1 h-8"
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault()
@@ -660,7 +782,7 @@ export default function QAPage() {
                           />
                           <Button 
                             onClick={() => handleComment(qa._id)}
-                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                            className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto h-8 text-xs px-4"
                             disabled={!comments[qa._id]?.trim()}
                           >
                             Post

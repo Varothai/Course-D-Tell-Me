@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useLanguage } from "@/providers/language-provider"
+import { useTheme } from "@/providers/theme-provider"
 import { 
   User, 
   Home, 
@@ -16,7 +17,9 @@ import {
   Mail,
   Chrome,
   Menu,
-  X
+  X,
+  Moon,
+  Sun
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -31,7 +34,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export function NavBar() {
   const pathname = usePathname()
-  const { content } = useLanguage()
+  const { content, language, toggleLanguage } = useLanguage()
+  const { theme, toggleTheme } = useTheme()
   const { data: session } = useSession()
   const { signInWithGoogle } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -131,6 +135,29 @@ export function NavBar() {
             <NavItems />
           </div>
 
+          {/* Theme and Language Toggle Buttons */}
+          <div className="hidden md:flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={toggleTheme}
+              className="rounded-full w-10 h-10 hover:scale-110 hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-gray-800/50"
+            >
+              {theme === "light" ? (
+                <Moon className="h-4 w-4" />
+              ) : (
+                <Sun className="h-4 w-4" />
+              )}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={toggleLanguage}
+              className="rounded-full w-10 h-10 hover:scale-110 hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-gray-800/50 text-sm font-medium"
+            >
+              {language === "en" ? "TH" : "EN"}
+            </Button>
+          </div>
+
           {/* Mobile Menu Button */}
           <div className="flex items-center gap-2">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -146,6 +173,28 @@ export function NavBar() {
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                 <div className="flex flex-col gap-4 mt-8">
                   <NavItems />
+                  {/* Mobile Theme and Language Toggles */}
+                  <div className="flex items-center gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={toggleTheme}
+                      className="rounded-full w-10 h-10 hover:scale-110 hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-gray-800/50"
+                    >
+                      {theme === "light" ? (
+                        <Moon className="h-4 w-4" />
+                      ) : (
+                        <Sun className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={toggleLanguage}
+                      className="rounded-full w-10 h-10 hover:scale-110 hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-gray-800/50 text-sm font-medium"
+                    >
+                      {language === "en" ? "TH" : "EN"}
+                    </Button>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>

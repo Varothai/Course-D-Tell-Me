@@ -24,10 +24,21 @@ export async function POST(
       return NextResponse.json({ error: "Question not found" }, { status: 404 })
     }
 
+    // Determine provider: check session provider first, then email domain
+    let userProvider: 'google' | 'cmu' = 'google'
+    if (session.user?.provider === 'cmu') {
+      userProvider = 'cmu'
+    } else if (session.user?.email?.endsWith('@cmu.ac.th')) {
+      userProvider = 'cmu'
+    } else if (session.user?.provider === 'google') {
+      userProvider = 'google'
+    }
+
     const newComment = {
       content,
       userName: session.user?.name || "Anonymous",
       userEmail: session.user?.email,
+      userProvider,
       timestamp: new Date().toLocaleString('en-US', {
         day: '2-digit',
         month: 'short',
@@ -41,9 +52,18 @@ export async function POST(
     question.comments.push(newComment)
     await question.save()
 
+    // Reload the question to get the comment with its MongoDB _id
+    const savedQuestion = await Question.findById(params.id)
+    if (!savedQuestion) {
+      return NextResponse.json({ error: "Question not found after save" }, { status: 404 })
+    }
+
+    // Get the last comment (the one we just added) which now has the _id
+    const savedComment = savedQuestion.comments[savedQuestion.comments.length - 1]
+
     return NextResponse.json({ 
       success: true, 
-      comment: newComment 
+      comment: savedComment
     }, { status: 201 })
   } catch (error) {
     console.error("Error adding comment:", error)

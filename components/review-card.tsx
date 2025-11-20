@@ -95,6 +95,7 @@ export function ReviewCard({
   const [isDeletingComment, setIsDeletingComment] = useState(false)
   const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false)
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null)
+  const [commentSortOrder, setCommentSortOrder] = useState<'newest' | 'oldest'>('newest')
 
   const canEdit = session?.user?.id === review.userId
 
@@ -385,7 +386,7 @@ export function ReviewCard({
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to report review')
+        throw new Error(data.error || 'Failed to report review')
       }
 
       setIsReportDialogOpen(false)
@@ -498,12 +499,12 @@ export function ReviewCard({
   return (
     <>
       <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800 relative">
-        <div className="p-4">
-          <div className="absolute top-2 right-2">
+        <div className="p-3 sm:p-4">
+          <div className="absolute top-2 right-2 sm:top-2 sm:right-2">
             {canEdit ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0">
+                  <Button variant="ghost" className="h-9 w-9 sm:h-8 sm:w-8 p-0">
                     <span className="sr-only">Open menu</span>
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
@@ -533,7 +534,7 @@ export function ReviewCard({
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0">
+                  <Button variant="ghost" className="h-9 w-9 sm:h-8 sm:w-8 p-0">
                     <span className="sr-only">Open menu</span>
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
@@ -554,18 +555,18 @@ export function ReviewCard({
           </div>
 
           <div onClick={handleContentClick} className="cursor-pointer">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="w-full sm:w-48">
-                <div className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-3">
-                  <div className="font-mono text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <div className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-2.5 sm:p-3">
+                  <div className="font-mono text-base sm:text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     {review.courseId}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{review.courseName}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2 break-words">{review.courseName}</div>
                   <div className="flex mt-1.5">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star
                         key={i}
-                        className={`w-4 h-4 transition-transform duration-300 ${
+                        className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-300 ${
                           i < review.rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"
                         }`}
                       />
@@ -574,24 +575,24 @@ export function ReviewCard({
                 </div>
               </div>
 
-              <div className="flex-1">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2 sm:mb-3">
                   <div className="flex items-center gap-2">
-                    <Avatar className="w-6 h-6 ring-2 ring-purple-200 dark:ring-purple-800">
+                    <Avatar className="w-7 h-7 sm:w-6 sm:h-6 ring-2 ring-purple-200 dark:ring-purple-800 flex-shrink-0">
                       <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
                         {review.isAnonymous ? "A" : review.userName[0]}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm sm:text-sm font-medium text-purple-700 dark:text-purple-300 truncate">
                         {review.isAnonymous ? "Anonymous" : review.userName}
-                      </span>
-                      <span className="text-xs text-muted-foreground block">
+                      </div>
+                      <div className="text-xs text-muted-foreground">
                         {review.timestamp ? formatTimestamp(review.timestamp) : ''}
-                      </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-end sm:justify-start">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -599,22 +600,21 @@ export function ReviewCard({
                         e.stopPropagation()
                         handleTranslate()
                       }}
-                      className="ml-2 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300"
+                      className="h-8 sm:h-7 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 text-xs"
                       disabled={isTranslating}
                     >
-                      <Languages className="w-4 h-4 mr-2" />
-                      {isTranslating ? (
-                        <span className="text-xs">Translating...</span>
-                      ) : isTranslated ? (
-                        <span className="text-xs">Show Original</span>
-                      ) : (
-                        <span className="text-xs">Translate</span>
-                      )}
+                      <Languages className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                      <span className="hidden sm:inline">
+                        {isTranslating ? "Translating..." : isTranslated ? "Show Original" : "Translate"}
+                      </span>
+                      <span className="sm:hidden">
+                        {isTranslating ? "..." : isTranslated ? "Original" : "Translate"}
+                      </span>
                     </Button>
                   </div>
                 </div>
 
-                <p className="text-sm leading-relaxed mb-4">{isTranslated ? translatedText : review.review}</p>
+                <p className="text-sm sm:text-sm leading-relaxed mb-3 sm:mb-4 break-words">{isTranslated ? translatedText : review.review}</p>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
@@ -624,13 +624,13 @@ export function ReviewCard({
                       e.stopPropagation()
                       setExpandedComments(!expandedComments)
                     }}
-                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                    className={`h-9 sm:h-7 text-xs rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 min-h-[36px] ${
                       expandedComments
                         ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
                         : ""
                     }`}
                   >
-                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+                    <MessageSquare className="w-3.5 h-3.5 sm:w-3 sm:h-3 mr-1.5 sm:mr-1" />
                     <span className="text-xs">
                       {comments.length} {content.comments}
                     </span>
@@ -639,14 +639,15 @@ export function ReviewCard({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full"
+                    className="h-9 sm:h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full min-h-[36px]"
                     onClick={(e) => {
                       e.stopPropagation()
                       router.push(`/course/${review.courseId}`)
                     }}
                   >
-                    <ExternalLink className="w-3 h-3 mr-1.5" />
-                    {content.seeReviews}
+                    <ExternalLink className="w-3.5 h-3.5 sm:w-3 sm:h-3 mr-1.5" />
+                    <span className="hidden sm:inline">{content.seeReviews}</span>
+                    <span className="sm:hidden">Reviews</span>
                   </Button>
 
                   <Button
@@ -656,7 +657,7 @@ export function ReviewCard({
                       e.stopPropagation();
                       handleProtectedAction(toggleBookmark);
                     }}
-                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                    className={`h-9 sm:h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 min-h-[36px] ${
                       isBookmarked ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300" : ""
                     }`}
                     disabled={isLoading}
@@ -664,27 +665,30 @@ export function ReviewCard({
                     {isLoading ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : isBookmarked ? (
-                      <BookmarkSolidIcon className="w-3.5 h-3.5 mr-1.5 text-purple-500" />
+                      <BookmarkSolidIcon className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 mr-1.5 text-purple-500" />
                     ) : (
-                      <BookmarkIcon className="w-3.5 h-3.5 mr-1.5" />
+                      <BookmarkIcon className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 mr-1.5" />
                     )}
-                    <span className="text-xs">
+                    <span className="text-xs hidden sm:inline">
                       {isBookmarked ? "Bookmarked" : "Bookmark"}
+                    </span>
+                    <span className="text-xs sm:hidden">
+                      {isBookmarked ? "Saved" : "Save"}
                     </span>
                   </Button>
                 </div>
 
                 {expandedComments && (
                   <div 
-                    className="border-t mt-4 pt-4 comments-section" 
+                    className="border-t mt-2 pt-2 comments-section" 
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                    <div className="flex flex-col sm:flex-row gap-1.5 mb-2">
                       <Input
                         placeholder="Write a comment..."
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
-                        className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
+                        className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm h-8"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
@@ -697,27 +701,50 @@ export function ReviewCard({
                           e.stopPropagation();
                           handleAddComment();
                         }}
-                        className="bg-purple-600 hover:bg-purple-700 text-white"
+                        className="bg-purple-600 hover:bg-purple-700 text-white h-8 text-xs px-4"
                         disabled={!newComment.trim() || !session}
                       >
                         Post
                       </Button>
                     </div>
 
-                    <div className="space-y-4">
-                      {comments.map((comment) => (
+                    {/* Comment Sort Control */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-muted-foreground">Sort by:</span>
+                      <Select
+                        value={commentSortOrder}
+                        onValueChange={(value: 'newest' | 'oldest') => {
+                          setCommentSortOrder(value)
+                        }}
+                      >
+                        <SelectTrigger className="w-28 h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="newest">Newest</SelectItem>
+                          <SelectItem value="oldest">Oldest</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      {[...comments].sort((a, b) => {
+                        const dateA = new Date(a.createdAt).getTime()
+                        const dateB = new Date(b.createdAt).getTime()
+                        return commentSortOrder === 'newest' ? dateB - dateA : dateA - dateB
+                      }).map((comment) => (
                         <div
                           key={comment._id}
-                          className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
+                          className="bg-gray-50 dark:bg-gray-900/50 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                            <div className="flex items-center gap-2">
-                              <Avatar className="w-6 h-6">
-                                <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-xs">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Avatar className="w-5 h-5">
+                                <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-[10px]">
                                   {comment.userName[0]}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
+                              <span className="font-medium text-xs text-purple-700 dark:text-purple-300">
                                 {comment.userName}
                               </span>
                               <span className="text-xs text-muted-foreground">
@@ -763,11 +790,11 @@ export function ReviewCard({
                             )}
                           </div>
                           {editingCommentId === comment._id ? (
-                            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                            <div className="flex flex-col sm:flex-row gap-1.5 mt-1.5">
                               <Input
                                 value={editingCommentText}
                                 onChange={(e) => setEditingCommentText(e.target.value)}
-                                className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500"
+                                className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm h-8"
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
@@ -775,10 +802,10 @@ export function ReviewCard({
                                   }
                                 }}
                               />
-                              <div className="flex gap-2">
+                              <div className="flex gap-1.5">
                                 <Button
                                   onClick={() => handleEditComment(comment._id, editingCommentText)}
-                                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                                  className="bg-purple-600 hover:bg-purple-700 text-white h-8 text-xs px-3"
                                   disabled={!editingCommentText.trim()}
                                 >
                                   Save
@@ -789,13 +816,14 @@ export function ReviewCard({
                                     setEditingCommentId(null);
                                     setEditingCommentText('');
                                   }}
+                                  className="h-8 text-xs px-3"
                                 >
                                   Cancel
                                 </Button>
                               </div>
                             </div>
                           ) : (
-                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
                               {comment.comment}
                             </p>
                           )}

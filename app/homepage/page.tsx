@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Moon, Sun, Search, GraduationCap, BookOpen } from 'lucide-react'
+import { Search, GraduationCap, BookOpen } from 'lucide-react'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -46,8 +46,7 @@ interface Comment {
 }
 
 export default function Home() {
-  const { theme, toggleTheme } = useTheme()
-  const { content, language, toggleLanguage } = useLanguage()
+  const { content } = useLanguage()
   const [searchQuery, setSearchQuery] = useState("")
   const { addReview, clearReviews } = useReviews()
   const [selectedFaculty, setSelectedFaculty] = useState("")
@@ -181,7 +180,7 @@ export default function Home() {
   }
 
   const inputProps = {
-    placeholder: "Search by Course ID or Name",
+    placeholder: content.searchPlaceholder,
     value: searchQuery,
     onChange: (e: any, { newValue }: { newValue: string }) => {
       setSearchQuery(newValue)
@@ -305,8 +304,23 @@ export default function Home() {
   }
 
   const handleNewReview = (newReview: Review) => {
+    // Convert Review to ReviewWithUserInteraction format
+    const userId = session?.user?.email || '';
+    const formattedReview: ReviewWithUserInteraction = {
+      ...newReview,
+      _id: newReview._id || newReview.id || '',
+      userId: newReview.userId || userId,
+      likes: Array.isArray(newReview.likes) ? newReview.likes : [],
+      dislikes: Array.isArray(newReview.dislikes) ? newReview.dislikes : [],
+      hasLiked: false,
+      hasDisliked: false,
+      isAnonymous: newReview.isAnonymous || false,
+      timestamp: newReview.timestamp || new Date().toISOString(),
+      comments: newReview.comments || [],
+      createdAt: typeof newReview.createdAt === 'string' ? newReview.createdAt : new Date().toISOString()
+    };
     // Add the new review to the beginning of the list
-    setReviews(prev => [newReview, ...prev])
+    setReviews(prev => [formattedReview, ...prev])
   }
 
   // Update the filteredReviews to maintain the sort order
@@ -344,79 +358,70 @@ export default function Home() {
     setReviews(prevReviews => 
       prevReviews.map(review => 
         (review.id === reviewId || review._id === reviewId) 
-          ? { ...updatedReview, _id: review._id, timestamp: review.timestamp }
+          ? {
+              ...review,
+              ...updatedReview,
+              _id: review._id,
+              timestamp: review.timestamp,
+              likes: Array.isArray(updatedReview.likes) ? updatedReview.likes : review.likes,
+              dislikes: Array.isArray(updatedReview.dislikes) ? updatedReview.dislikes : review.dislikes,
+              comments: review.comments || []
+            }
           : review
       )
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen relative bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/50 dark:from-slate-950 dark:via-indigo-950/50 dark:to-purple-950/30 overflow-hidden">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 dark:from-indigo-600/10 dark:to-purple-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-gradient-to-br from-pink-400/20 to-rose-400/20 dark:from-pink-600/10 dark:to-rose-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-gradient-to-tr from-blue-400/20 to-cyan-400/20 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)]" />
+      </div>
+      
+      <div className="container mx-auto px-4 pt-4 pb-8 relative z-10">
         {/* Welcome Section with Mascot */}
-        <div className="relative mb-12 bg-white/80 dark:bg-gray-800/80 rounded-3xl p-8 backdrop-blur-sm shadow-lg transition-all duration-300 overflow-hidden">
+        <div className="relative mb-8 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl p-5 shadow-xl border border-white/20 dark:border-gray-700/30 transition-all duration-300 overflow-hidden hover:shadow-2xl">
           {/* Decorative background elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-purple-200/30 to-pink-200/30 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-200/30 to-purple-200/30 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2" />
+          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-indigo-200/40 to-purple-200/40 dark:from-indigo-800/20 dark:to-purple-800/20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 left-0 w-36 h-36 bg-gradient-to-tr from-blue-200/40 to-cyan-200/40 dark:from-blue-800/20 dark:to-cyan-800/20 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2" />
 
           <div className="relative flex items-center justify-between">
             {/* Welcome Text and Mascot */}
-            <div className="flex items-center gap-8">
-              <div className="relative w-32 h-32 group">
-                <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full opacity-75 group-hover:opacity-100 blur transition-all duration-500" />
-                <div className="relative bg-white dark:bg-gray-800 rounded-full p-2">
+            <div className="flex items-center gap-5">
+              <div className="relative w-20 h-20 group flex-shrink-0">
+                <div className="absolute -inset-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full opacity-60 group-hover:opacity-100 blur-lg transition-all duration-500 group-hover:scale-110" />
+                <div className="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full p-1.5 shadow-md border border-white/50 dark:border-gray-700/50">
                   <img
                     src="/elephant-mascot.png"
                     alt="Cute elephant mascot"
-                    className="w-full h-full object-contain animate-bounce-gentle"
+                    className="w-full h-full object-contain"
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <h1 className="text-5xl font-bold">
-                  <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <div className="space-y-1">
+                <h1 className="text-3xl font-bold tracking-tight">
+                  <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
                     {content.welcome}
                   </span>
                 </h1>
-                <h2 className="text-2xl text-muted-foreground">
+                <h2 className="text-lg font-medium text-gray-600 dark:text-gray-300">
                   {content.courseTitle}
                 </h2>
               </div>
             </div>
-
-            {/* Theme and Language Toggle */}
-            <div className="flex flex-col gap-3">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={toggleTheme}
-                className="rounded-full w-12 h-12 hover:scale-110 hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-gray-800/50"
-              >
-                {theme === "light" ? (
-                  <Moon className="h-5 w-5" />
-                ) : (
-                  <Sun className="h-5 w-5" />
-                )}
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={toggleLanguage}
-                className="rounded-full w-12 h-12 hover:scale-110 hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-gray-800/50"
-              >
-                {language === "en" ? "TH" : "EN"}
-              </Button>
-            </div>
           </div>
 
-          {/* Decorative sparkles */}
-          <div className="absolute top-6 right-24 animate-pulse">
-            <div className="w-3 h-3 bg-yellow-300 rounded-full" />
+          {/* Decorative sparkles - smaller and fewer */}
+          <div className="absolute top-3 right-16 animate-pulse">
+            <div className="w-2 h-2 bg-amber-400/60 dark:bg-amber-300/40 rounded-full shadow-sm" />
           </div>
-          <div className="absolute top-12 right-36 animate-pulse delay-100">
-            <div className="w-2 h-2 bg-yellow-300 rounded-full" />
-          </div>
-          <div className="absolute top-8 right-48 animate-pulse delay-200">
-            <div className="w-2 h-2 bg-yellow-300 rounded-full" />
+          <div className="absolute top-4 right-24 animate-pulse" style={{ animationDelay: '1.5s', animationDuration: '2s' }}>
+            <div className="w-1.5 h-1.5 bg-amber-400/60 dark:bg-amber-300/40 rounded-full shadow-sm" />
           </div>
         </div>
 
@@ -614,10 +619,9 @@ export default function Home() {
               {filteredReviews.map((review) => (
                 <div key={review._id} className="transition-all duration-300">
                   <ReviewCard 
-                    review={review}
+                    review={review as unknown as Review & { isAnonymous?: boolean; timestamp: string; _id: string; userId: string }}
                     likeAction={handleLike}
                     dislikeAction={handleDislike}
-                    commentAction={handleComment}
                     bookmarkAction={handleBookmark}
                     onDelete={handleDelete}
                     onEdit={handleEdit}

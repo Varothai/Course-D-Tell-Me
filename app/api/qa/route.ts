@@ -38,10 +38,21 @@ export async function POST(req: Request) {
     //   }, { status: 429 })
     // }
 
+    // Determine provider: check session provider first, then email domain
+    let userProvider: 'google' | 'cmu' = 'google'
+    if (session.user?.provider === 'cmu') {
+      userProvider = 'cmu'
+    } else if (session.user?.email?.endsWith('@cmu.ac.th')) {
+      userProvider = 'cmu'
+    } else if (session.user?.provider === 'google') {
+      userProvider = 'google'
+    }
+
     const qa = await Question.create({
       question,
       userName: session.user?.name || "Anonymous",
-      userEmail: session.user?.email
+      userEmail: session.user?.email,
+      userProvider
     })
 
     console.log('Successfully created Q&A:', {

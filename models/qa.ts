@@ -12,6 +12,10 @@ const commentSchema = new mongoose.Schema({
   userEmail: {
     type: String,
   },
+  userProvider: {
+    type: String,
+    enum: ['google', 'cmu'],
+  },
   timestamp: {
     type: String,
     default: () => new Date().toLocaleString('en-US', {
@@ -37,6 +41,10 @@ const questionSchema = new mongoose.Schema({
   },
   userEmail: {
     type: String,
+  },
+  userProvider: {
+    type: String,
+    enum: ['google', 'cmu'],
   },
   timestamp: {
     type: String,
