@@ -162,8 +162,17 @@ export function ReviewForm({
         customMajor: "",
       })
       setRating(initialData.rating)
+      
+      // Populate majors when editing with a faculty
+      if (initialData.faculty) {
+        const majors = facultyMajors[initialData.faculty as keyof typeof facultyMajors] || []
+        setAvailableMajors(majors.map(m => ({
+          value: m.value,
+          label: m.label[language as keyof typeof m.label]
+        })))
+      }
     }
-  }, [initialData, isEditing])
+  }, [initialData, isEditing, language])
 
   const getSuggestions = (value: string, field: 'courseno' | 'title_short_en') => {
     const inputValue = value.trim().toLowerCase();
@@ -437,12 +446,12 @@ export function ReviewForm({
               value={formData.faculty}
               onValueChange={handleFacultyChange}
             >
-              <SelectTrigger className="bg-[#FFFAD7] h-10 sm:h-10 text-sm sm:text-base">
+              <SelectTrigger className="w-full px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 text-sm sm:text-base h-10 sm:h-10">
                 <SelectValue placeholder={content.faculty} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-800 rounded-lg sm:rounded-xl z-[110]">
                 {content.faculties.map((faculty) => (
-                  <SelectItem key={faculty.value} value={faculty.value} className="text-sm">
+                  <SelectItem key={faculty.value} value={faculty.value} className="text-sm cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50">
                     {faculty.label}
                   </SelectItem>
                 ))}
@@ -455,15 +464,21 @@ export function ReviewForm({
               onValueChange={handleMajorChange}
               disabled={!formData.faculty}
             >
-              <SelectTrigger className="bg-[#FFFAD7] h-10 sm:h-10 text-sm sm:text-base">
+              <SelectTrigger className="w-full px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 text-sm sm:text-base h-10 sm:h-10 disabled:opacity-50 disabled:cursor-not-allowed">
                 <SelectValue placeholder={content.major} />
               </SelectTrigger>
-              <SelectContent>
-                {availableMajors.map((major) => (
-                  <SelectItem key={major.value} value={major.value} className="text-sm">
-                    {major.label}
-                  </SelectItem>
-                ))}
+              <SelectContent className="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-800 rounded-lg sm:rounded-xl z-[110]">
+                {availableMajors.length > 0 ? (
+                  availableMajors.map((major) => (
+                    <SelectItem key={major.value} value={major.value} className="text-sm cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50">
+                      {major.label}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                    {formData.faculty ? content.major : "Select faculty first"}
+                  </div>
+                )}
               </SelectContent>
             </Select>
             {formData.major === "Others" && (
@@ -472,7 +487,7 @@ export function ReviewForm({
                 value={formData.customMajor}
                 onChange={(e) => setFormData({ ...formData, customMajor: e.target.value })}
                 placeholder={content.majorSelection.placeholder}
-                className="mt-2 bg-[#FFFAD7] h-10 text-sm sm:text-base"
+                className="mt-2 w-full px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 text-sm sm:text-base h-10"
               />
             )}
           </div>
@@ -481,15 +496,15 @@ export function ReviewForm({
               value={formData.studyPlan}
               onValueChange={(value) => setFormData({ ...formData, studyPlan: value })}
             >
-              <SelectTrigger className="bg-[#FFFAD7] h-10 sm:h-10 text-sm sm:text-base">
+              <SelectTrigger className="w-full px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 text-sm sm:text-base h-10 sm:h-10">
                 <SelectValue placeholder={content.programTypes} />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal" className="text-sm">{content.normalProgram}</SelectItem>
-                <SelectItem value="special" className="text-sm">{content.specialProgram}</SelectItem>
-                <SelectItem value="international" className="text-sm">{content.internationalProgram}</SelectItem>
-                <SelectItem value="bilingual" className="text-sm">{content.bilingualProgram}</SelectItem>
-                <SelectItem value="trilingual" className="text-sm">{content.trilingualProgram}</SelectItem>
+              <SelectContent className="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-800 rounded-lg sm:rounded-xl z-[110]">
+                <SelectItem value="normal" className="text-sm cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50">{content.normalProgram}</SelectItem>
+                <SelectItem value="special" className="text-sm cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50">{content.specialProgram}</SelectItem>
+                <SelectItem value="international" className="text-sm cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50">{content.internationalProgram}</SelectItem>
+                <SelectItem value="bilingual" className="text-sm cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50">{content.bilingualProgram}</SelectItem>
+                <SelectItem value="trilingual" className="text-sm cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50">{content.trilingualProgram}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -504,7 +519,7 @@ export function ReviewForm({
                   setFormData({ ...formData, section: value });
                 }
               }}
-              className="bg-[#FFFAD7] h-10 text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 text-sm sm:text-base h-10"
             />
           </div>
           <div>

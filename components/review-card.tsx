@@ -676,6 +676,69 @@ export function ReviewCard({
                 </div>
 
                 <p className="text-sm sm:text-sm leading-relaxed mb-3 sm:mb-4 break-words">{isTranslated ? translatedText : review.review}</p>
+                
+                {/* Desktop: Action buttons - positioned below review text, aligned with review section */}
+                <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:justify-start sm:gap-2 sm:mt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setExpandedComments(!expandedComments)
+                    }}
+                    className={`h-9 sm:h-7 text-xs rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 min-h-[36px] ${
+                      expandedComments
+                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
+                        : ""
+                    }`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 sm:w-3 sm:h-3 mr-1.5 sm:mr-1" />
+                    <span className="text-xs">
+                      {comments.length} {content.comments}
+                    </span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 sm:h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full min-h-[36px]"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/course/${review.courseId}`)
+                    }}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 sm:w-3 sm:h-3 mr-1.5" />
+                    <span className="hidden sm:inline">{content.seeReviews}</span>
+                    <span className="sm:hidden">Reviews</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleProtectedAction(toggleBookmark);
+                    }}
+                    className={`h-9 sm:h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 min-h-[36px] ${
+                      isBookmarked ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300" : ""
+                    }`}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : isBookmarked ? (
+                      <BookmarkSolidIcon className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 mr-1.5 text-purple-500" />
+                    ) : (
+                      <BookmarkIcon className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 mr-1.5" />
+                    )}
+                    <span className="text-xs hidden sm:inline">
+                      {isBookmarked ? "Bookmarked" : "Bookmark"}
+                    </span>
+                    <span className="text-xs sm:hidden">
+                      {isBookmarked ? "Saved" : "Save"}
+                    </span>
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -746,69 +809,6 @@ export function ReviewCard({
                   </Button>
               </div>
             </div>
-
-            {/* Desktop: Original action buttons */}
-            <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setExpandedComments(!expandedComments)
-                    }}
-                    className={`h-9 sm:h-7 text-xs rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 min-h-[36px] ${
-                      expandedComments
-                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
-                        : ""
-                    }`}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 sm:w-3 sm:h-3 mr-1.5 sm:mr-1" />
-                    <span className="text-xs">
-                      {comments.length} {content.comments}
-                    </span>
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 sm:h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full min-h-[36px]"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      router.push(`/course/${review.courseId}`)
-                    }}
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 sm:w-3 sm:h-3 mr-1.5" />
-                    <span className="hidden sm:inline">{content.seeReviews}</span>
-                    <span className="sm:hidden">Reviews</span>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleProtectedAction(toggleBookmark);
-                    }}
-                    className={`h-9 sm:h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 min-h-[36px] ${
-                      isBookmarked ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300" : ""
-                    }`}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : isBookmarked ? (
-                      <BookmarkSolidIcon className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 mr-1.5 text-purple-500" />
-                    ) : (
-                      <BookmarkIcon className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 mr-1.5" />
-                    )}
-                    <span className="text-xs hidden sm:inline">
-                      {isBookmarked ? "Bookmarked" : "Bookmark"}
-                    </span>
-                    <span className="text-xs sm:hidden">
-                      {isBookmarked ? "Saved" : "Save"}
-                    </span>
-                  </Button>
-                </div>
 
                 {expandedComments && (
                   <div 
