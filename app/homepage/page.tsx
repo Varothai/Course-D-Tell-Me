@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import Image from "next/image"
 import { Search, GraduationCap, BookOpen } from 'lucide-react'
 import { Input } from "@/components/ui/input"
@@ -18,7 +18,11 @@ import { useLanguage } from "@/providers/language-provider"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
-import { ReviewForm } from "@/components/review-form"
+import dynamic from "next/dynamic"
+const ReviewForm = dynamic(
+  () => import("@/components/review-form").then(mod => mod.ReviewForm),
+  { loading: () => <div className="p-4 text-center text-sm text-muted-foreground">Loading form...</div> }
+)
 import { useReviews } from "@/providers/review-provider"
 import type { Review } from "@/types/review"
 import Autosuggest from "react-autosuggest"
@@ -64,21 +68,38 @@ export default function Home() {
   const [reviews, setReviews] = useState<ReviewWithUserInteraction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const reviewsCache = useRef<ReviewWithUserInteraction[] | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Fetch reviews when component mounts
   useEffect(() => {
+    fetchReviews()
+    return () => {
+      abortControllerRef.current?.abort()
+    }
+  }, []) // Remove session dependency from initial fetch
+
     const fetchReviews = async () => {
+    if (reviewsCache.current) {
+      setReviews(reviewsCache.current)
+      setIsLoading(false)
+      return
+    }
+
+    abortControllerRef.current?.abort()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
       setIsLoading(true)
       setError(null)
       try {
-        const response = await fetch('/api/reviews')
+      const response = await fetch('/api/reviews', { signal: controller.signal })
         if (!response.ok) {
           throw new Error('Failed to fetch reviews')
         }
         const data = await response.json()
         if (data.success) {
           const userId = session?.user?.email;
-          // Format the dates and sort reviews
           const formattedReviews = data.reviews.map((review: Review) => ({
             ...review,
             _id: review._id || review.id,
@@ -98,23 +119,21 @@ export default function Home() {
             timestamp: review.timestamp || new Date(review.createdAt).toISOString()
           })) as ReviewWithUserInteraction[]
           
-          // Sort reviews by date (newest first)
           const sortedReviews = formattedReviews.sort((a, b) => 
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           )
           
+        reviewsCache.current = sortedReviews
           setReviews(sortedReviews)
         }
       } catch (error) {
+      if ((error as Error).name === 'AbortError') return
         console.error('Error fetching reviews:', error)
         setError('Failed to load reviews. Please try again.')
       } finally {
         setIsLoading(false)
       }
     }
-
-    fetchReviews()
-  }, []) // Remove session dependency from initial fetch
 
   // Update likes/dislikes when session changes
   useEffect(() => {
@@ -324,14 +343,14 @@ export default function Home() {
   }
 
   // Update the filteredReviews to maintain the sort order
-  const filteredReviews = reviews
-    .sort((a, b) => {
-      // Convert timestamps to Date objects for comparison
+  const filteredReviews = useMemo(() => {
+    const sortedReviews = [...reviews].sort((a, b) => {
       const dateA = new Date(a.timestamp)
       const dateB = new Date(b.timestamp)
-      // Sort in descending order (newest first)
       return dateB.getTime() - dateA.getTime()
     })
+
+    return sortedReviews
     .filter(review => selectedCourse ? review.courseId === selectedCourse.courseno : true)
     .filter(review => {
       if (selectedProgram === 'all') return true;
@@ -340,7 +359,8 @@ export default function Home() {
     .filter(review => {
       if (selectedElective === 'all') return true;
       return review.electiveType === selectedElective;
-    });
+      })
+  }, [reviews, selectedCourse, selectedProgram, selectedElective])
 
   const isGoogleUser = () => {
     return session?.user?.provider === 'google'

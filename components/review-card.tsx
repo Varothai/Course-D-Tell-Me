@@ -499,8 +499,8 @@ export function ReviewCard({
   return (
     <>
       <Card className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-800 relative">
-        <div className="p-3 sm:p-4">
-          <div className="absolute top-2 right-2 sm:top-2 sm:right-2">
+        <div className="p-3 sm:p-3 sm:p-4 pr-12 sm:pr-4">
+          <div className="absolute top-2 right-2 sm:top-2 sm:right-2 z-10">
             {canEdit ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -555,7 +555,68 @@ export function ReviewCard({
           </div>
 
           <div onClick={handleContentClick} className="cursor-pointer">
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            {/* Mobile: Compact Course Info & User Section */}
+            <div className="sm:hidden mb-2.5">
+              <div className="bg-gradient-to-br from-purple-50/80 to-pink-50/60 dark:from-purple-900/30 dark:to-pink-900/20 rounded-lg p-3 border border-purple-200/60 dark:border-purple-800/40">
+                {/* Course Info - Prominent */}
+                <div className="flex items-start justify-between gap-2 mb-2.5">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <div className="font-mono text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        {review.courseId}
+                      </div>
+                      <div className="flex items-center gap-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 transition-transform duration-300 ${
+                              i < review.rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        {review.rating}/5
+                      </span>
+                    </div>
+                    <div className="text-sm font-semibold text-gray-800 dark:text-gray-200 line-clamp-2 leading-tight">
+                      {review.courseName}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleTranslate()
+                    }}
+                    className="h-7 w-7 p-0 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900/50 flex-shrink-0"
+                    disabled={isTranslating}
+                  >
+                    <Languages className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+                {/* User Info - De-emphasized */}
+                <div className="flex items-center gap-1.5 pt-2 border-t border-purple-200/40 dark:border-purple-800/40">
+                  <Avatar className="w-5 h-5 ring-1 ring-gray-300 dark:ring-gray-700 flex-shrink-0">
+                    <AvatarFallback className="bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400 text-[10px]">
+                      {review.isAnonymous ? "A" : review.userName[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11px] font-normal text-gray-500 dark:text-gray-500 truncate">
+                      {review.isAnonymous ? "Anonymous" : review.userName}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {review.timestamp ? formatTimestamp(review.timestamp) : ''}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop: Original layout */}
+            <div className="hidden sm:flex sm:flex-row gap-3 sm:gap-4">
               <div className="w-full sm:w-48">
                 <div className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-2.5 sm:p-3">
                   <div className="font-mono text-base sm:text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
@@ -589,8 +650,8 @@ export function ReviewCard({
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {review.timestamp ? formatTimestamp(review.timestamp) : ''}
-                      </div>
                     </div>
+                  </div>
                   </div>
                   <div className="flex items-center justify-end sm:justify-start">
                     <Button
@@ -615,8 +676,79 @@ export function ReviewCard({
                 </div>
 
                 <p className="text-sm sm:text-sm leading-relaxed mb-3 sm:mb-4 break-words">{isTranslated ? translatedText : review.review}</p>
+              </div>
+            </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+            {/* Mobile: Compact Review Text Section */}
+            <div className="sm:hidden">
+              <div className="bg-gradient-to-br from-purple-50/70 via-pink-50/50 to-indigo-50/30 dark:from-purple-900/25 dark:via-pink-900/15 dark:to-indigo-900/15 rounded-lg p-3 mb-2.5 border border-purple-200/50 dark:border-purple-800/30">
+                <p className="text-sm leading-relaxed text-gray-900 dark:text-gray-100 font-normal break-words whitespace-pre-wrap">
+                  {isTranslated ? translatedText : review.review}
+                </p>
+              </div>
+              
+              {/* Mobile: Compact Action buttons */}
+              <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setExpandedComments(!expandedComments)
+                    }}
+                    className={`h-8 text-xs rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 flex-1 min-w-[100px] ${
+                      expandedComments
+                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
+                        : ""
+                    }`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                    <span className="text-xs">
+                      {comments.length} {content.comments}
+                    </span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs bg-white/80 dark:bg-gray-800/80 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full flex-1 min-w-[100px] border-purple-200 dark:border-purple-800"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/course/${review.courseId}`)
+                    }}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                    <span className="text-xs">Reviews</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleProtectedAction(toggleBookmark);
+                    }}
+                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 flex-1 min-w-[100px] ${
+                      isBookmarked ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300" : ""
+                    }`}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                    ) : isBookmarked ? (
+                      <BookmarkSolidIcon className="w-3.5 h-3.5 mr-1 text-purple-500" />
+                    ) : (
+                      <BookmarkIcon className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    <span className="text-xs">
+                      {isBookmarked ? "Saved" : "Save"}
+                    </span>
+                  </Button>
+              </div>
+            </div>
+
+            {/* Desktop: Original action buttons */}
+            <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -680,10 +812,10 @@ export function ReviewCard({
 
                 {expandedComments && (
                   <div 
-                    className="border-t mt-2 pt-2 comments-section" 
+                    className="border-t border-purple-200/50 dark:border-purple-800/30 mt-2 pt-2 comments-section" 
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="flex flex-col sm:flex-row gap-1.5 mb-2">
+                    <div className="flex flex-col sm:flex-row gap-1.5 mb-1.5">
                       <Input
                         placeholder="Write a comment..."
                         value={newComment}
@@ -709,7 +841,7 @@ export function ReviewCard({
                     </div>
 
                     {/* Comment Sort Control */}
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs text-muted-foreground">Sort by:</span>
                       <Select
                         value={commentSortOrder}
@@ -727,7 +859,7 @@ export function ReviewCard({
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {[...comments].sort((a, b) => {
                         const dateA = new Date(a.createdAt).getTime()
                         const dateB = new Date(b.createdAt).getTime()
@@ -832,8 +964,6 @@ export function ReviewCard({
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
           </div>
         </div>
       </Card>

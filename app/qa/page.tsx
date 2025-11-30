@@ -1,18 +1,28 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import dynamic from "next/dynamic"
 import { useLanguage } from "@/providers/language-provider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark, ChevronDown, ChevronUp, MoreVertical, Edit, Trash, Search, MoreHorizontal, Building2, Globe } from 'lucide-react'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { QAFormDialog } from "@/components/qa-form-dialog"
+const QAFormDialog = dynamic(
+  () => import("@/components/qa-form-dialog").then(mod => mod.QAFormDialog),
+  { loading: () => <div className="p-4 text-sm text-muted-foreground text-center">Loading...</div> }
+)
 import { useSession } from "next-auth/react"
 import { useToast } from "@/components/ui/use-toast"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { DeleteDialog } from "@/components/delete-dialog"
-import { DeleteAlertDialog } from "@/components/delete-alert-dialog"
+const DeleteDialog = dynamic(
+  () => import("@/components/delete-dialog").then(mod => mod.DeleteDialog),
+  { loading: () => <div className="p-4 text-sm text-muted-foreground text-center">Preparing...</div> }
+)
+const DeleteAlertDialog = dynamic(
+  () => import("@/components/delete-alert-dialog").then(mod => mod.DeleteAlertDialog),
+  { loading: () => <div className="p-4 text-sm text-muted-foreground text-center">Preparing...</div> }
+)
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Comment {
@@ -68,12 +78,24 @@ export default function QAPage() {
   const [isDeletingComment, setIsDeletingComment] = useState(false)
   const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false)
   const [commentToDelete, setCommentToDelete] = useState<{qaId: string, commentId: string} | null>(null)
+  const qaCache = useRef<Record<string, QA[]>>({})
+  const abortControllerRef = useRef<AbortController | null>(null)
   
   useEffect(() => {
     fetchQuestions()
   }, [])
 
-  const fetchQuestions = async (search?: string) => {
+  const fetchQuestions = async (search: string = '') => {
+    const cacheKey = search?.toLowerCase() || 'all'
+    if (qaCache.current[cacheKey]) {
+      setQAs(qaCache.current[cacheKey])
+      return
+    }
+
+    abortControllerRef.current?.abort()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     try {
       setIsSearching(true)
       const url = search 
@@ -84,16 +106,21 @@ export default function QAPage() {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache'
-        }
+        },
+        signal: controller.signal
       })
       const data = await response.json()
       if (data.success) {
         const sortedQAs = data.qas.sort((a: QA, b: QA) => {
           return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         })
+        qaCache.current[cacheKey] = sortedQAs
         setQAs(sortedQAs)
       }
     } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        return
+      }
       console.error("Error fetching questions:", error)
     } finally {
       setIsSearching(false)
@@ -102,8 +129,14 @@ export default function QAPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    fetchQuestions(searchQuery)
+    fetchQuestions(searchQuery.trim())
   }
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort()
+  }
+  }, [])
 
   const handleNewQuestion = async (question: string) => {
     if (!session) {
@@ -528,7 +561,7 @@ export default function QAPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-purple-700 dark:text-purple-300 text-sm sm:text-base truncate">
-                            {qa.userName}
+                          {qa.userName}
                           </span>
                           {(() => {
                             const provider = getProvider(qa.userProvider, qa.userEmail)
@@ -682,40 +715,40 @@ export default function QAPage() {
                                   <span className="text-xs text-muted-foreground sm:hidden">
                                     {comment.timestamp}
                                   </span>
-                                  {session?.user?.email === comment.userEmail && (
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
+                                {session?.user?.email === comment.userEmail && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" className="h-9 w-9 sm:h-8 sm:w-8 p-0">
-                                          <span className="sr-only">Open menu</span>
-                                          <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem 
-                                          onClick={() => {
+                                        <span className="sr-only">Open menu</span>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem 
+                                        onClick={() => {
                                             const commentId = comment._id?.toString() || comment._id || '';
                                             setEditingCommentId(commentId);
-                                            setEditingCommentText(comment.content);
-                                          }}
-                                        >
-                                          <Edit className="w-4 h-4 mr-2" />
-                                          Edit
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          className="text-red-600 focus:text-red-700"
-                                          onClick={() => {
+                                          setEditingCommentText(comment.content);
+                                        }}
+                                      >
+                                        <Edit className="w-4 h-4 mr-2" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-red-600 focus:text-red-700"
+                                        onClick={() => {
                                             const commentId = comment._id?.toString() || comment._id || '';
                                             setCommentToDelete({ qaId: qa._id, commentId });
-                                            setShowDeleteCommentDialog(true);
-                                          }}
-                                        >
-                                          <Trash className="w-4 h-4 mr-2" />
-                                          Delete
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  )}
-                                </div>
+                                          setShowDeleteCommentDialog(true);
+                                        }}
+                                      >
+                                        <Trash className="w-4 h-4 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </div>
                               </div>
                               {editingCommentId && comment._id && String(editingCommentId) === String(comment._id) ? (
                                 <div className="flex flex-col sm:flex-row gap-1.5 mt-1.5">
@@ -732,7 +765,7 @@ export default function QAPage() {
                                     }}
                                   />
                                   <div className="flex gap-1.5">
-                                    <Button
+                                  <Button
                                       onClick={() => {
                                         if (comment._id) {
                                           const commentId = comment._id.toString() || comment._id;
@@ -741,19 +774,19 @@ export default function QAPage() {
                                       }}
                                       className="bg-purple-600 hover:bg-purple-700 text-white flex-1 sm:flex-none h-8 text-xs px-3"
                                       disabled={!editingCommentText.trim() || !comment._id}
-                                    >
-                                      Save
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      onClick={() => {
-                                        setEditingCommentId(null);
-                                        setEditingCommentText('');
-                                      }}
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditingCommentId(null);
+                                      setEditingCommentText('');
+                                    }}
                                       className="h-8 text-xs px-3"
-                                    >
-                                      Cancel
-                                    </Button>
+                                  >
+                                    Cancel
+                                  </Button>
                                   </div>
                                 </div>
                               ) : (
