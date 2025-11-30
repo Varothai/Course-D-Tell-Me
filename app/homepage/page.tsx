@@ -454,7 +454,7 @@ export default function Home() {
                   {content.writeReview}
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl w-full mx-2 sm:mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-lg sm:rounded-xl">
                 <ReviewForm
                   onClose={() => {
                     const closeButton = document.querySelector('[aria-label="Close"]') as HTMLButtonElement

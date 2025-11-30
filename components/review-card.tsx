@@ -972,8 +972,10 @@ export function ReviewCard({
         isOpen={showEditModal} 
         onClose={() => setShowEditModal(false)}
       >
-        <div className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Edit Review</h2>
+        <div className="p-4 sm:p-6 sm:pt-6">
+          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 sm:mb-6">
+            Edit Review
+          </h2>
           <ReviewForm
             initialData={review}
             isEditing={true}

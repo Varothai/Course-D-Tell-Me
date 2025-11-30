@@ -353,33 +353,33 @@ export function ReviewForm({
   }
 
   return (
-    <div className="max-h-[80vh] overflow-y-auto px-4 -mx-4">
-      <div className="space-y-8">
-        <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-6 shadow-lg">
-          <div className="absolute top-0 right-0 w-24 h-24 opacity-50">
+    <div className={`overflow-y-auto ${isEditing ? 'max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-12rem)]' : ''}`}>
+      <div className={`space-y-4 sm:space-y-6 ${isEditing ? 'pb-4' : ''}`}>
+        <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg">
+          <div className="absolute top-0 right-0 w-16 h-16 sm:w-24 sm:h-24 opacity-50">
             <img
               src="/elephant-mascot.png"
               alt="Cute elephant mascot"
               className="w-full h-full object-contain"
             />
           </div>
-          <h2 className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3 sm:mb-4">
             {content.writing}
           </h2>
           <Textarea
             placeholder={content.yourReview}
             value={formData.review}
             onChange={(e) => setFormData({ ...formData, review: e.target.value })}
-            className="min-h-[150px] bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 resize-none transition-all duration-300"
+            className="min-h-[120px] sm:min-h-[150px] bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg sm:rounded-xl border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 resize-none transition-all duration-300 text-sm sm:text-base"
           />
         </div>
 
-        <div className="flex items-center gap-4 bg-white/80 dark:bg-gray-800/80 p-4 rounded-xl backdrop-blur-sm">
+        <div className="flex items-center gap-3 sm:gap-4 bg-white/80 dark:bg-gray-800/80 p-3 sm:p-4 rounded-lg sm:rounded-xl backdrop-blur-sm">
           <div className="flex">
             {[1, 2, 3, 4, 5].map((index) => (
               <Star
                 key={index}
-                className={`w-8 h-8 cursor-pointer transition-all duration-300 transform hover:scale-110 ${
+                className={`w-6 h-6 sm:w-8 sm:h-8 cursor-pointer transition-all duration-300 transform hover:scale-110 ${
                   index <= (hoverRating || rating)
                     ? "fill-yellow-400 text-yellow-400"
                     : "fill-gray-200 text-gray-200"
@@ -390,44 +390,44 @@ export function ReviewForm({
               />
             ))}
           </div>
-          <span className="text-lg text-purple-700 dark:text-purple-300 font-medium">
+          <span className="text-sm sm:text-lg text-purple-700 dark:text-purple-300 font-medium">
             {content.ratingStar}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2 md:col-span-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="col-span-1 sm:col-span-2 md:col-span-1">
             <Autosuggest
               suggestions={suggestions}
               onSuggestionsFetchRequested={({ value }: SuggestionsFetchRequestedParams) => onSuggestionsFetchRequested({ value }, 'courseno')}
               onSuggestionsClearRequested={onSuggestionsClearRequested}
               getSuggestionValue={(suggestion: any) => suggestion.courseno}
-              renderSuggestion={(suggestion: any) => <div>{suggestion.courseno}</div>}
+              renderSuggestion={(suggestion: any) => <div className="text-sm">{suggestion.courseno}</div>}
               inputProps={inputPropsCourseNo}
               onSuggestionSelected={onCourseNoSuggestionSelected}
               theme={{
                 container: 'relative',
-                input: 'w-full px-4 py-2 rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300',
-                suggestionsList: 'absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg max-h-60 overflow-auto',
-                suggestion: 'px-4 py-2 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50',
+                input: 'w-full px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 text-sm sm:text-base',
+                suggestionsList: 'absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-lg max-h-48 sm:max-h-60 overflow-auto',
+                suggestion: 'px-3 sm:px-4 py-2 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50 text-sm',
                 suggestionHighlighted: 'bg-purple-100 dark:bg-purple-800/50'
               }}
             />
           </div>
-          <div className="col-span-2 md:col-span-1">
+          <div className="col-span-1 sm:col-span-2 md:col-span-1">
             <Autosuggest
               suggestions={suggestions}
               onSuggestionsFetchRequested={({ value }: SuggestionsFetchRequestedParams) => onSuggestionsFetchRequested({ value }, 'title_short_en')}
               onSuggestionsClearRequested={onSuggestionsClearRequested}
               getSuggestionValue={(suggestion: any) => suggestion.title_short_en}
-              renderSuggestion={(suggestion: any) => <div>{suggestion.title_short_en}</div>}
+              renderSuggestion={(suggestion: any) => <div className="text-sm">{suggestion.title_short_en}</div>}
               inputProps={inputPropsCourseName}
               onSuggestionSelected={onCourseNameSuggestionSelected}
               theme={{
                 container: 'relative',
-                input: 'w-full px-4 py-2 rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300',
-                suggestionsList: 'absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg max-h-60 overflow-auto',
-                suggestion: 'px-4 py-2 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50',
+                input: 'w-full px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 text-sm sm:text-base',
+                suggestionsList: 'absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-lg max-h-48 sm:max-h-60 overflow-auto',
+                suggestion: 'px-3 sm:px-4 py-2 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50 text-sm',
                 suggestionHighlighted: 'bg-purple-100 dark:bg-purple-800/50'
               }}
             />
@@ -437,12 +437,12 @@ export function ReviewForm({
               value={formData.faculty}
               onValueChange={handleFacultyChange}
             >
-              <SelectTrigger className="bg-[#FFFAD7]">
+              <SelectTrigger className="bg-[#FFFAD7] h-10 sm:h-10 text-sm sm:text-base">
                 <SelectValue placeholder={content.faculty} />
               </SelectTrigger>
               <SelectContent>
                 {content.faculties.map((faculty) => (
-                  <SelectItem key={faculty.value} value={faculty.value}>
+                  <SelectItem key={faculty.value} value={faculty.value} className="text-sm">
                     {faculty.label}
                   </SelectItem>
                 ))}
@@ -455,12 +455,12 @@ export function ReviewForm({
               onValueChange={handleMajorChange}
               disabled={!formData.faculty}
             >
-              <SelectTrigger className="bg-[#FFFAD7]">
+              <SelectTrigger className="bg-[#FFFAD7] h-10 sm:h-10 text-sm sm:text-base">
                 <SelectValue placeholder={content.major} />
               </SelectTrigger>
               <SelectContent>
                 {availableMajors.map((major) => (
-                  <SelectItem key={major.value} value={major.value}>
+                  <SelectItem key={major.value} value={major.value} className="text-sm">
                     {major.label}
                   </SelectItem>
                 ))}
@@ -472,7 +472,7 @@ export function ReviewForm({
                 value={formData.customMajor}
                 onChange={(e) => setFormData({ ...formData, customMajor: e.target.value })}
                 placeholder={content.majorSelection.placeholder}
-                className="mt-2 bg-[#FFFAD7]"
+                className="mt-2 bg-[#FFFAD7] h-10 text-sm sm:text-base"
               />
             )}
           </div>
@@ -481,15 +481,15 @@ export function ReviewForm({
               value={formData.studyPlan}
               onValueChange={(value) => setFormData({ ...formData, studyPlan: value })}
             >
-              <SelectTrigger className="bg-[#FFFAD7]">
+              <SelectTrigger className="bg-[#FFFAD7] h-10 sm:h-10 text-sm sm:text-base">
                 <SelectValue placeholder={content.programTypes} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="normal">{content.normalProgram}</SelectItem>
-                <SelectItem value="special">{content.specialProgram}</SelectItem>
-                <SelectItem value="international">{content.internationalProgram}</SelectItem>
-                <SelectItem value="bilingual">{content.bilingualProgram}</SelectItem>
-                <SelectItem value="trilingual">{content.trilingualProgram}</SelectItem>
+                <SelectItem value="normal" className="text-sm">{content.normalProgram}</SelectItem>
+                <SelectItem value="special" className="text-sm">{content.specialProgram}</SelectItem>
+                <SelectItem value="international" className="text-sm">{content.internationalProgram}</SelectItem>
+                <SelectItem value="bilingual" className="text-sm">{content.bilingualProgram}</SelectItem>
+                <SelectItem value="trilingual" className="text-sm">{content.trilingualProgram}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -504,16 +504,16 @@ export function ReviewForm({
                   setFormData({ ...formData, section: value });
                 }
               }}
-              className="bg-[#FFFAD7]"
+              className="bg-[#FFFAD7] h-10 text-sm sm:text-base"
             />
           </div>
           <div>
-            <Label className="block mb-2">{content.electiveTypes}</Label>
+            <Label className="block mb-2 text-sm sm:text-base">{content.electiveTypes}</Label>
             <div className="flex gap-2">
               <Button
                 type="button"
                 variant="outline"
-                className={`flex-1 ${
+                className={`flex-1 h-10 text-sm sm:text-base ${
                   formData.electiveType === "free" 
                     ? "bg-primary text-primary-foreground" 
                     : ""
@@ -528,7 +528,7 @@ export function ReviewForm({
               <Button
                 type="button"
                 variant="outline"
-                className={`flex-1 ${
+                className={`flex-1 h-10 text-sm sm:text-base ${
                   formData.electiveType === "general" 
                     ? "bg-primary text-primary-foreground" 
                     : ""
@@ -544,13 +544,13 @@ export function ReviewForm({
           </div>
         </div>
 
-        <div className="space-y-1">
-          <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 backdrop-blur-sm">
-            <Label className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-4 block">
+        <div className="space-y-3 sm:space-y-1">
+          <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm">
+            <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-3 sm:mb-4 block">
               {content.homeworkAmount}
             </Label>
             <div className="flex justify-between items-center">
-              <div className="flex gap-4">
+              <div className="flex gap-2 sm:gap-4">
                 {[
                   { value: 1, emoji: "😟" },
                   { value: 2, emoji: "😕" },
@@ -562,26 +562,26 @@ export function ReviewForm({
                     key={item.value}
                     variant="outline"
                     size="lg"
-                    className={`w-12 h-12 rounded-full transform transition-all duration-300 hover:scale-110 ${
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full transform transition-all duration-300 hover:scale-110 ${
                       formData.readingAmount === item.value 
                         ? "bg-gradient-to-r from-purple-500 to-pink-500 border-none text-white shadow-lg" 
                         : "border-2 border-purple-200 dark:border-purple-800 hover:border-purple-500"
                     }`}
                     onClick={() => setFormData({ ...formData, readingAmount: item.value })}
                   >
-                    <span className="text-xl">{item.emoji}</span>
+                    <span className="text-lg sm:text-xl">{item.emoji}</span>
                   </Button>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 backdrop-blur-sm">
-            <Label className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-4 block">
+          <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm">
+            <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-3 sm:mb-4 block">
               {content.contentInterest}
             </Label>
             <div className="flex justify-between items-center">
-              <div className="flex gap-4">
+              <div className="flex gap-2 sm:gap-4">
                 {[
                   { value: 1, emoji: "😟" },
                   { value: 2, emoji: "😕" },
@@ -593,26 +593,26 @@ export function ReviewForm({
                     key={item.value}
                     variant="outline"
                     size="lg"
-                    className={`w-12 h-12 rounded-full transform transition-all duration-300 hover:scale-110 ${
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full transform transition-all duration-300 hover:scale-110 ${
                       formData.contentDifficulty === item.value 
                         ? "bg-gradient-to-r from-purple-500 to-pink-500 border-none text-white shadow-lg" 
                         : "border-2 border-purple-200 dark:border-purple-800 hover:border-purple-500"
                     }`}
                     onClick={() => setFormData({ ...formData, contentDifficulty: item.value })}
                   >
-                    <span className="text-xl">{item.emoji}</span>
+                    <span className="text-lg sm:text-xl">{item.emoji}</span>
                   </Button>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 backdrop-blur-sm">
-            <Label className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-4 block">
+          <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm">
+            <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-3 sm:mb-4 block">
               {content.teachingQuality}
             </Label>
             <div className="flex justify-between items-center">
-              <div className="flex gap-4">
+              <div className="flex gap-2 sm:gap-4">
                 {[
                   { value: 1, emoji: "😟" },
                   { value: 2, emoji: "😕" },
@@ -624,14 +624,14 @@ export function ReviewForm({
                     key={item.value}
                     variant="outline"
                     size="lg"
-                    className={`w-12 h-12 rounded-full transform transition-all duration-300 hover:scale-110 ${
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full transform transition-all duration-300 hover:scale-110 ${
                       formData.teachingQuality === item.value 
                         ? "bg-gradient-to-r from-purple-500 to-pink-500 border-none text-white shadow-lg" 
                         : "border-2 border-purple-200 dark:border-purple-800 hover:border-purple-500"
                     }`}
                     onClick={() => setFormData({ ...formData, teachingQuality: item.value })}
                   >
-                    <span className="text-xl">{item.emoji}</span>
+                    <span className="text-lg sm:text-xl">{item.emoji}</span>
                   </Button>
                 ))}
               </div>
@@ -639,8 +639,8 @@ export function ReviewForm({
           </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 backdrop-blur-sm">
-          <Label className="text-lg font-medium text-purple-700 dark:text-purple-300 mb-4 block">
+        <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm">
+          <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-3 sm:mb-4 block">
             {content.grade} 
             <span className="text-sm text-muted-foreground ml-2">
               (optional) *** {language === "en" ? "does not show when posting" : "ไม่แสดงตอนโพสต์"} ***
@@ -652,7 +652,7 @@ export function ReviewForm({
                 key={grade}
                 variant="outline"
                 size="sm"
-                className={`rounded-xl transition-all duration-300 hover:scale-105 ${
+                className={`h-9 sm:h-9 rounded-lg sm:rounded-xl transition-all duration-300 hover:scale-105 text-sm sm:text-base ${
                   formData.grade === grade 
                     ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-none" 
                     : "border-2 border-purple-200 dark:border-purple-800"
@@ -668,25 +668,25 @@ export function ReviewForm({
           </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 backdrop-blur-sm">
-          <div className="flex items-center gap-3 mb-4">
+        <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm">
+          <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
             <input
               type="checkbox"
               checked={verified}
               onChange={(e) => setVerified(e.target.checked)}
-              className="w-5 h-5 rounded border-2 border-purple-200 dark:border-purple-800 text-purple-600 focus:ring-purple-500"
+              className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-purple-200 dark:border-purple-800 text-purple-600 focus:ring-purple-500"
             />
-            <Label className="text-red-500 font-medium">
+            <Label className="text-red-500 font-medium text-sm sm:text-base">
               {content.verifyContent}
             </Label>
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-purple-700 dark:text-purple-300 font-medium">
+              <Label className="text-purple-700 dark:text-purple-300 font-medium text-sm sm:text-base">
                 {isAnonymous ? content.hideIdentity : content.showIdentity}
               </Label>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                 {isAnonymous ? 'Anonymous' : session?.user?.name || 'User'}
               </p>
             </div>
@@ -760,9 +760,9 @@ export function ReviewForm({
             </div>
           )}
 
-          <div className="flex gap-4 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
             <Button 
-              className="flex-1 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white"
+              className="flex-1 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white h-11 sm:h-10 text-sm sm:text-base font-semibold"
               disabled={!verified || !rating || isSubmitting}
               onClick={handleSubmit}
             >
@@ -781,7 +781,7 @@ export function ReviewForm({
             {isEditing && (
               <Button 
                 variant="outline"
-                className="flex-1"
+                className="flex-1 h-11 sm:h-10 text-sm sm:text-base"
                 onClick={onCancel}
               >
                 Cancel
