@@ -17,11 +17,11 @@ const inappropriateWords = {
     'ควย', 'เหี้ย', 'สัส', 'ไอ้เหี้ย', 'ไอ้สัส', 'มึง', 'กู', 'เย็ด', 'หี', 'จิ๋ม',
     'กะหรี่', 'โส', 'โสโครก', 'ส้นตีน', 'ควาย', 'ควาย', 'อีเหี้ย', 'อีสัส',
     'อีควาย', 'อีส้น', 'อีโส', 'อีกะหรี่', 'ไอ้ควาย', 'ไอ้ส้น', 'ไอ้โส',
-    'ไอ้กะหรี่', 'เย็ดแม่', 'เย็ดพ่อ', 'เย็ดตาย', 'เย็ดหี', 'เย็ดควย', 'แม่ง',
+    'ไอ้กะหรี่', 'เย็ดแม่', 'เย็ดพ่อ', 'เย็ดตาย', 'เย็ดหี', 'เย็ดควย', 'แม่ง', 'แตด',
     // Derogatory terms
     'อีสัตว์', 'ไอ้สัตว์', 'อีหมา', 'ไอ้หมา', 'อีหมา', 'ไอ้หมา',
     // Additional vulgar terms
-    'จิ๋ม', 'หำ', 'ควย', 'อวัยวะ', 'เพศ', 'เซ็กส์', 'เย็ด', 'มีเซ็กส์',
+    'จิ๋ม', 'หำ', 'เซ็กส์', 'เย็ด', 'มีเซ็กส์',
   ],
   en: [
     // Strong profanity
@@ -188,20 +188,33 @@ const fuzzyMatch = (text: string, word: string, isThai: boolean): boolean => {
     
     const cleanedSegment = normalizeText(segment);
     
-    // Only check segments that are similar in length to the word
+    // For English: Only check segments that are similar in length to the word
     // This prevents matching "ass" in "classroom" (which is much longer)
-    if (cleanedSegment.length === cleanedWord.length) {
+    if (!isThai && cleanedSegment.length === cleanedWord.length) {
       if (cleanedSegment === cleanedWord) {
         return true;
       }
+    }
+    
+    // For Thai: Check if the word appears within the segment
+    // Thai words can be compound (e.g., "เหี้ยมาก"), so we check for the word as a substring
+    // We detect it if it appears at the start, end, or anywhere in the segment
+    // since Thai doesn't use spaces between words and compound words are common
+    if (isThai) {
+      const thaiOnlySegment = segment.replace(/[^\u0E00-\u0E7F]/g, '');
+      const thaiOnlyWord = word.replace(/[^\u0E00-\u0E7F]/g, '');
       
-      // For Thai, also check Thai-only version
-      if (isThai) {
-        const thaiOnlySegment = segment.replace(/[^\u0E00-\u0E7F]/g, '');
-        const thaiOnlyWord = word.replace(/[^\u0E00-\u0E7F]/g, '');
-        if (thaiOnlySegment === thaiOnlyWord) {
-          return true;
-        }
+      // Check if word appears anywhere in the segment
+      if (thaiOnlySegment.includes(thaiOnlyWord)) {
+        // For Thai, we're more lenient - if the inappropriate word appears in the segment,
+        // we consider it a match since Thai compound words are common
+        // This will catch "เหี้ย" in "เหี้ยมาก"
+        return true;
+      }
+      
+      // Also check exact match for Thai-only version
+      if (thaiOnlySegment === thaiOnlyWord) {
+        return true;
       }
     }
   }

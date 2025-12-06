@@ -15,7 +15,9 @@ import { useLanguage } from "@/providers/language-provider"
 import { useProtectedAction } from '@/hooks/use-protected-action'
 import { useSession } from "next-auth/react"
 import { useAuth } from "@/contexts/auth-context"
-import { MessageCircleQuestion } from "lucide-react"
+import { MessageCircleQuestion, Loader2 } from "lucide-react"
+import { analyzeText } from '@/utils/text-analysis'
+import { toast } from "@/components/ui/use-toast"
 
 interface QAFormDialogProps {
   open: boolean
@@ -36,6 +38,13 @@ export function QAFormDialog({
   const [question, setQuestion] = useState(initialQuestion)
   const [verified, setVerified] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analysisResult, setAnalysisResult] = useState<{
+    isInappropriate: boolean;
+    confidence: number;
+    severity: 'low' | 'medium' | 'high';
+    inappropriateWords: string[];
+  } | null>(null)
   const handleProtectedAction = useProtectedAction()
   const { data: session } = useSession()
   const { setShowAuthModal } = useAuth()
@@ -50,6 +59,7 @@ export function QAFormDialog({
   useEffect(() => {
     if (open) {
       setQuestion(initialQuestion)
+      setAnalysisResult(null)
     }
   }, [open, initialQuestion])
 
@@ -64,14 +74,32 @@ export function QAFormDialog({
         if (!question.trim() || !verified || isSubmitting) return
 
         setIsSubmitting(true)
+        setIsAnalyzing(true)
+        
         try {
+          const analysis = await analyzeText(question.trim())
+          
+          if (analysis.isInappropriate) {
+            setAnalysisResult(analysis)
+            setIsAnalyzing(false)
+            setIsSubmitting(false)
+            return
+          }
+          
+          setAnalysisResult(null)
           submitAction(question.trim())
           setQuestion("")
           setVerified(false)
           action(false)
         } catch (error) {
           console.error("Error submitting question:", error)
+          toast({
+            title: "Error",
+            description: "Failed to submit question. Please try again.",
+            variant: "destructive"
+          })
         } finally {
+          setIsAnalyzing(false)
           setIsSubmitting(false)
         }
       })
@@ -123,12 +151,92 @@ export function QAFormDialog({
             </label>
           </div>
 
+          {/* Warning Message */}
+          {analysisResult && analysisResult.isInappropriate && (
+            <div className="mt-4 relative overflow-hidden">
+              <div className={`p-4 sm:p-6 rounded-xl border-2 backdrop-blur-sm shadow-lg animate-fade-in
+                ${analysisResult.severity === 'high' 
+                  ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' 
+                  : analysisResult.severity === 'medium'
+                    ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'
+                    : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'
+                }`}
+              >
+                {/* Warning Icon */}
+                <div className="flex items-center gap-3 mb-3 sm:mb-4">
+                  <div className={`p-2 rounded-full 
+                    ${analysisResult.severity === 'high'
+                      ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300'
+                      : analysisResult.severity === 'medium'
+                        ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300'
+                        : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-300'
+                    }`}
+                  >
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className={`text-base sm:text-lg font-semibold
+                    ${analysisResult.severity === 'high'
+                      ? 'text-red-800 dark:text-red-200'
+                      : analysisResult.severity === 'medium'
+                        ? 'text-orange-800 dark:text-orange-200'
+                        : 'text-yellow-800 dark:text-yellow-200'
+                    }`}
+                  >
+                    {content.review.inappropriateWarning}
+                  </h3>
+                </div>
+
+                {/* Found Words */}
+                {analysisResult.inappropriateWords.length > 0 && (
+                  <div className="mb-3 sm:mb-4 p-3 rounded-lg bg-white/50 dark:bg-black/20 backdrop-blur-sm">
+                    <div className="flex flex-wrap gap-2">
+                      {analysisResult.inappropriateWords.map((word, index) => (
+                        <span key={index} 
+                          className={`px-2 py-1 rounded-full text-xs sm:text-sm font-mono
+                            ${analysisResult.severity === 'high'
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                              : analysisResult.severity === 'medium'
+                                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300'
+                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+                            }`}
+                        >
+                          {word}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}           
+              </div>
+            </div>
+          )}
+
+          {isAnalyzing && (
+            <div className="mt-4 p-3 sm:p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 text-sm">
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Analyzing content...
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => action(false)}>
+            <Button type="button" variant="outline" onClick={() => {
+              action(false)
+              setAnalysisResult(null)
+            }}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!question.trim() || !verified || isSubmitting}>
-              {mode === "create" ? content.postQuestion : "Save Changes"}
+            <Button type="submit" disabled={!question.trim() || !verified || isSubmitting || isAnalyzing}>
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Posting...</span>
+                </div>
+              ) : mode === "create" ? content.postQuestion : "Save Changes"}
             </Button>
           </div>
         </form>

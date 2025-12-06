@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Flag, Loader2 } from "lucide-react"
+import { analyzeText } from '@/utils/text-analysis'
 
 interface Comment {
   _id?: string
@@ -91,6 +92,13 @@ export default function QAPage() {
   const [commentReportReason, setCommentReportReason] = useState('')
   const [commentReportError, setCommentReportError] = useState<string | null>(null)
   const [commentToReport, setCommentToReport] = useState<{qaId: string, commentId: string} | null>(null)
+  const [isAnalyzingComment, setIsAnalyzingComment] = useState(false)
+  const [commentAnalysisResult, setCommentAnalysisResult] = useState<{
+    isInappropriate: boolean;
+    confidence: number;
+    severity: 'low' | 'medium' | 'high';
+    inappropriateWords: string[];
+  } | null>(null)
   const qaCache = useRef<Record<string, QA[]>>({})
   const abortControllerRef = useRef<AbortController | null>(null)
   
@@ -220,7 +228,19 @@ export default function QAPage() {
     const commentContent = comments[qaId]?.trim()
     if (!commentContent) return
 
+    setIsAnalyzingComment(true)
+    
     try {
+      const analysis = await analyzeText(commentContent)
+      
+      if (analysis.isInappropriate) {
+        setCommentAnalysisResult(analysis)
+        setIsAnalyzingComment(false)
+        return
+      }
+      
+      setCommentAnalysisResult(null)
+
       const response = await fetch(`/api/qa/${qaId}/comment`, {
         method: 'POST',
         headers: {
@@ -273,6 +293,8 @@ export default function QAPage() {
         description: "Failed to post your comment",
         variant: "destructive"
       })
+    } finally {
+      setIsAnalyzingComment(false)
     }
   }
 
@@ -361,7 +383,19 @@ export default function QAPage() {
   }
 
   const handleEditComment = async (qaId: string, commentId: string, newText: string) => {
+    setIsAnalyzingComment(true)
+    
     try {
+      const analysis = await analyzeText(newText.trim())
+      
+      if (analysis.isInappropriate) {
+        setCommentAnalysisResult(analysis)
+        setIsAnalyzingComment(false)
+        return
+      }
+      
+      setCommentAnalysisResult(null)
+
       const response = await fetch(`/api/qa/${qaId}/comment`, {
         method: 'PUT',
         headers: {
@@ -413,6 +447,8 @@ export default function QAPage() {
         description: error instanceof Error ? error.message : "Failed to edit comment",
         variant: "destructive"
       });
+    } finally {
+      setIsAnalyzingComment(false)
     }
   };
 
@@ -752,29 +788,107 @@ export default function QAPage() {
                     {expandedComments[qa._id] && (
                       <>
                         {/* Add Comment Form */}
-                        <div className="flex flex-col sm:flex-row gap-1.5 mb-2">
-                          <Input
-                            placeholder="Write a comment..."
-                            value={comments[qa._id] || ''}
-                            onChange={(e) => setComments(prev => ({
-                              ...prev,
-                              [qa._id]: e.target.value
-                            }))}
-                            className="bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm flex-1 h-8"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault()
-                                handleComment(qa._id)
-                              }
-                            }}
-                          />
-                          <Button 
-                            onClick={() => handleComment(qa._id)}
-                            className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto h-8 text-xs px-4"
-                            disabled={!comments[qa._id]?.trim()}
-                          >
-                            Post
-                          </Button>
+                        <div className="space-y-2 mb-2">
+                          <div className="flex flex-col sm:flex-row gap-1.5">
+                            <Input
+                              placeholder="Write a comment..."
+                              value={comments[qa._id] || ''}
+                              onChange={(e) => {
+                                setComments(prev => ({
+                                  ...prev,
+                                  [qa._id]: e.target.value
+                                }))
+                                // Clear analysis result when user types
+                                if (commentAnalysisResult) {
+                                  setCommentAnalysisResult(null)
+                                }
+                              }}
+                              className="bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm flex-1 h-8"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault()
+                                  handleComment(qa._id)
+                                }
+                              }}
+                            />
+                            <Button 
+                              onClick={() => handleComment(qa._id)}
+                              className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto h-8 text-xs px-4"
+                              disabled={!comments[qa._id]?.trim() || isAnalyzingComment}
+                            >
+                              {isAnalyzingComment ? (
+                                <div className="flex items-center gap-1.5">
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  <span>Analyzing...</span>
+                                </div>
+                              ) : (
+                                'Post'
+                              )}
+                            </Button>
+                          </div>
+
+                          {/* Comment Analysis Warning */}
+                          {commentAnalysisResult && commentAnalysisResult.isInappropriate && (
+                            <div className="relative overflow-hidden">
+                              <div className={`p-3 sm:p-4 rounded-lg border-2 backdrop-blur-sm shadow-lg animate-fade-in
+                                ${commentAnalysisResult.severity === 'high' 
+                                  ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' 
+                                  : commentAnalysisResult.severity === 'medium'
+                                    ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'
+                                    : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'
+                                }`}
+                              >
+                                {/* Warning Icon */}
+                                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                                  <div className={`p-1.5 sm:p-2 rounded-full 
+                                    ${commentAnalysisResult.severity === 'high'
+                                      ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300'
+                                      : commentAnalysisResult.severity === 'medium'
+                                        ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300'
+                                        : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-300'
+                                    }`}
+                                  >
+                                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                      />
+                                    </svg>
+                                  </div>
+                                  <h3 className={`text-sm sm:text-base font-semibold
+                                    ${commentAnalysisResult.severity === 'high'
+                                      ? 'text-red-800 dark:text-red-200'
+                                      : commentAnalysisResult.severity === 'medium'
+                                        ? 'text-orange-800 dark:text-orange-200'
+                                        : 'text-yellow-800 dark:text-yellow-200'
+                                    }`}
+                                  >
+                                    {content.review.inappropriateWarning}
+                                  </h3>
+                                </div>
+
+                                {/* Found Words */}
+                                {commentAnalysisResult.inappropriateWords.length > 0 && (
+                                  <div className="mb-2 sm:mb-3 p-2 sm:p-3 rounded-lg bg-white/50 dark:bg-black/20 backdrop-blur-sm">
+                                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                                      {commentAnalysisResult.inappropriateWords.map((word, index) => (
+                                        <span key={index} 
+                                          className={`px-2 py-0.5 sm:py-1 rounded-full text-xs font-mono
+                                            ${commentAnalysisResult.severity === 'high'
+                                              ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                                              : commentAnalysisResult.severity === 'medium'
+                                                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300'
+                                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+                                            }`}
+                                        >
+                                          {word}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}           
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Comment Sort Control */}
@@ -807,9 +921,9 @@ export default function QAPage() {
                             }).map((comment) => (
                             <div 
                               key={comment._id} 
-                              className="bg-gray-50 dark:bg-gray-900/50 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
+                              className="bg-gray-50 dark:bg-gray-900/50 p-2 sm:p-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
                             >
-                              <div className="flex items-start sm:items-center justify-between mb-1 gap-2">
+                              <div className="flex items-center justify-between mb-1 gap-2">
                                 <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
                                   <Avatar className="w-5 h-5 flex-shrink-0">
                                     <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-[10px]">
@@ -838,21 +952,17 @@ export default function QAPage() {
                                     }
                                     return null
                                   })()}
-                                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
                                     {comment.timestamp}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  <span className="text-xs text-muted-foreground sm:hidden">
-                                    {comment.timestamp}
-                                  </span>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" className="h-9 w-9 sm:h-8 sm:w-8 p-0">
-                                        <span className="sr-only">Open menu</span>
-                                        <MoreHorizontal className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0">
+                                      <span className="sr-only">Open menu</span>
+                                      <MoreHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                       {session?.user?.email === comment.userEmail && (
                                         <>
@@ -893,46 +1003,124 @@ export default function QAPage() {
                                       )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
-                                </div>
                               </div>
                               {editingCommentId && comment._id && String(editingCommentId) === String(comment._id) ? (
-                                <div className="flex flex-col sm:flex-row gap-1.5 mt-1.5">
-                                  <Input
-                                    value={editingCommentText}
-                                    onChange={(e) => setEditingCommentText(e.target.value)}
-                                    className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm h-8"
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && !e.shiftKey && comment._id) {
-                                        e.preventDefault();
-                                        const commentId = comment._id.toString() || comment._id;
-                                        handleEditComment(qa._id, commentId, editingCommentText);
-                                      }
-                                    }}
-                                  />
-                                  <div className="flex gap-1.5">
-                                  <Button
-                                      onClick={() => {
-                                        if (comment._id) {
+                                <div className="space-y-1.5 mt-1.5">
+                                  <div className="flex flex-col sm:flex-row gap-1.5">
+                                    <Input
+                                      value={editingCommentText}
+                                      onChange={(e) => {
+                                        setEditingCommentText(e.target.value)
+                                        // Clear analysis result when user types
+                                        if (commentAnalysisResult) {
+                                          setCommentAnalysisResult(null)
+                                        }
+                                      }}
+                                      className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm h-8"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey && comment._id) {
+                                          e.preventDefault();
                                           const commentId = comment._id.toString() || comment._id;
                                           handleEditComment(qa._id, commentId, editingCommentText);
                                         }
                                       }}
-                                      className="bg-purple-600 hover:bg-purple-700 text-white flex-1 sm:flex-none h-8 text-xs px-3"
-                                      disabled={!editingCommentText.trim() || !comment._id}
-                                  >
-                                    Save
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditingCommentId(null);
-                                      setEditingCommentText('');
-                                    }}
-                                      className="h-8 text-xs px-3"
-                                  >
-                                    Cancel
-                                  </Button>
+                                    />
+                                    <div className="flex gap-1.5">
+                                    <Button
+                                        onClick={() => {
+                                          if (comment._id) {
+                                            const commentId = comment._id.toString() || comment._id;
+                                            handleEditComment(qa._id, commentId, editingCommentText);
+                                          }
+                                        }}
+                                        className="bg-purple-600 hover:bg-purple-700 text-white flex-1 sm:flex-none h-8 text-xs px-3"
+                                        disabled={!editingCommentText.trim() || !comment._id || isAnalyzingComment}
+                                      >
+                                        {isAnalyzingComment ? (
+                                          <div className="flex items-center gap-1.5">
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                            <span>Analyzing...</span>
+                                          </div>
+                                        ) : (
+                                          'Save'
+                                        )}
+                                      </Button>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setEditingCommentId(null);
+                                        setEditingCommentText('');
+                                        setCommentAnalysisResult(null);
+                                      }}
+                                        className="h-8 text-xs px-3"
+                                    >
+                                      Cancel
+                                    </Button>
+                                    </div>
                                   </div>
+
+                                  {/* Comment Edit Analysis Warning */}
+                                  {commentAnalysisResult && commentAnalysisResult.isInappropriate && (
+                                    <div className="relative overflow-hidden">
+                                      <div className={`p-3 rounded-lg border-2 backdrop-blur-sm shadow-lg animate-fade-in
+                                        ${commentAnalysisResult.severity === 'high' 
+                                          ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' 
+                                          : commentAnalysisResult.severity === 'medium'
+                                            ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800'
+                                            : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'
+                                        }`}
+                                      >
+                                        {/* Warning Icon */}
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <div className={`p-1.5 rounded-full 
+                                            ${commentAnalysisResult.severity === 'high'
+                                              ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300'
+                                              : commentAnalysisResult.severity === 'medium'
+                                                ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300'
+                                                : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/40 dark:text-yellow-300'
+                                            }`}
+                                          >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                              />
+                                            </svg>
+                                          </div>
+                                          <h3 className={`text-xs sm:text-sm font-semibold
+                                            ${commentAnalysisResult.severity === 'high'
+                                              ? 'text-red-800 dark:text-red-200'
+                                              : commentAnalysisResult.severity === 'medium'
+                                                ? 'text-orange-800 dark:text-orange-200'
+                                                : 'text-yellow-800 dark:text-yellow-200'
+                                            }`}
+                                          >
+                                            {content.review.inappropriateWarning}
+                                          </h3>
+                                        </div>
+
+                                        {/* Found Words */}
+                                        {commentAnalysisResult.inappropriateWords.length > 0 && (
+                                          <div className="mb-2 p-2 rounded-lg bg-white/50 dark:bg-black/20 backdrop-blur-sm">
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {commentAnalysisResult.inappropriateWords.map((word, index) => (
+                                                <span key={index} 
+                                                  className={`px-2 py-0.5 rounded-full text-xs font-mono
+                                                    ${commentAnalysisResult.severity === 'high'
+                                                      ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                                                      : commentAnalysisResult.severity === 'medium'
+                                                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300'
+                                                        : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+                                                    }`}
+                                                >
+                                                  {word}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}           
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
                                 <p className="text-xs text-gray-700 dark:text-gray-300 break-words leading-relaxed">{comment.content}</p>

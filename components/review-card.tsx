@@ -777,7 +777,7 @@ export function ReviewCard({
                 </div>
               </div>
 
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 pr-10 sm:pr-12">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2 sm:mb-3">
                   <div className="flex items-center gap-2">
                     <Avatar className="w-7 h-7 sm:w-6 sm:h-6 ring-2 ring-purple-200 dark:ring-purple-800 flex-shrink-0">
@@ -802,10 +802,10 @@ export function ReviewCard({
                         e.stopPropagation()
                         handleTranslate()
                       }}
-                      className="h-8 sm:h-7 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 text-xs"
+                      className="h-6 sm:h-7 px-2 sm:px-2.5 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 text-[10px] sm:text-xs"
                       disabled={isTranslating}
                     >
-                      <Languages className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                      <Languages className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5" />
                       <span className="hidden sm:inline">
                         {isTranslating ? "Translating..." : isTranslated ? "Show Original" : "Translate"}
                       </span>
@@ -1012,17 +1012,17 @@ export function ReviewCard({
                           key={comment._id}
                           className="bg-gray-50 dark:bg-gray-900/50 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <Avatar className="w-5 h-5">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+                              <Avatar className="w-5 h-5 flex-shrink-0">
                                 <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white text-[10px]">
                                   {comment.userName[0]}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium text-xs text-purple-700 dark:text-purple-300">
+                              <span className="font-medium text-xs text-purple-700 dark:text-purple-300 truncate">
                                 {comment.userName}
                               </span>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
                                 {new Date(comment.createdAt).toLocaleDateString('en-US', {
                                   year: 'numeric',
                                   month: 'short',
@@ -1034,9 +1034,9 @@ export function ReviewCard({
                             </div>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                <Button variant="ghost" className="h-7 w-7 sm:h-8 sm:w-8 p-0 flex-shrink-0">
                                   <span className="sr-only">Open menu</span>
-                                  <MoreHorizontal className="h-4 w-4" />
+                                  <MoreHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
