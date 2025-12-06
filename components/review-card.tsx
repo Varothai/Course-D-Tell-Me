@@ -971,12 +971,13 @@ export function ReviewCard({
                   >
                     <div className="flex flex-col sm:flex-row gap-1.5 mb-1.5">
                       <Input
-                        placeholder="Write a comment..."
+                        placeholder={session ? "Write a comment..." : "Please sign in to comment"}
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         className="flex-1 bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm h-8"
+                        disabled={!session}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
+                          if (e.key === 'Enter' && !e.shiftKey && session) {
                             e.preventDefault();
                             handleAddComment();
                           }
@@ -985,9 +986,11 @@ export function ReviewCard({
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAddComment();
+                          if (session) {
+                            handleAddComment();
+                          }
                         }}
-                        className="bg-purple-600 hover:bg-purple-700 text-white h-8 text-xs px-4"
+                        className="bg-purple-600 hover:bg-purple-700 text-white h-8 text-xs px-4 disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={!newComment.trim() || !session}
                       >
                         Post

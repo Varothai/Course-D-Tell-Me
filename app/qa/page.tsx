@@ -791,7 +791,7 @@ export default function QAPage() {
                         <div className="space-y-2 mb-2">
                           <div className="flex flex-col sm:flex-row gap-1.5">
                             <Input
-                              placeholder="Write a comment..."
+                              placeholder={session ? "Write a comment..." : "Please sign in to comment"}
                               value={comments[qa._id] || ''}
                               onChange={(e) => {
                                 setComments(prev => ({
@@ -804,17 +804,22 @@ export default function QAPage() {
                                 }
                               }}
                               className="bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm flex-1 h-8"
+                              disabled={!session}
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
+                                if (e.key === 'Enter' && !e.shiftKey && session) {
                                   e.preventDefault()
                                   handleComment(qa._id)
                                 }
                               }}
                             />
                             <Button 
-                              onClick={() => handleComment(qa._id)}
-                              className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto h-8 text-xs px-4"
-                              disabled={!comments[qa._id]?.trim() || isAnalyzingComment}
+                              onClick={() => {
+                                if (session) {
+                                  handleComment(qa._id)
+                                }
+                              }}
+                              className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto h-8 text-xs px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={!comments[qa._id]?.trim() || isAnalyzingComment || !session}
                             >
                               {isAnalyzingComment ? (
                                 <div className="flex items-center gap-1.5">
