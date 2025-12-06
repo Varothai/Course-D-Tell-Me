@@ -7,6 +7,9 @@ import { NavBar } from "@/components/nav-bar"
 import { ReviewProvider } from "@/providers/review-provider"
 import { AuthProvider } from '@/components/providers/auth-provider'
 import { ReviewsProvider } from "@/providers/reviews-provider"
+import { EditModalProvider } from "@/contexts/edit-modal-context"
+import { NavigationProvider } from "@/contexts/navigation-context"
+import { NavigationProgress } from "@/components/navigation-progress"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -35,12 +38,17 @@ export default function RootLayout({
             <LanguageProvider>
               <ReviewProvider>
                 <ReviewsProvider>
-                  <div className="min-h-screen flex flex-col">
-                    <NavBar />
-                    <main className="flex-1 container mx-auto px-4 py-6">
-                      {children}
-                    </main>
-                  </div>
+                  <NavigationProvider>
+                    <EditModalProvider>
+                      <NavigationProgress />
+                      <div className="min-h-screen flex flex-col">
+                        <NavBar />
+                        <main className="flex-1 container mx-auto px-4 py-6">
+                          {children}
+                        </main>
+                      </div>
+                    </EditModalProvider>
+                  </NavigationProvider>
                 </ReviewsProvider>
               </ReviewProvider>
             </LanguageProvider>

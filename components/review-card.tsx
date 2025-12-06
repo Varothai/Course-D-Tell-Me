@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Star, ThumbsUp, ThumbsDown, ExternalLink, Languages, ChevronDown, ChevronUp, MessageSquare, MoreVertical, Edit, Trash, Loader2, Flag } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -23,6 +24,8 @@ import { MoreHorizontal } from "lucide-react"
 import { DeleteAlertDialog } from "@/components/delete-alert-dialog"
 import { ReviewForm } from './review-form'
 import { Modal } from "./modal"
+import { useEditModal } from "@/contexts/edit-modal-context"
+import { useNavigation } from "@/hooks/use-navigation"
 import {
   Dialog,
   DialogContent,
@@ -104,6 +107,16 @@ export function ReviewCard({
   const [commentToReport, setCommentToReport] = useState<string | null>(null)
 
   const canEdit = session?.user?.id === review.userId
+  const { setIsEditModalOpen } = useEditModal()
+  const { navigate } = useNavigation()
+
+  // Update edit modal context when showEditModal changes
+  useEffect(() => {
+    setIsEditModalOpen(showEditModal)
+    return () => {
+      setIsEditModalOpen(false)
+    }
+  }, [showEditModal, setIsEditModalOpen])
 
   useEffect(() => {
     const checkBookmarkStatus = async () => {
@@ -198,7 +211,7 @@ export function ReviewCard({
 
   const handleViewInCourse = (e: React.MouseEvent) => {
     e.stopPropagation()
-    router.push(`/course/${review.courseId}?reviewId=${review._id}`)
+    navigate(`/course/${review.courseId}?reviewId=${review._id}`)
   }
 
   const onLike = async () => {
@@ -845,7 +858,7 @@ export function ReviewCard({
                     className="h-9 sm:h-8 text-xs bg-white/50 dark:bg-gray-800/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full min-h-[36px]"
                     onClick={(e) => {
                       e.stopPropagation()
-                      router.push(`/course/${review.courseId}`)
+                      navigate(`/course/${review.courseId}`)
                     }}
                   >
                     <ExternalLink className="w-3.5 h-3.5 sm:w-3 sm:h-3 mr-1.5" />
@@ -918,7 +931,7 @@ export function ReviewCard({
                     className="h-8 text-xs bg-white/80 dark:bg-gray-800/80 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full flex-1 min-w-[100px] border-purple-200 dark:border-purple-800"
                     onClick={(e) => {
                       e.stopPropagation()
-                      router.push(`/course/${review.courseId}`)
+                      navigate(`/course/${review.courseId}`)
                     }}
                   >
                     <ExternalLink className="w-3.5 h-3.5 mr-1" />

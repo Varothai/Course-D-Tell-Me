@@ -31,6 +31,8 @@ import { useSession, signOut, signIn } from "next-auth/react"
 import { useAuth } from '@/contexts/auth-context'
 import { useState } from "react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { useEditModal } from "@/contexts/edit-modal-context"
+import { useNavigationContext } from "@/contexts/navigation-context"
 
 export function NavBar() {
   const pathname = usePathname()
@@ -39,6 +41,13 @@ export function NavBar() {
   const { data: session } = useSession()
   const { signInWithGoogle } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { isEditModalOpen } = useEditModal()
+  const { setNavigating } = useNavigationContext()
+  
+  // Hide nav bar when edit modal is open
+  if (isEditModalOpen) {
+    return null
+  }
   
   const routes = [
     {
@@ -77,6 +86,14 @@ export function NavBar() {
     return session?.user?.provider === 'google';
   };
 
+  const handleLinkClick = (href: string) => {
+    setIsMobileMenuOpen(false)
+    // Only set navigating if it's a different route
+    if (href !== pathname) {
+      setNavigating(true)
+    }
+  }
+
   const NavItems = () => (
     <>
       {routes.map((route) => {
@@ -85,7 +102,9 @@ export function NavBar() {
           <Link
             key={route.href}
             href={route.href}
-            onClick={() => setIsMobileMenuOpen(false)}
+            prefetch={true}
+            onClick={() => handleLinkClick(route.href)}
+            className="block"
           >
             <div
               className={cn(
@@ -122,6 +141,12 @@ export function NavBar() {
             </div>
             <Link 
               href="/homepage" 
+              prefetch={true}
+              onClick={() => {
+                if ("/homepage" !== pathname) {
+                  setNavigating(true)
+                }
+              }}
               className="flex items-center gap-2"
             >
               <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
@@ -233,7 +258,15 @@ export function NavBar() {
                   </>
                 ) : (
                   <>
-                    <Link href="/profile">
+                    <Link 
+                      href="/profile"
+                      prefetch={true}
+                      onClick={() => {
+                        if ("/profile" !== pathname) {
+                          setNavigating(true)
+                        }
+                      }}
+                    >
                       <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
                         <User className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
                         <div className="flex flex-col">
@@ -243,7 +276,15 @@ export function NavBar() {
                       </DropdownMenuItem>
                     </Link>
 
-                    <Link href="/bookmarks">
+                    <Link 
+                      href="/bookmarks"
+                      prefetch={true}
+                      onClick={() => {
+                        if ("/bookmarks" !== pathname) {
+                          setNavigating(true)
+                        }
+                      }}
+                    >
                       <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 mt-1 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
                         <Bookmark className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
                         <span className="font-medium">{content.bookmarks}</span>
@@ -251,7 +292,15 @@ export function NavBar() {
                     </Link>
 
                     {!isGoogleUser() && (
-                      <Link href="/history">
+                      <Link 
+                        href="/history"
+                        prefetch={true}
+                        onClick={() => {
+                          if ("/history" !== pathname) {
+                            setNavigating(true)
+                          }
+                        }}
+                      >
                         <DropdownMenuItem className="flex items-center gap-2 px-4 py-3 mt-1 rounded-lg hover:bg-gradient-to-r from-purple-50 to-pink-50 dark:hover:bg-gradient-to-r dark:from-purple-900/30 dark:to-pink-900/30 cursor-pointer transition-all duration-300 group">
                           <History className="w-4 h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform duration-300" />
                           <span className="font-medium">{content.history}</span>
