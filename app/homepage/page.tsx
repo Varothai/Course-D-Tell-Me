@@ -28,6 +28,7 @@ import type { Review } from "@/types/review"
 import Autosuggest from "react-autosuggest"
 import Papa from "papaparse"
 import { useSession } from "next-auth/react"
+import { useAuth } from "@/contexts/auth-context"
 
 interface ReviewWithUserInteraction extends Omit<Review, 'likes' | 'dislikes'> {
   likes: string[];
@@ -65,17 +66,37 @@ export default function Home() {
   const [suggestions, setSuggestions] = useState<Array<{ courseno: string; title_short_en: string }>>([])
   const [selectedCourse, setSelectedCourse] = useState<{ courseno: string; title_short_en: string } | null>(null)
   const { data: session } = useSession()
+  const { setShowAuthModal } = useAuth()
   const [reviews, setReviews] = useState<ReviewWithUserInteraction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const reviewsCache = useRef<ReviewWithUserInteraction[] | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const [isWriteReviewDialogOpen, setIsWriteReviewDialogOpen] = useState(false)
 
   // Fetch reviews when component mounts
   useEffect(() => {
     fetchReviews()
+    
+    // Listen for review hidden events to clear cache and refetch
+    const handleReviewHidden = (event: CustomEvent) => {
+      const { reviewId } = event.detail
+      // Remove the hidden review from local state immediately
+      setReviews(prevReviews => 
+        prevReviews.filter(review => 
+          (review.id !== reviewId) && (review._id !== reviewId)
+        )
+      )
+      // Clear cache and refetch to ensure consistency
+      reviewsCache.current = null
+      fetchReviews()
+    }
+    
+    window.addEventListener('reviewHidden', handleReviewHidden)
+    
     return () => {
       abortControllerRef.current?.abort()
+      window.removeEventListener('reviewHidden', handleReviewHidden)
     }
   }, []) // Remove session dependency from initial fetch
 
@@ -448,28 +469,36 @@ export default function Home() {
         {/* Write Review Button with Auth Check */}
         <div className="flex justify-end mb-6">
           {!isGoogleUser() && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 rounded-full px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                  {content.writeReview}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl w-full mx-2 sm:mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-lg sm:rounded-xl">
-                <ReviewForm
-                  onClose={() => {
-                    const closeButton = document.querySelector('[aria-label="Close"]') as HTMLButtonElement
-                    closeButton?.click()
-                  }}
-                  action={handleNewReview}
-                  onSubmitSuccess={() => {
-                    // Additional success handling if needed
-                    setTimeout(() => {
-                      // Any additional UI updates
-                    }, 3000)
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
+            <>
+              <Button 
+                onClick={() => {
+                  if (!session) {
+                    setShowAuthModal(true)
+                  } else {
+                    setIsWriteReviewDialogOpen(true)
+                  }
+                }}
+                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 rounded-full px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+              >
+                {content.writeReview}
+              </Button>
+              <Dialog open={isWriteReviewDialogOpen} onOpenChange={setIsWriteReviewDialogOpen}>
+                <DialogContent className="max-w-2xl w-full mx-2 sm:mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-lg sm:rounded-xl">
+                  <ReviewForm
+                    onClose={() => {
+                      setIsWriteReviewDialogOpen(false)
+                    }}
+                    action={handleNewReview}
+                    onSubmitSuccess={() => {
+                      // Additional success handling if needed
+                      setTimeout(() => {
+                        // Any additional UI updates
+                      }, 3000)
+                    }}
+                  />
+                </DialogContent>
+              </Dialog>
+            </>
           )}
         </div>
 
@@ -611,6 +640,14 @@ export default function Home() {
                   onClick={() => setSelectedElective('general')}
                 >
                   {content.generalElective}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={selectedElective === 'major' ? 'default' : 'outline'}
+                  className="rounded-full text-xs"
+                  onClick={() => setSelectedElective('major')}
+                >
+                  {content.majorElective}
                 </Button>
               </div>
             </div>

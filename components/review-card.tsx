@@ -90,12 +90,18 @@ export function ReviewCard({
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false)
   const [isReporting, setIsReporting] = useState(false)
   const [reportReason, setReportReason] = useState('')
+  const [reportError, setReportError] = useState<string | null>(null)
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editingCommentText, setEditingCommentText] = useState('')
   const [isDeletingComment, setIsDeletingComment] = useState(false)
   const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false)
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null)
   const [commentSortOrder, setCommentSortOrder] = useState<'newest' | 'oldest'>('newest')
+  const [isCommentReportDialogOpen, setIsCommentReportDialogOpen] = useState(false)
+  const [isReportingComment, setIsReportingComment] = useState(false)
+  const [commentReportReason, setCommentReportReason] = useState('')
+  const [commentReportError, setCommentReportError] = useState<string | null>(null)
+  const [commentToReport, setCommentToReport] = useState<string | null>(null)
 
   const canEdit = session?.user?.id === review.userId
 
@@ -370,8 +376,11 @@ export function ReviewCard({
       return
     }
 
+    // Clear any previous errors
+    setReportError(null)
+    setIsReporting(true)
+
     try {
-      setIsReporting(true)
       const response = await fetch('/api/reviews/report', {
         method: 'POST',
         headers: {
@@ -383,27 +392,68 @@ export function ReviewCard({
         }),
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to report review')
+      // Parse JSON response
+      let data
+      try {
+        data = await response.json()
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError)
+        const errorMessage = 'Failed to process server response. Please try again.'
+        setReportError(errorMessage)
+        toast({
+          title: "Report Failed",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 5000
+        })
+        return
       }
 
+      if (!response.ok) {
+        // Show the error message from the API - don't close dialog
+        const errorMessage = data?.error || 'Failed to report review'
+        console.log('Report error:', errorMessage, 'Status:', response.status)
+        
+        // Set error state to show in dialog
+        setReportError(errorMessage)
+        
+        // Also show toast notification
+        toast({
+          title: "Report Failed",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 5000
+        })
+        // Don't close the dialog on error so user can see the message
+        return
+      }
+
+      // Success - close dialog and show success message
       setIsReportDialogOpen(false)
+      setReportReason('') // Reset the reason
+      setReportError(null) // Clear any errors
+      
       toast({
-        title: "Success",
-        description: "Review reported successfully"
+        title: "Report Submitted",
+        description: "Thank you for your report. We'll review it shortly.",
+        duration: 4000
       })
       
-      // If review is now hidden, you might want to refresh the page or update the UI
-      if (data.review.isHidden) {
+      // If review is now hidden, trigger a custom event to notify parent components
+      if (data.review?.isHidden) {
+        // Dispatch a custom event to notify that a review was hidden
+        window.dispatchEvent(new CustomEvent('reviewHidden', { detail: { reviewId: review._id } }))
         router.refresh()
       }
     } catch (error) {
+      console.error('Error reporting review:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to report review. Please try again.'
+      setReportError(errorMessage)
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to report review',
-        variant: "destructive"
+        description: errorMessage,
+        variant: "destructive",
+        duration: 5000
       })
     } finally {
       setIsReporting(false)
@@ -493,6 +543,97 @@ export function ReviewCard({
       });
     } finally {
       setIsDeletingComment(false);
+    }
+  };
+
+  const handleReportComment = async () => {
+    if (!commentReportReason || !commentToReport) {
+      toast({
+        title: "Error",
+        description: "Please select a reason for reporting",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setCommentReportError(null)
+    setIsReportingComment(true)
+
+    try {
+      const response = await fetch('/api/comments/report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          commentId: commentToReport,
+          commentType: 'review',
+          reason: commentReportReason,
+          reviewId: review._id
+        }),
+      })
+
+      let data
+      try {
+        data = await response.json()
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError)
+        const errorMessage = 'Failed to process server response. Please try again.'
+        setCommentReportError(errorMessage)
+        toast({
+          title: "Report Failed",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 5000
+        })
+        return
+      }
+
+      if (!response.ok) {
+        const errorMessage = data?.error || 'Failed to report comment'
+        setCommentReportError(errorMessage)
+        toast({
+          title: "Report Failed",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 5000
+        })
+        return
+      }
+
+      // Success - refresh comments to get updated state
+      const reviewResponse = await fetch(`/api/reviews/${review._id}`)
+      if (reviewResponse.ok) {
+        const reviewData = await reviewResponse.json()
+        if (reviewData.review?.comments) {
+          setComments(reviewData.review.comments)
+        }
+      }
+
+      toast({
+        title: "Report Submitted",
+        description: data.isHidden 
+          ? "Thank you for your report. The comment has been hidden."
+          : "Thank you for your report. We'll review it shortly.",
+        duration: 5000
+      })
+
+      setIsCommentReportDialogOpen(false)
+      setCommentReportReason('')
+      setCommentToReport(null)
+
+    } catch (error) {
+      console.error('Error reporting comment:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to report comment'
+      setCommentReportError(errorMessage)
+      toast({
+        title: "Report Failed",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 5000
+      })
+    } finally {
+      setIsReportingComment(false)
     }
   };
 
@@ -622,7 +763,7 @@ export function ReviewCard({
                   <div className="font-mono text-base sm:text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     {review.courseId}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2 break-words">{review.courseName}</div>
+                  <div className="text-xs font-semibold mt-0.5 line-clamp-2 break-words">{review.courseName}</div>
                   <div className="flex mt-1.5">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star
@@ -860,11 +1001,13 @@ export function ReviewCard({
                     </div>
 
                     <div className="space-y-1.5">
-                      {[...comments].sort((a, b) => {
-                        const dateA = new Date(a.createdAt).getTime()
-                        const dateB = new Date(b.createdAt).getTime()
-                        return commentSortOrder === 'newest' ? dateB - dateA : dateA - dateB
-                      }).map((comment) => (
+                      {[...comments]
+                        .filter((comment: any) => !comment.isHidden)
+                        .sort((a, b) => {
+                          const dateA = new Date(a.createdAt).getTime()
+                          const dateB = new Date(b.createdAt).getTime()
+                          return commentSortOrder === 'newest' ? dateB - dateA : dateA - dateB
+                        }).map((comment) => (
                         <div
                           key={comment._id}
                           className="bg-gray-50 dark:bg-gray-900/50 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
@@ -889,37 +1032,50 @@ export function ReviewCard({
                                 })}
                               </span>
                             </div>
-                            {session?.user?.name === comment.userName && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem 
-                                    onClick={() => {
-                                      setEditingCommentId(comment._id);
-                                      setEditingCommentText(comment.comment);
-                                    }}
-                                  >
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {session?.user?.name === comment.userName && (
+                                  <>
+                                    <DropdownMenuItem 
+                                      onClick={() => {
+                                        setEditingCommentId(comment._id);
+                                        setEditingCommentText(comment.comment);
+                                      }}
+                                    >
+                                      <Edit className="w-4 h-4 mr-2" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-red-600 focus:text-red-700"
+                                      onClick={() => {
+                                        setCommentToDelete(comment._id);
+                                        setShowDeleteCommentDialog(true);
+                                      }}
+                                    >
+                                      <Trash className="w-4 h-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                {session?.user?.name !== comment.userName && (
                                   <DropdownMenuItem
-                                    className="text-red-600 focus:text-red-700"
                                     onClick={() => {
-                                      setCommentToDelete(comment._id);
-                                      setShowDeleteCommentDialog(true);
+                                      setCommentToReport(comment._id);
+                                      setIsCommentReportDialogOpen(true);
                                     }}
                                   >
-                                    <Trash className="w-4 h-4 mr-2" />
-                                    Delete
+                                    <Flag className="w-4 h-4 mr-2" />
+                                    Report
                                   </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                           {editingCommentId === comment._id ? (
                             <div className="flex flex-col sm:flex-row gap-1.5 mt-1.5">
@@ -1003,39 +1159,237 @@ export function ReviewCard({
 
       <ReviewDialog review={review} open={isOpen} action={setIsOpen} />
 
-      <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Report Review</DialogTitle>
-            <DialogDescription>
-              Please select a reason for reporting this review. Multiple reports may result in the review being hidden.
-            </DialogDescription>
+      <Dialog open={isReportDialogOpen} onOpenChange={(open) => {
+        setIsReportDialogOpen(open)
+        if (!open) {
+          setReportReason('') // Reset when closing
+          setReportError(null) // Clear errors when closing
+        }
+      }}>
+        <DialogContent className="max-w-[90vw] sm:max-w-[500px] mx-4 sm:mx-auto p-4 sm:p-6 gap-4 sm:gap-6">
+          <DialogHeader className="space-y-2 sm:space-y-3 px-0">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20 flex-shrink-0">
+                <Flag className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-xl sm:text-2xl font-bold leading-tight">Report Review</DialogTitle>
+                <DialogDescription className="mt-1.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  Help us maintain a safe and respectful community
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <Select onValueChange={setReportReason} value={reportReason}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a reason" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="inappropriate">Inappropriate Content</SelectItem>
-                <SelectItem value="spam">Spam</SelectItem>
-                <SelectItem value="harassment">Harassment</SelectItem>
-                <SelectItem value="misinformation">Misinformation</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex justify-end space-x-2">
+          
+          <div className="space-y-4 sm:space-y-5 px-0">
+            <div className="space-y-2 sm:space-y-3">
+              <label className="text-sm sm:text-base font-medium text-foreground block">
+                Why are you reporting this review?
+              </label>
+              <Select onValueChange={setReportReason} value={reportReason}>
+                <SelectTrigger className="h-10 sm:h-11 w-full border-2 focus:ring-2 focus:ring-red-500 text-sm sm:text-base">
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[60vh] sm:max-h-[50vh] overflow-y-auto">
+                  <SelectItem value="inappropriate" className="py-2.5 sm:py-3 cursor-pointer">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-sm sm:text-base">Inappropriate Content</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Offensive, explicit, or inappropriate material</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="spam" className="py-2.5 sm:py-3 cursor-pointer">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-sm sm:text-base">Spam</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Repetitive, promotional, or irrelevant content</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="harassment" className="py-2.5 sm:py-3 cursor-pointer">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-sm sm:text-base">Harassment</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Bullying, threats, or targeted attacks</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="misinformation" className="py-2.5 sm:py-3 cursor-pointer">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-sm sm:text-base">Misinformation</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">False or misleading information</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="other" className="py-2.5 sm:py-3 cursor-pointer">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-sm sm:text-base">Other</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Another reason not listed</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {reportError && (
+              <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800 p-3 sm:p-4 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-start gap-2.5">
+                  <Flag className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs sm:text-sm text-red-800 dark:text-red-300 leading-relaxed font-medium">
+                    {reportError}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 sm:p-4">
+              <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-300 leading-relaxed">
+                <strong>Note:</strong> Reviews with 10 or more reports will be automatically hidden. Your report helps keep our community safe.
+              </p>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-2 sm:pt-4">
               <Button
                 variant="outline"
-                onClick={() => setIsReportDialogOpen(false)}
+                onClick={() => {
+                  setIsReportDialogOpen(false)
+                  setReportReason('')
+                }}
+                disabled={isReporting}
+                className="w-full sm:w-auto sm:min-w-[100px] h-10 sm:h-9"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleReport}
                 disabled={isReporting || !reportReason}
+                className="w-full sm:w-auto sm:min-w-[140px] bg-red-600 hover:bg-red-700 text-white h-10 sm:h-9"
               >
-                {isReporting ? 'Reporting...' : 'Submit Report'}
+                {isReporting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Reporting...
+                  </>
+                ) : (
+                  <>
+                    <Flag className="mr-2 h-4 w-4" />
+                    Submit Report
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Comment Report Dialog */}
+      <Dialog open={isCommentReportDialogOpen} onOpenChange={(open) => {
+        setIsCommentReportDialogOpen(open)
+        if (!open) {
+          setCommentReportReason('')
+          setCommentReportError(null)
+          setCommentToReport(null)
+        }
+      }}>
+        <DialogContent className="max-w-[90vw] sm:max-w-[500px] mx-4 sm:mx-auto p-4 sm:p-6 gap-4 sm:gap-6">
+          <DialogHeader className="space-y-2 sm:space-y-3 px-0">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20 flex-shrink-0">
+                <Flag className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-xl sm:text-2xl font-bold leading-tight">Report Comment</DialogTitle>
+                <DialogDescription className="mt-1.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  Help us maintain a safe and respectful community
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <div className="space-y-4 sm:space-y-5 px-0">
+            <div className="space-y-2 sm:space-y-3">
+              <label className="text-sm sm:text-base font-medium text-foreground block">
+                Why are you reporting this comment?
+              </label>
+              <Select onValueChange={setCommentReportReason} value={commentReportReason}>
+                <SelectTrigger className="h-10 sm:h-11 w-full border-2 focus:ring-2 focus:ring-red-500 text-sm sm:text-base">
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[60vh] sm:max-h-[50vh] overflow-y-auto">
+                  <SelectItem value="inappropriate" className="py-2.5 sm:py-3 cursor-pointer">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-sm sm:text-base">Inappropriate Content</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Offensive, explicit, or inappropriate material</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="spam" className="py-2.5 sm:py-3 cursor-pointer">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-sm sm:text-base">Spam</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Repetitive, promotional, or irrelevant content</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="harassment" className="py-2.5 sm:py-3 cursor-pointer">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-sm sm:text-base">Harassment</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Bullying, threats, or targeted attacks</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="misinformation" className="py-2.5 sm:py-3 cursor-pointer">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-sm sm:text-base">Misinformation</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">False or misleading information</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="other" className="py-2.5 sm:py-3 cursor-pointer">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-sm sm:text-base">Other</span>
+                      <span className="text-xs sm:text-sm text-muted-foreground">Another reason not listed</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {commentReportError && (
+              <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800 p-3 sm:p-4 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-start gap-2.5">
+                  <Flag className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs sm:text-sm text-red-800 dark:text-red-300 leading-relaxed font-medium">
+                    {commentReportError}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 sm:p-4">
+              <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-300 leading-relaxed">
+                <strong>Note:</strong> Comments with 10 or more reports will be automatically hidden. Your report helps keep our community safe.
+              </p>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-2 sm:pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsCommentReportDialogOpen(false)
+                  setCommentReportReason('')
+                  setCommentToReport(null)
+                }}
+                disabled={isReportingComment}
+                className="w-full sm:w-auto sm:min-w-[100px] h-10 sm:h-9"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleReportComment}
+                disabled={isReportingComment || !commentReportReason}
+                className="w-full sm:w-auto sm:min-w-[140px] bg-red-600 hover:bg-red-700 text-white h-10 sm:h-9"
+              >
+                {isReportingComment ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Reporting...
+                  </>
+                ) : (
+                  <>
+                    <Flag className="mr-2 h-4 w-4" />
+                    Submit Report
+                  </>
+                )}
               </Button>
             </div>
           </div>

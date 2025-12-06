@@ -390,6 +390,14 @@ export default function FacultyReviewsPage() {
               >
                 {content.generalElective}
               </Button>
+              <Button
+                size="sm"
+                variant={selectedElective === 'major' ? 'default' : 'outline'}
+                className="rounded-full text-xs"
+                onClick={() => setSelectedElective('major')}
+              >
+                {content.majorElective}
+              </Button>
             </div>
           </div>
         </div>

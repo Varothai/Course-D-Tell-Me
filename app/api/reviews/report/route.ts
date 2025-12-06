@@ -9,7 +9,7 @@ import mongoose from "mongoose"
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.name) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -36,10 +36,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Review not found" }, { status: 404 })
     }
 
+    // Use email as reporterId for consistency with likes/dislikes
+    const reporterId = session.user.email
+
     // Check if user already reported this review
     const existingReport = await Report.findOne({
       reviewId: reviewObjectId,
-      reporterId: session.user.name
+      reporterId: reporterId
     })
 
     if (existingReport) {
@@ -49,7 +52,7 @@ export async function POST(req: Request) {
     // Create report
     const report = await Report.create({
       reviewId: reviewObjectId,
-      reporterId: session.user.name,
+      reporterId: reporterId,
       reason: reason
     })
 

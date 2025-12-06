@@ -42,6 +42,8 @@ export async function POST(req: Request) {
       comments: [],
       isBookmarked: false,
       isAnonymous: review.isAnonymous || false,
+      reportCount: 0,
+      isHidden: false,
       timestamp: new Date()
     }
     console.log("Saving review to database:", newReview)
@@ -67,7 +69,7 @@ export async function GET() {
   try {
     await connectMongoDB()
     
-    const reviews = await Review.find({})
+    const reviews = await Review.find({ isHidden: { $ne: true } })
       .sort({ timestamp: -1 })
       .lean()
       .exec()

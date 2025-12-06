@@ -40,10 +40,14 @@ const reviewSchema = new mongoose.Schema({
     _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
     comment: { type: String, required: true },
     userName: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    reportCount: { type: Number, default: 0 },
+    isHidden: { type: Boolean, default: false }
   }],
   isBookmarked: { type: Boolean, default: false },
   isAnonymous: { type: Boolean, default: false },
+  reportCount: { type: Number, default: 0 },
+  isHidden: { type: Boolean, default: false },
   timestamp: { type: Date, default: Date.now }
 }, { 
   timestamps: false,
@@ -94,6 +98,8 @@ export interface IReview {
   }>;
   isBookmarked: boolean;
   isAnonymous: boolean;
+  reportCount?: number;
+  isHidden?: boolean;
   timestamp: Date;
 }
 

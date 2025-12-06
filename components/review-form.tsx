@@ -108,12 +108,8 @@ export function ReviewForm({
   } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (!session) {
-      setShowAuthModal(true)
-      onClose?.()
-    }
-  }, [session, setShowAuthModal, onClose])
+  // Note: Auth check is now handled at the button level, so this effect is no longer needed
+  // The dialog will only open if the user is authenticated
 
   if (!session) {
     return null
@@ -554,6 +550,21 @@ export function ReviewForm({
                 }))}
               >
                 {content.generalElective}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className={`flex-1 h-10 text-sm sm:text-base ${
+                  formData.electiveType === "major" 
+                    ? "bg-primary text-primary-foreground" 
+                    : ""
+                }`}
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  electiveType: prev.electiveType === "major" ? "none" : "major"
+                }))}
+              >
+                {content.majorElective}
               </Button>
             </div>
           </div>

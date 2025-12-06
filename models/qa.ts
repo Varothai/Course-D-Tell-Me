@@ -27,6 +27,14 @@ const commentSchema = new mongoose.Schema({
       hour12: true
     }).toUpperCase(),
     immutable: true
+  },
+  reportCount: {
+    type: Number,
+    default: 0
+  },
+  isHidden: {
+    type: Boolean,
+    default: false
   }
 })
 

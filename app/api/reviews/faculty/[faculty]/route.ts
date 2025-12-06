@@ -11,7 +11,10 @@ export async function GET(
     const { faculty } = params;
     console.log("Fetching reviews for faculty:", faculty);
     
-    const reviews = await Review.find({ faculty }).sort({ createdAt: -1 });
+    const reviews = await Review.find({ 
+      faculty,
+      isHidden: { $ne: true }
+    }).sort({ createdAt: -1 });
     console.log(`Found ${reviews.length} reviews for faculty ${faculty}`);
     
     return NextResponse.json({ 

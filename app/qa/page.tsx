@@ -24,6 +24,14 @@ const DeleteAlertDialog = dynamic(
   { loading: () => <div className="p-4 text-sm text-muted-foreground text-center">Preparing...</div> }
 )
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Flag, Loader2 } from "lucide-react"
 
 interface Comment {
   _id?: string
@@ -78,6 +86,11 @@ export default function QAPage() {
   const [isDeletingComment, setIsDeletingComment] = useState(false)
   const [showDeleteCommentDialog, setShowDeleteCommentDialog] = useState(false)
   const [commentToDelete, setCommentToDelete] = useState<{qaId: string, commentId: string} | null>(null)
+  const [isCommentReportDialogOpen, setIsCommentReportDialogOpen] = useState(false)
+  const [isReportingComment, setIsReportingComment] = useState(false)
+  const [commentReportReason, setCommentReportReason] = useState('')
+  const [commentReportError, setCommentReportError] = useState<string | null>(null)
+  const [commentToReport, setCommentToReport] = useState<{qaId: string, commentId: string} | null>(null)
   const qaCache = useRef<Record<string, QA[]>>({})
   const abortControllerRef = useRef<AbortController | null>(null)
   
@@ -457,6 +470,96 @@ export default function QAPage() {
     }
   };
 
+  const handleReportComment = async () => {
+    if (!commentReportReason || !commentToReport) {
+      toast({
+        title: "Error",
+        description: "Please select a reason for reporting",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setCommentReportError(null)
+    setIsReportingComment(true)
+
+    try {
+      const response = await fetch(`/api/qa/${commentToReport.qaId}/comment/${commentToReport.commentId}/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: commentReportReason
+        }),
+      })
+
+      let data
+      try {
+        data = await response.json()
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError)
+        const errorMessage = 'Failed to process server response. Please try again.'
+        setCommentReportError(errorMessage)
+        toast({
+          title: "Report Failed",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 5000
+        })
+        return
+      }
+
+      if (!response.ok) {
+        const errorMessage = data?.error || 'Failed to report comment'
+        setCommentReportError(errorMessage)
+        toast({
+          title: "Report Failed",
+          description: errorMessage,
+          variant: "destructive",
+          duration: 5000
+        })
+        return
+      }
+
+      // Success - refresh the QA to get updated comment state
+      const qaResponse = await fetch(`/api/qa/${commentToReport.qaId}`)
+      if (qaResponse.ok) {
+        const qaData = await qaResponse.json()
+        if (qaData.qa) {
+          setQAs(prevQAs => prevQAs.map(qa => 
+            qa._id === commentToReport.qaId ? qaData.qa : qa
+          ))
+        }
+      }
+
+      toast({
+        title: "Report Submitted",
+        description: data.isHidden 
+          ? "Thank you for your report. The comment has been hidden."
+          : "Thank you for your report. We'll review it shortly.",
+        duration: 5000
+      })
+
+      setIsCommentReportDialogOpen(false)
+      setCommentReportReason('')
+      setCommentToReport(null)
+
+    } catch (error) {
+      console.error('Error reporting comment:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to report comment'
+      setCommentReportError(errorMessage)
+      toast({
+        title: "Report Failed",
+        description: errorMessage,
+        variant: "destructive",
+        duration: 5000
+      })
+    } finally {
+      setIsReportingComment(false)
+    }
+  };
+
   return (
     <div className="min-h-screen relative bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/50 dark:from-slate-950 dark:via-indigo-950/50 dark:to-purple-950/30 overflow-hidden">
       {/* Animated background elements */}
@@ -648,6 +751,32 @@ export default function QAPage() {
                     
                     {expandedComments[qa._id] && (
                       <>
+                        {/* Add Comment Form */}
+                        <div className="flex flex-col sm:flex-row gap-1.5 mb-2">
+                          <Input
+                            placeholder="Write a comment..."
+                            value={comments[qa._id] || ''}
+                            onChange={(e) => setComments(prev => ({
+                              ...prev,
+                              [qa._id]: e.target.value
+                            }))}
+                            className="bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm flex-1 h-8"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                handleComment(qa._id)
+                              }
+                            }}
+                          />
+                          <Button 
+                            onClick={() => handleComment(qa._id)}
+                            className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto h-8 text-xs px-4"
+                            disabled={!comments[qa._id]?.trim()}
+                          >
+                            Post
+                          </Button>
+                        </div>
+
                         {/* Comment Sort Control */}
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs text-muted-foreground">Sort by:</span>
@@ -668,12 +797,14 @@ export default function QAPage() {
                         </div>
                         {/* Existing Comments */}
                         <div className="space-y-2 mb-2">
-                          {[...qa.comments].sort((a, b) => {
-                            const sortOrder = commentSortOrder[qa._id] || 'newest'
-                            const dateA = new Date(a.timestamp).getTime()
-                            const dateB = new Date(b.timestamp).getTime()
-                            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
-                          }).map((comment) => (
+                          {[...qa.comments]
+                            .filter((comment: any) => !comment.isHidden)
+                            .sort((a, b) => {
+                              const sortOrder = commentSortOrder[qa._id] || 'newest'
+                              const dateA = new Date(a.timestamp).getTime()
+                              const dateB = new Date(b.timestamp).getTime()
+                              return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
+                            }).map((comment) => (
                             <div 
                               key={comment._id} 
                               className="bg-gray-50 dark:bg-gray-900/50 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-900/70 transition-colors"
@@ -715,40 +846,54 @@ export default function QAPage() {
                                   <span className="text-xs text-muted-foreground sm:hidden">
                                     {comment.timestamp}
                                   </span>
-                                {session?.user?.email === comment.userEmail && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-9 w-9 sm:h-8 sm:w-8 p-0">
+                                      <Button variant="ghost" className="h-9 w-9 sm:h-8 sm:w-8 p-0">
                                         <span className="sr-only">Open menu</span>
                                         <MoreHorizontal className="h-4 w-4" />
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuItem 
-                                        onClick={() => {
+                                      {session?.user?.email === comment.userEmail && (
+                                        <>
+                                          <DropdownMenuItem 
+                                            onClick={() => {
+                                              const commentId = comment._id?.toString() || comment._id || '';
+                                              setEditingCommentId(commentId);
+                                              setEditingCommentText(comment.content);
+                                            }}
+                                          >
+                                            <Edit className="w-4 h-4 mr-2" />
+                                            Edit
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            className="text-red-600 focus:text-red-700"
+                                            onClick={() => {
+                                              const commentId = comment._id?.toString() || comment._id || '';
+                                              setCommentToDelete({ qaId: qa._id, commentId });
+                                              setShowDeleteCommentDialog(true);
+                                            }}
+                                          >
+                                            <Trash className="w-4 h-4 mr-2" />
+                                            Delete
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
+                                      {session?.user?.email !== comment.userEmail && (
+                                        <DropdownMenuItem
+                                          onClick={() => {
                                             const commentId = comment._id?.toString() || comment._id || '';
-                                            setEditingCommentId(commentId);
-                                          setEditingCommentText(comment.content);
-                                        }}
-                                      >
-                                        <Edit className="w-4 h-4 mr-2" />
-                                        Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        className="text-red-600 focus:text-red-700"
-                                        onClick={() => {
-                                            const commentId = comment._id?.toString() || comment._id || '';
-                                            setCommentToDelete({ qaId: qa._id, commentId });
-                                          setShowDeleteCommentDialog(true);
-                                        }}
-                                      >
-                                        <Trash className="w-4 h-4 mr-2" />
-                                        Delete
-                                      </DropdownMenuItem>
+                                            setCommentToReport({ qaId: qa._id, commentId });
+                                            setIsCommentReportDialogOpen(true);
+                                          }}
+                                        >
+                                          <Flag className="w-4 h-4 mr-2" />
+                                          Report
+                                        </DropdownMenuItem>
+                                      )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
-                                )}
-                              </div>
+                                </div>
                               </div>
                               {editingCommentId && comment._id && String(editingCommentId) === String(comment._id) ? (
                                 <div className="flex flex-col sm:flex-row gap-1.5 mt-1.5">
@@ -795,32 +940,6 @@ export default function QAPage() {
                             </div>
                           ))}
                         </div>
-
-                        {/* Add Comment Form */}
-                        <div className="flex flex-col sm:flex-row gap-1.5 mt-2">
-                          <Input
-                            placeholder="Write a comment..."
-                            value={comments[qa._id] || ''}
-                            onChange={(e) => setComments(prev => ({
-                              ...prev,
-                              [qa._id]: e.target.value
-                            }))}
-                            className="bg-white dark:bg-gray-900 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-sm flex-1 h-8"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault()
-                                handleComment(qa._id)
-                              }
-                            }}
-                          />
-                          <Button 
-                            onClick={() => handleComment(qa._id)}
-                            className="bg-purple-600 hover:bg-purple-700 text-white w-full sm:w-auto h-8 text-xs px-4"
-                            disabled={!comments[qa._id]?.trim()}
-                          >
-                            Post
-                          </Button>
-                        </div>
                       </>
                     )}
                   </div>
@@ -839,6 +958,126 @@ export default function QAPage() {
           title="Delete Comment"
           description="Are you sure you want to delete this comment? This action cannot be undone."
         />
+
+        {/* Comment Report Dialog */}
+        <Dialog open={isCommentReportDialogOpen} onOpenChange={(open) => {
+          setIsCommentReportDialogOpen(open)
+          if (!open) {
+            setCommentReportReason('')
+            setCommentReportError(null)
+            setCommentToReport(null)
+          }
+        }}>
+          <DialogContent className="max-w-[90vw] sm:max-w-[500px] mx-4 sm:mx-auto p-4 sm:p-6 gap-4 sm:gap-6">
+            <DialogHeader className="space-y-2 sm:space-y-3 px-0">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20 flex-shrink-0">
+                  <Flag className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <DialogTitle className="text-xl sm:text-2xl font-bold leading-tight">Report Comment</DialogTitle>
+                  <DialogDescription className="mt-1.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                    Help us maintain a safe and respectful community
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+            
+            <div className="space-y-4 sm:space-y-5 px-0">
+              <div className="space-y-2 sm:space-y-3">
+                <label className="text-sm sm:text-base font-medium text-foreground block">
+                  Why are you reporting this comment?
+                </label>
+                <Select onValueChange={setCommentReportReason} value={commentReportReason}>
+                  <SelectTrigger className="h-10 sm:h-11 w-full border-2 focus:ring-2 focus:ring-red-500 text-sm sm:text-base">
+                    <SelectValue placeholder="Select a reason" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[60vh] sm:max-h-[50vh] overflow-y-auto">
+                    <SelectItem value="inappropriate" className="py-2.5 sm:py-3 cursor-pointer">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-sm sm:text-base">Inappropriate Content</span>
+                        <span className="text-xs sm:text-sm text-muted-foreground">Offensive, explicit, or inappropriate material</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="spam" className="py-2.5 sm:py-3 cursor-pointer">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-sm sm:text-base">Spam</span>
+                        <span className="text-xs sm:text-sm text-muted-foreground">Repetitive, promotional, or irrelevant content</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="harassment" className="py-2.5 sm:py-3 cursor-pointer">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-sm sm:text-base">Harassment</span>
+                        <span className="text-xs sm:text-sm text-muted-foreground">Bullying, threats, or targeted attacks</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="misinformation" className="py-2.5 sm:py-3 cursor-pointer">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-sm sm:text-base">Misinformation</span>
+                        <span className="text-xs sm:text-sm text-muted-foreground">False or misleading information</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="other" className="py-2.5 sm:py-3 cursor-pointer">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-sm sm:text-base">Other</span>
+                        <span className="text-xs sm:text-sm text-muted-foreground">Another reason not listed</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {commentReportError && (
+                <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800 p-3 sm:p-4 animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-start gap-2.5">
+                    <Flag className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs sm:text-sm text-red-800 dark:text-red-300 leading-relaxed font-medium">
+                      {commentReportError}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 sm:p-4">
+                <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-300 leading-relaxed">
+                  <strong>Note:</strong> Comments with 10 or more reports will be automatically hidden. Your report helps keep our community safe.
+                </p>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-2 sm:pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsCommentReportDialogOpen(false)
+                    setCommentReportReason('')
+                    setCommentToReport(null)
+                  }}
+                  disabled={isReportingComment}
+                  className="w-full sm:w-auto sm:min-w-[100px] h-10 sm:h-9"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleReportComment}
+                  disabled={isReportingComment || !commentReportReason}
+                  className="w-full sm:w-auto sm:min-w-[140px] bg-red-600 hover:bg-red-700 text-white h-10 sm:h-9"
+                >
+                  {isReportingComment ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Reporting...
+                    </>
+                  ) : (
+                    <>
+                      <Flag className="mr-2 h-4 w-4" />
+                      Submit Report
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

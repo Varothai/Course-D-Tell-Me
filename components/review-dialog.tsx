@@ -90,7 +90,9 @@ export function ReviewDialog({ review, open, action }: ReviewDialogProps) {
               }[review.programType] },
               { label: 'Sec', value: review.section },
               { label: content.electiveTypes, value: review.electiveType && review.electiveType !== 'none' && 
-                (review.electiveType === 'free' ? content.freeElective : content.generalElective) }
+                (review.electiveType === 'free' ? content.freeElective : 
+                 review.electiveType === 'general' ? content.generalElective :
+                 review.electiveType === 'major' ? content.majorElective : null) }
             ].filter(item => item.value).map((item, index) => (
               <div key={index} className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-3 sm:p-4">
                 <label className="text-xs sm:text-sm text-purple-600 dark:text-purple-300 block mb-1">
