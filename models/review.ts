@@ -36,6 +36,13 @@ const reviewSchema = new mongoose.Schema({
   customMajor: { type: String },
   likes: { type: Number, default: 0 },
   dislikes: { type: Number, default: 0 },
+  reactions: {
+    thumbsUp: { type: [String], default: [] }, // Array of user IDs
+    heart: { type: [String], default: [] },
+    laugh: { type: [String], default: [] },
+    surprised: { type: [String], default: [] },
+    sad: { type: [String], default: [] }
+  },
   comments: [{
     _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
     comment: { type: String, required: true },
@@ -90,6 +97,13 @@ export interface IReview {
   customMajor?: string;
   likes: number;
   dislikes: number;
+  reactions?: {
+    thumbsUp: string[];
+    heart: string[];
+    laugh: string[];
+    surprised: string[];
+    sad: string[];
+  };
   comments: Array<{
     _id: string;
     comment: string;

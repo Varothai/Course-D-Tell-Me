@@ -45,6 +45,14 @@ export interface Review {
   dislikes: number
   hasLiked?: boolean
   hasDisliked?: boolean
+  reactions?: {
+    thumbsUp: string[];
+    heart: string[];
+    laugh: string[];
+    surprised: string[];
+    sad: string[];
+  };
+  userReaction?: 'thumbsUp' | 'heart' | 'laugh' | 'surprised' | 'sad' | 'none';
   isBookmarked?: boolean
   comments: {
     _id: string;
@@ -129,6 +137,13 @@ export interface LocaleContent {
   likes: string
   dislikes: string
   comments: string
+  sortBy: {
+    newest: string
+    oldest: string
+    highestRated: string
+    mostReactions: string
+    mostCommented: string
+  }
 }
 
 export interface MajorSelection {

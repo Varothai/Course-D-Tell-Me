@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Star, ThumbsUp, ThumbsDown, ExternalLink, Languages, ChevronDown, ChevronUp, MessageSquare, MoreVertical, Edit, Trash, Loader2, Flag } from "lucide-react"
+import { Star, ThumbsUp, ThumbsDown, ExternalLink, Languages, ChevronDown, ChevronUp, MessageSquare, MoreVertical, Edit, Trash, Loader2, Flag, Smile } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -105,6 +105,15 @@ export function ReviewCard({
   const [commentReportReason, setCommentReportReason] = useState('')
   const [commentReportError, setCommentReportError] = useState<string | null>(null)
   const [commentToReport, setCommentToReport] = useState<string | null>(null)
+  const [userReaction, setUserReaction] = useState<'thumbsUp' | 'heart' | 'laugh' | 'surprised' | 'sad' | 'none'>('none')
+  const [reactions, setReactions] = useState(review.reactions || {
+    thumbsUp: [],
+    heart: [],
+    laugh: [],
+    surprised: [],
+    sad: []
+  })
+  const [isReacting, setIsReacting] = useState(false)
 
   const canEdit = session?.user?.id === review.userId
   const { setIsEditModalOpen } = useEditModal()
@@ -117,6 +126,33 @@ export function ReviewCard({
       setIsEditModalOpen(false)
     }
   }, [showEditModal, setIsEditModalOpen])
+
+  useEffect(() => {
+    // Initialize user reaction
+    if (session?.user?.email && review.reactions) {
+      const userEmail = session.user.email
+      if (review.reactions.thumbsUp?.includes(userEmail)) {
+        setUserReaction('thumbsUp')
+      } else if (review.reactions.heart?.includes(userEmail)) {
+        setUserReaction('heart')
+      } else if (review.reactions.laugh?.includes(userEmail)) {
+        setUserReaction('laugh')
+      } else if (review.reactions.surprised?.includes(userEmail)) {
+        setUserReaction('surprised')
+      } else if (review.reactions.sad?.includes(userEmail)) {
+        setUserReaction('sad')
+      } else {
+        setUserReaction('none')
+      }
+    }
+    setReactions(review.reactions || {
+      thumbsUp: [],
+      heart: [],
+      laugh: [],
+      surprised: [],
+      sad: []
+    })
+  }, [review.reactions, session?.user?.email])
 
   useEffect(() => {
     const checkBookmarkStatus = async () => {
@@ -559,6 +595,69 @@ export function ReviewCard({
     }
   };
 
+  const handleReaction = async (reactionType: 'thumbsUp' | 'heart' | 'laugh' | 'surprised' | 'sad' | 'none') => {
+    if (!session?.user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to react to reviews",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsReacting(true);
+    try {
+      const userId = session.user.email || session.user.id;
+      const newReaction = userReaction === reactionType ? 'none' : reactionType;
+
+      const response = await fetch('/api/reviews', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reviewId: review._id,
+          action: 'react',
+          reaction: newReaction,
+          userId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update reaction');
+      }
+
+      if (data.success && data.review) {
+        const updatedReactions = data.review.reactions || {
+          thumbsUp: [],
+          heart: [],
+          laugh: [],
+          surprised: [],
+          sad: []
+        };
+        setReactions(updatedReactions);
+        setUserReaction(newReaction);
+        
+        // Update local review state
+        setLocalReview((prev) => ({
+          ...prev,
+          reactions: updatedReactions
+        }));
+      }
+    } catch (error) {
+      console.error('Error updating reaction:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update reaction",
+        variant: "destructive"
+      });
+    } finally {
+      setIsReacting(false);
+    }
+  };
+
   const handleReportComment = async () => {
     if (!commentReportReason || !commentToReport) {
       toast({
@@ -833,6 +932,114 @@ export function ReviewCard({
                 
                 {/* Desktop: Action buttons - positioned below review text, aligned with review section */}
                 <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:justify-start sm:gap-2 sm:mt-2">
+                  {/* Reaction Buttons */}
+                  <div className="flex items-center gap-1 bg-white/50 dark:bg-gray-800/50 rounded-full px-2 py-1 border border-purple-200 dark:border-purple-800">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReaction('thumbsUp')
+                      }}
+                      disabled={isReacting}
+                      className={`h-7 w-7 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                        userReaction === 'thumbsUp' ? "bg-purple-100 dark:bg-purple-900/50" : ""
+                      }`}
+                      title="👍 Thumbs Up"
+                    >
+                      <span className="text-sm">👍</span>
+                    </Button>
+                    {reactions.thumbsUp?.length > 0 && (
+                      <span className="text-xs text-muted-foreground min-w-[20px] text-center">
+                        {reactions.thumbsUp.length}
+                      </span>
+                    )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReaction('heart')
+                      }}
+                      disabled={isReacting}
+                      className={`h-7 w-7 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                        userReaction === 'heart' ? "bg-purple-100 dark:bg-purple-900/50" : ""
+                      }`}
+                      title="❤️ Heart"
+                    >
+                      <span className="text-sm">❤️</span>
+                    </Button>
+                    {reactions.heart?.length > 0 && (
+                      <span className="text-xs text-muted-foreground min-w-[20px] text-center">
+                        {reactions.heart.length}
+                      </span>
+                    )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReaction('laugh')
+                      }}
+                      disabled={isReacting}
+                      className={`h-7 w-7 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                        userReaction === 'laugh' ? "bg-purple-100 dark:bg-purple-900/50" : ""
+                      }`}
+                      title="😂 Laugh"
+                    >
+                      <span className="text-sm">😂</span>
+                    </Button>
+                    {reactions.laugh?.length > 0 && (
+                      <span className="text-xs text-muted-foreground min-w-[20px] text-center">
+                        {reactions.laugh.length}
+                      </span>
+                    )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReaction('surprised')
+                      }}
+                      disabled={isReacting}
+                      className={`h-7 w-7 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                        userReaction === 'surprised' ? "bg-purple-100 dark:bg-purple-900/50" : ""
+                      }`}
+                      title="😮 Surprised"
+                    >
+                      <span className="text-sm">😮</span>
+                    </Button>
+                    {reactions.surprised?.length > 0 && (
+                      <span className="text-xs text-muted-foreground min-w-[20px] text-center">
+                        {reactions.surprised.length}
+                      </span>
+                    )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReaction('sad')
+                      }}
+                      disabled={isReacting}
+                      className={`h-7 w-7 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                        userReaction === 'sad' ? "bg-purple-100 dark:bg-purple-900/50" : ""
+                      }`}
+                      title="😢 Sad"
+                    >
+                      <span className="text-sm">😢</span>
+                    </Button>
+                    {reactions.sad?.length > 0 && (
+                      <span className="text-xs text-muted-foreground min-w-[20px] text-center">
+                        {reactions.sad.length}
+                      </span>
+                    )}
+                  </div>
+
                   <Button
                     variant="ghost"
                     size="sm"
@@ -906,6 +1113,109 @@ export function ReviewCard({
               
               {/* Mobile: Compact Action buttons */}
               <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                  {/* Mobile Reaction Buttons */}
+                  <div className="flex items-center gap-0.5 bg-white/80 dark:bg-gray-800/80 rounded-full px-1.5 py-1 border border-purple-200 dark:border-purple-800 flex-1 min-w-[200px]">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReaction('thumbsUp')
+                      }}
+                      disabled={isReacting}
+                      className={`h-6 w-6 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                        userReaction === 'thumbsUp' ? "bg-purple-100 dark:bg-purple-900/50" : ""
+                      }`}
+                    >
+                      <span className="text-xs">👍</span>
+                    </Button>
+                    {reactions.thumbsUp?.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground min-w-[15px] text-center">
+                        {reactions.thumbsUp.length}
+                      </span>
+                    )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReaction('heart')
+                      }}
+                      disabled={isReacting}
+                      className={`h-6 w-6 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                        userReaction === 'heart' ? "bg-purple-100 dark:bg-purple-900/50" : ""
+                      }`}
+                    >
+                      <span className="text-xs">❤️</span>
+                    </Button>
+                    {reactions.heart?.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground min-w-[15px] text-center">
+                        {reactions.heart.length}
+                      </span>
+                    )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReaction('laugh')
+                      }}
+                      disabled={isReacting}
+                      className={`h-6 w-6 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                        userReaction === 'laugh' ? "bg-purple-100 dark:bg-purple-900/50" : ""
+                      }`}
+                    >
+                      <span className="text-xs">😂</span>
+                    </Button>
+                    {reactions.laugh?.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground min-w-[15px] text-center">
+                        {reactions.laugh.length}
+                      </span>
+                    )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReaction('surprised')
+                      }}
+                      disabled={isReacting}
+                      className={`h-6 w-6 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                        userReaction === 'surprised' ? "bg-purple-100 dark:bg-purple-900/50" : ""
+                      }`}
+                    >
+                      <span className="text-xs">😮</span>
+                    </Button>
+                    {reactions.surprised?.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground min-w-[15px] text-center">
+                        {reactions.surprised.length}
+                      </span>
+                    )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleReaction('sad')
+                      }}
+                      disabled={isReacting}
+                      className={`h-6 w-6 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                        userReaction === 'sad' ? "bg-purple-100 dark:bg-purple-900/50" : ""
+                      }`}
+                    >
+                      <span className="text-xs">😢</span>
+                    </Button>
+                    {reactions.sad?.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground min-w-[15px] text-center">
+                        {reactions.sad.length}
+                      </span>
+                    )}
+                  </div>
+
                   <Button
                     variant="ghost"
                     size="sm"

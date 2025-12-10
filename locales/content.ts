@@ -95,6 +95,13 @@ export const localeContent: Record<string, LocaleContent> = {
       severityMedium: "Moderate concerns detected",
       severityHigh: "Significant concerns detected",
     },
+    sortBy: {
+      newest: "Newest First",
+      oldest: "Oldest First",
+      highestRated: "Highest Rated",
+      mostReactions: "Most Reactions",
+      mostCommented: "Most Commented",
+    },
   },
   th: {
     welcome: "ยินดีต้อนรับ",
@@ -189,6 +196,13 @@ export const localeContent: Record<string, LocaleContent> = {
       severityLow: "ตรวจพบปัญหาเล็กน้อย",
       severityMedium: "ตรวจพบปัญหาปานกลาง",
       severityHigh: "ตรวจพบปัญหาที่มีนัยสำคัญ",
+    },
+    sortBy: {
+      newest: "โพสต์ล่าสุด",
+      oldest: "โพสต์เก่าที่สุด",
+      highestRated: "คะแนนสูงสุด",
+      mostReactions: "รีแอคชันมากที่สุด",
+      mostCommented: "ความคิดเห็นมากที่สุด",
     },
   },
 }

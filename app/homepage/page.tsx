@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import Image from "next/image"
-import { Search, GraduationCap, BookOpen } from 'lucide-react'
+import { Search, GraduationCap, BookOpen, ArrowUpDown, Filter, X } from 'lucide-react'
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,6 +18,16 @@ import { useLanguage } from "@/providers/language-provider"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import dynamic from "next/dynamic"
 const ReviewForm = dynamic(
   () => import("@/components/review-form").then(mod => mod.ReviewForm),
@@ -29,12 +39,20 @@ import Autosuggest from "react-autosuggest"
 import Papa from "papaparse"
 import { useSession } from "next-auth/react"
 import { useAuth } from "@/contexts/auth-context"
+import { useToast } from "@/components/ui/use-toast"
 
 interface ReviewWithUserInteraction extends Omit<Review, 'likes' | 'dislikes'> {
   likes: string[];
   dislikes: string[];
   hasLiked?: boolean;
   hasDisliked?: boolean;
+  reactions?: {
+    thumbsUp: string[];
+    heart: string[];
+    laugh: string[];
+    surprised: string[];
+    sad: string[];
+  };
   _id: string;
   timestamp: string;
   comments: Comment[];
@@ -57,6 +75,7 @@ export default function Home() {
   const [selectedFaculty, setSelectedFaculty] = useState("")
   const [selectedProgram, setSelectedProgram] = useState("all")
   const [selectedElective, setSelectedElective] = useState("all")
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highestRated' | 'mostReactions' | 'mostCommented'>('newest')
   const [isWritingReview, setIsWritingReview] = useState(false)
   const [newReviewData, setNewReviewData] = useState({
     courseId: "",
@@ -73,33 +92,13 @@ export default function Home() {
   const reviewsCache = useRef<ReviewWithUserInteraction[] | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const [isWriteReviewDialogOpen, setIsWriteReviewDialogOpen] = useState(false)
+  const [showCloseConfirmation, setShowCloseConfirmation] = useState(false)
+  const [pendingClose, setPendingClose] = useState(false)
+  const [shouldPreventClose, setShouldPreventClose] = useState(false)
+  const reviewFormRef = useRef<{ saveDraft: () => Promise<boolean>; deleteDraft: () => Promise<boolean>; resetForm: () => void; hasUnsavedContent: () => boolean } | null>(null)
+  const { toast } = useToast()
 
-  // Fetch reviews when component mounts
-  useEffect(() => {
-    fetchReviews()
-    
-    // Listen for review hidden events to clear cache and refetch
-    const handleReviewHidden = (event: CustomEvent) => {
-      const { reviewId } = event.detail
-      // Remove the hidden review from local state immediately
-      setReviews(prevReviews => 
-        prevReviews.filter(review => 
-          (review.id !== reviewId) && (review._id !== reviewId)
-        )
-      )
-      // Clear cache and refetch to ensure consistency
-      reviewsCache.current = null
-      fetchReviews()
-    }
-    
-    window.addEventListener('reviewHidden', handleReviewHidden)
-    
-    return () => {
-      abortControllerRef.current?.abort()
-      window.removeEventListener('reviewHidden', handleReviewHidden)
-    }
-  }, []) // Remove session dependency from initial fetch
-
+  // Fetch reviews function
     const fetchReviews = async () => {
     if (reviewsCache.current) {
       setReviews(reviewsCache.current)
@@ -136,6 +135,13 @@ export default function Home() {
             dislikes: Array.isArray(review.dislikes) ? review.dislikes : [],
             hasLiked: userId ? (Array.isArray(review.likes) ? review.likes.includes(userId) : false) : false,
             hasDisliked: userId ? (Array.isArray(review.dislikes) ? review.dislikes.includes(userId) : false) : false,
+            reactions: review.reactions || {
+              thumbsUp: [],
+              heart: [],
+              laugh: [],
+              surprised: [],
+              sad: []
+            },
             isAnonymous: review.isAnonymous || false,
             timestamp: review.timestamp || new Date(review.createdAt).toISOString()
           })) as ReviewWithUserInteraction[]
@@ -156,6 +162,33 @@ export default function Home() {
       }
     }
 
+  // Fetch reviews when component mounts
+  useEffect(() => {
+    fetchReviews()
+    
+    // Listen for review hidden events to clear cache and refetch
+    const handleReviewHidden = (event: Event) => {
+      const customEvent = event as CustomEvent<{ reviewId: string }>
+      const { reviewId } = customEvent.detail
+      // Remove the hidden review from local state immediately
+      setReviews(prevReviews => 
+        prevReviews.filter(review => 
+          (review.id !== reviewId) && (review._id !== reviewId)
+        )
+      )
+      // Clear cache and refetch to ensure consistency
+      reviewsCache.current = null
+      fetchReviews()
+    }
+    
+    window.addEventListener('reviewHidden', handleReviewHidden as EventListener)
+    
+    return () => {
+      abortControllerRef.current?.abort()
+      window.removeEventListener('reviewHidden', handleReviewHidden as EventListener)
+    }
+  }, [session]) // Include session to access it in fetchReviews
+
   // Update likes/dislikes when session changes
   useEffect(() => {
     if (session?.user?.email && reviews.length > 0) {
@@ -169,6 +202,23 @@ export default function Home() {
       )
     }
   }, [session?.user?.email])
+
+  // Hide default close button when dialog opens
+  useEffect(() => {
+    if (isWriteReviewDialogOpen) {
+      const timer = setTimeout(() => {
+        // Find and hide the default close button
+        const dialogContent = document.querySelector('[data-radix-dialog-content]')
+        if (dialogContent) {
+          const defaultCloseBtn = dialogContent.querySelector('button:last-child')
+          if (defaultCloseBtn && defaultCloseBtn.querySelector('svg')) {
+            (defaultCloseBtn as HTMLElement).style.display = 'none'
+          }
+        }
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isWriteReviewDialogOpen])
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -354,6 +404,13 @@ export default function Home() {
       dislikes: Array.isArray(newReview.dislikes) ? newReview.dislikes : [],
       hasLiked: false,
       hasDisliked: false,
+      reactions: newReview.reactions || {
+        thumbsUp: [],
+        heart: [],
+        laugh: [],
+        surprised: [],
+        sad: []
+      },
       isAnonymous: newReview.isAnonymous || false,
       timestamp: newReview.timestamp || new Date().toISOString(),
       comments: newReview.comments || [],
@@ -363,15 +420,9 @@ export default function Home() {
     setReviews(prev => [formattedReview, ...prev])
   }
 
-  // Update the filteredReviews to maintain the sort order
+  // Update the filteredReviews with sorting and filtering
   const filteredReviews = useMemo(() => {
-    const sortedReviews = [...reviews].sort((a, b) => {
-      const dateA = new Date(a.timestamp)
-      const dateB = new Date(b.timestamp)
-      return dateB.getTime() - dateA.getTime()
-    })
-
-    return sortedReviews
+    let filtered = [...reviews]
     .filter(review => selectedCourse ? review.courseId === selectedCourse.courseno : true)
     .filter(review => {
       if (selectedProgram === 'all') return true;
@@ -381,10 +432,46 @@ export default function Home() {
       if (selectedElective === 'all') return true;
       return review.electiveType === selectedElective;
       })
-  }, [reviews, selectedCourse, selectedProgram, selectedElective])
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        case 'oldest':
+          return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        case 'highestRated':
+          return b.rating - a.rating
+        case 'mostReactions':
+          const aReactions = (Array.isArray(a.reactions?.thumbsUp) ? a.reactions.thumbsUp.length : 0) + 
+                            (Array.isArray(a.reactions?.heart) ? a.reactions.heart.length : 0) + 
+                            (Array.isArray(a.reactions?.laugh) ? a.reactions.laugh.length : 0) + 
+                            (Array.isArray(a.reactions?.surprised) ? a.reactions.surprised.length : 0) + 
+                            (Array.isArray(a.reactions?.sad) ? a.reactions.sad.length : 0) +
+                            (Array.isArray(a.likes) ? a.likes.length : 0)
+          const bReactions = (Array.isArray(b.reactions?.thumbsUp) ? b.reactions.thumbsUp.length : 0) + 
+                            (Array.isArray(b.reactions?.heart) ? b.reactions.heart.length : 0) + 
+                            (Array.isArray(b.reactions?.laugh) ? b.reactions.laugh.length : 0) + 
+                            (Array.isArray(b.reactions?.surprised) ? b.reactions.surprised.length : 0) + 
+                            (Array.isArray(b.reactions?.sad) ? b.reactions.sad.length : 0) +
+                            (Array.isArray(b.likes) ? b.likes.length : 0)
+          return bReactions - aReactions
+        case 'mostCommented':
+          return (b.comments?.length || 0) - (a.comments?.length || 0)
+        default:
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      }
+    })
+
+    return filtered
+  }, [reviews, selectedCourse, selectedProgram, selectedElective, sortBy])
 
   const isGoogleUser = () => {
     return session?.user?.provider === 'google'
+  }
+
+  const handleSortChange = (value: 'newest' | 'oldest' | 'highestRated' | 'mostReactions' | 'mostCommented') => {
+    setSortBy(value)
   }
 
   const handleDelete = (deletedReviewId: string) => {
@@ -406,6 +493,13 @@ export default function Home() {
               timestamp: review.timestamp,
               likes: Array.isArray(updatedReview.likes) ? updatedReview.likes : review.likes,
               dislikes: Array.isArray(updatedReview.dislikes) ? updatedReview.dislikes : review.dislikes,
+              reactions: updatedReview.reactions || review.reactions || {
+                thumbsUp: [],
+                heart: [],
+                laugh: [],
+                surprised: [],
+                sad: []
+              },
               comments: review.comments || []
             }
           : review
@@ -482,11 +576,77 @@ export default function Home() {
               >
                 {content.writeReview}
               </Button>
-              <Dialog open={isWriteReviewDialogOpen} onOpenChange={setIsWriteReviewDialogOpen}>
-                <DialogContent className="max-w-2xl w-full mx-2 sm:mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-lg sm:rounded-xl">
-                  <ReviewForm
-                    onClose={() => {
+              <Dialog 
+                open={isWriteReviewDialogOpen} 
+                onOpenChange={(open) => {
+                  // Don't allow closing if confirmation dialog is showing
+                  if (!open && showCloseConfirmation) {
+                    // Keep dialog open if confirmation is showing
+                    return
+                  }
+                  if (!open) {
+                    // User is trying to close - check if there's unsaved content
+                    const hasContent = reviewFormRef.current?.hasUnsavedContent?.()
+                    if (hasContent) {
+                      // Show confirmation dialog and keep main dialog open
+                      setPendingClose(true)
+                      setShowCloseConfirmation(true)
+                      // Prevent closing
+                      return
+                    } else {
                       setIsWriteReviewDialogOpen(false)
+                    }
+                  } else {
+                    setIsWriteReviewDialogOpen(open)
+                    if (!showCloseConfirmation) {
+                      setPendingClose(false)
+                      setShouldPreventClose(false)
+                    }
+                  }
+                }}
+              >
+                <DialogContent 
+                  className="max-w-2xl w-full mx-2 sm:mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-lg sm:rounded-xl"
+                  ref={(node) => {
+                    // Hide the default close button
+                    if (node) {
+                      const defaultCloseBtn = node.querySelector('button[type="button"]:last-child')
+                      if (defaultCloseBtn && defaultCloseBtn.querySelector('svg')) {
+                        (defaultCloseBtn as HTMLElement).style.display = 'none'
+                      }
+                    }
+                  }}
+                >
+                  {/* Custom close button that checks for unsaved content */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      const hasContent = reviewFormRef.current?.hasUnsavedContent?.()
+                      if (hasContent) {
+                        // Show confirmation dialog
+                        setPendingClose(true)
+                        setShowCloseConfirmation(true)
+                      } else {
+                        setIsWriteReviewDialogOpen(false)
+                      }
+                    }}
+                    className="absolute right-3 top-3 sm:right-4 sm:top-4 z-[60] h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 shadow-lg border-2 border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500 opacity-100 ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none flex items-center justify-center"
+                  >
+                    <X className="h-5 w-5 sm:h-5 sm:w-5 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400" />
+                    <span className="sr-only">Close</span>
+                  </button>
+                  <ReviewForm
+                    onCloseAttempt={reviewFormRef}
+                    onClose={() => {
+                      const hasContent = reviewFormRef.current?.hasUnsavedContent?.()
+                      if (hasContent) {
+                        setPendingClose(true)
+                        setShowCloseConfirmation(true)
+                      } else {
+                      setIsWriteReviewDialogOpen(false)
+                      }
                     }}
                     action={handleNewReview}
                     onSubmitSuccess={() => {
@@ -498,6 +658,91 @@ export default function Home() {
                   />
                 </DialogContent>
               </Dialog>
+
+              {/* Close Confirmation Dialog */}
+              <AlertDialog 
+                open={showCloseConfirmation} 
+                onOpenChange={(open) => {
+                  setShowCloseConfirmation(open)
+                  if (!open) {
+                    // User cancelled - ensure main dialog stays open
+                    setPendingClose(false)
+                    setShouldPreventClose(false)
+                  }
+                }}
+              >
+                <AlertDialogContent className="max-w-md" style={{ zIndex: 200 }}>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Save Your Progress?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      You have unsaved changes. What would you like to do?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                    <AlertDialogCancel
+                      onClick={() => {
+                        setShowCloseConfirmation(false)
+                        setPendingClose(false)
+                        setShouldPreventClose(false)
+                        // Keep main dialog open - it's already open
+                      }}
+                    >
+                      Cancel
+                    </AlertDialogCancel>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        // Delete the draft if it exists
+                        if (reviewFormRef.current?.deleteDraft) {
+                          await reviewFormRef.current.deleteDraft()
+                        }
+                        // Reset the form to clear all input
+                        if (reviewFormRef.current?.resetForm) {
+                          reviewFormRef.current.resetForm()
+                        }
+                        setShowCloseConfirmation(false)
+                        setPendingClose(false)
+                        setShouldPreventClose(false)
+                        // Close the main dialog
+                        setIsWriteReviewDialogOpen(false)
+                      }}
+                      className="bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800"
+                    >
+                      Discard
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        const saved = await reviewFormRef.current?.saveDraft()
+                        setShowCloseConfirmation(false)
+                        setPendingClose(false)
+                        setShouldPreventClose(false)
+                        if (saved) {
+                          // Close the dialog first, then show success message
+                          setIsWriteReviewDialogOpen(false)
+                          // Show toast after a brief delay to ensure dialog is closed
+                          setTimeout(() => {
+                            toast({
+                              title: "Draft Saved",
+                              description: "Your review has been saved as a draft successfully.",
+                              duration: 3000,
+                            })
+                          }, 200)
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: "Failed to save draft. Please try again.",
+                            variant: "destructive",
+                            duration: 3000,
+                          })
+                        }
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Save as Draft
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </>
           )}
         </div>
@@ -531,6 +776,29 @@ export default function Home() {
                 onSuggestionSelected={onSuggestionSelected}
               />
             </div>
+          </div>
+
+          {/* Sort and Filters Section */}
+          <div className="space-y-4">
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 rounded-xl p-3 backdrop-blur-sm shadow-md">
+              <ArrowUpDown className="w-4 h-4 text-purple-600 dark:text-purple-300" />
+              <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Sort by:</span>
+              <Select 
+                value={sortBy} 
+                onValueChange={handleSortChange}
+              >
+                <SelectTrigger className="w-[200px] h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">{content.sortBy.newest}</SelectItem>
+                  <SelectItem value="oldest">{content.sortBy.oldest}</SelectItem>
+                  <SelectItem value="highestRated">{content.sortBy.highestRated}</SelectItem>
+                  <SelectItem value="mostReactions">{content.sortBy.mostReactions}</SelectItem>
+                  <SelectItem value="mostCommented">{content.sortBy.mostCommented}</SelectItem>
+                </SelectContent>
+              </Select>
           </div>
 
           {/* Filters Section */}
@@ -649,6 +917,7 @@ export default function Home() {
                 >
                   {content.majorElective}
                 </Button>
+              </div>
               </div>
             </div>
           </div>

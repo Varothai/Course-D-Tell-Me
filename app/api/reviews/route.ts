@@ -39,6 +39,13 @@ export async function POST(req: Request) {
       customMajor: review.customMajor,
       likes: 0,
       dislikes: 0,
+      reactions: {
+        thumbsUp: [],
+        heart: [],
+        laugh: [],
+        surprised: [],
+        sad: []
+      },
       comments: [],
       isBookmarked: false,
       isAnonymous: review.isAnonymous || false,
@@ -80,6 +87,13 @@ export async function GET() {
         ...rest,
         _id: _id.toString(),
         id: _id.toString(),
+        reactions: review.reactions || {
+          thumbsUp: [],
+          heart: [],
+          laugh: [],
+          surprised: [],
+          sad: []
+        },
         timestamp: review.timestamp || new Date().toLocaleString('en-US', {
           day: '2-digit',
           month: 'short',
@@ -110,7 +124,7 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { reviewId, action, comment, commentId, newComment } = body;
+    const { reviewId, action, comment, commentId, newComment, reaction, userId } = body;
     
     await connectMongoDB();
 
@@ -190,6 +204,45 @@ export async function PATCH(request: Request) {
 
       updatedReview.comments.splice(commentIndex, 1);
       await updatedReview.save();
+    } else if (action === 'react') {
+      updatedReview = await Review.findById(reviewId);
+      
+      if (!updatedReview) {
+        return NextResponse.json({ error: "Review not found" }, { status: 404 });
+      }
+
+      if (!updatedReview.reactions) {
+        updatedReview.reactions = {
+          thumbsUp: [],
+          heart: [],
+          laugh: [],
+          surprised: [],
+          sad: []
+        };
+      }
+
+      const userEmail = userId || session.user?.email || session.user?.id;
+      if (!userEmail) {
+        return NextResponse.json({ error: "User ID required" }, { status: 400 });
+      }
+
+      // Remove user from all reaction arrays first
+      Object.keys(updatedReview.reactions).forEach((key) => {
+        const reactionKey = key as keyof typeof updatedReview.reactions;
+        updatedReview.reactions[reactionKey] = updatedReview.reactions[reactionKey].filter(
+          (id: string) => id !== userEmail
+        );
+      });
+
+      // Add user to the selected reaction array if reaction is provided
+      if (reaction && reaction !== 'none') {
+        const validReactions = ['thumbsUp', 'heart', 'laugh', 'surprised', 'sad'];
+        if (validReactions.includes(reaction)) {
+          updatedReview.reactions[reaction as keyof typeof updatedReview.reactions].push(userEmail);
+        }
+      }
+
+      await updatedReview.save();
     } else {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
@@ -198,7 +251,14 @@ export async function PATCH(request: Request) {
     const transformedReview = {
       ...updatedReview.toObject(),
       _id: updatedReview._id.toString(),
-      id: updatedReview._id.toString()
+      id: updatedReview._id.toString(),
+      reactions: updatedReview.reactions || {
+        thumbsUp: [],
+        heart: [],
+        laugh: [],
+        surprised: [],
+        sad: []
+      }
     };
 
     return NextResponse.json({ 
