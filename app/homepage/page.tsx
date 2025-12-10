@@ -17,7 +17,7 @@ import { useTheme } from "@/providers/theme-provider"
 import { useLanguage } from "@/providers/language-provider"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { Modal } from "@/components/modal"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -576,76 +576,33 @@ export default function Home() {
               >
                 {content.writeReview}
               </Button>
-              <Dialog 
-                open={isWriteReviewDialogOpen} 
-                onOpenChange={(open) => {
+              <Modal 
+                isOpen={isWriteReviewDialogOpen} 
+                onClose={() => {
                   // Don't allow closing if confirmation dialog is showing
-                  if (!open && showCloseConfirmation) {
-                    // Keep dialog open if confirmation is showing
+                  if (showCloseConfirmation) {
                     return
                   }
-                  if (!open) {
-                    // User is trying to close - check if there's unsaved content
-                    const hasContent = reviewFormRef.current?.hasUnsavedContent?.()
-                    if (hasContent) {
-                      // Show confirmation dialog and keep main dialog open
-                      setPendingClose(true)
-                      setShowCloseConfirmation(true)
-                      // Prevent closing
-                      return
-                    } else {
-                      setIsWriteReviewDialogOpen(false)
-                    }
+                  // Check if there's unsaved content
+                  const hasContent = reviewFormRef.current?.hasUnsavedContent?.()
+                  if (hasContent) {
+                    // Show confirmation dialog and keep main modal open
+                    setPendingClose(true)
+                    setShowCloseConfirmation(true)
                   } else {
-                    setIsWriteReviewDialogOpen(open)
-                    if (!showCloseConfirmation) {
-                      setPendingClose(false)
-                      setShouldPreventClose(false)
-                    }
+                    setIsWriteReviewDialogOpen(false)
                   }
                 }}
               >
-                <DialogContent 
-                  className="max-w-2xl w-full mx-2 sm:mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-lg sm:rounded-xl"
-                  ref={(node) => {
-                    // Hide the default close button
-                    if (node) {
-                      const defaultCloseBtn = node.querySelector('button[type="button"]:last-child')
-                      if (defaultCloseBtn && defaultCloseBtn.querySelector('svg')) {
-                        (defaultCloseBtn as HTMLElement).style.display = 'none'
-                      }
-                    }
-                  }}
-                >
-                  {/* Custom close button that checks for unsaved content */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      const hasContent = reviewFormRef.current?.hasUnsavedContent?.()
-                      if (hasContent) {
-                        // Show confirmation dialog
-                        setPendingClose(true)
-                        setShowCloseConfirmation(true)
-                      } else {
-                        setIsWriteReviewDialogOpen(false)
-                      }
-                    }}
-                    className="absolute right-3 top-3 sm:right-4 sm:top-4 z-[60] h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 shadow-lg border-2 border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500 opacity-100 ring-offset-background transition-all hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none flex items-center justify-center"
-                  >
-                    <X className="h-5 w-5 sm:h-5 sm:w-5 text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400" />
-                    <span className="sr-only">Close</span>
-                  </button>
+                <div className="p-4 sm:p-6">
                   <ReviewForm
-                    onCloseAttempt={reviewFormRef}
                     onClose={() => {
                       const hasContent = reviewFormRef.current?.hasUnsavedContent?.()
                       if (hasContent) {
                         setPendingClose(true)
                         setShowCloseConfirmation(true)
                       } else {
-                      setIsWriteReviewDialogOpen(false)
+                        setIsWriteReviewDialogOpen(false)
                       }
                     }}
                     action={handleNewReview}
@@ -656,8 +613,8 @@ export default function Home() {
                       }, 3000)
                     }}
                   />
-                </DialogContent>
-              </Dialog>
+                </div>
+              </Modal>
 
               {/* Close Confirmation Dialog */}
               <AlertDialog 

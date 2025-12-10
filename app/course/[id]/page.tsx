@@ -11,7 +11,7 @@ import type { Review } from "@/types/review"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { PenLine, ChartPie, Star, Users } from "lucide-react"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { Modal } from "@/components/modal"
 import dynamic from "next/dynamic"
 const ReviewForm = dynamic(
   () => import("@/components/review-form").then(mod => mod.ReviewForm),
@@ -44,6 +44,7 @@ export default function CoursePage() {
   const [ratingData, setRatingData] = useState<Record<number, number>>({})
   const [gradeData, setGradeData] = useState<Record<string, number>>({})
   const [courseName, setCourseName] = useState("")
+  const [isWriteReviewModalOpen, setIsWriteReviewModalOpen] = useState(false)
   const { data: session } = useSession()
   const isCMUUser = session?.user?.provider === 'cmu'
   const isGoogleUser = () => {
@@ -320,30 +321,34 @@ export default function CoursePage() {
             {content.reviews}
           </h3>
           {!isGoogleUser() && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 rounded-full px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                  {content.writeReview}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl w-full mx-2 sm:mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-lg sm:rounded-xl">
-                <ReviewForm
-                  courseId={courseId}
-                  courseName={courseName}
-                  onClose={() => {
-                    const closeButton = document.querySelector('[aria-label="Close"]') as HTMLButtonElement
-                    closeButton?.click()
-                  }}
-                  action={handleNewReview}
-                  onSubmitSuccess={() => {
-                    // Refresh course data after successful submission
-                    if (courseId) {
-                      fetchCourseAndReviews()
-                    }
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
+            <>
+              <Button 
+                onClick={() => setIsWriteReviewModalOpen(true)}
+                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 rounded-full px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+              >
+                {content.writeReview}
+              </Button>
+              <Modal 
+                isOpen={isWriteReviewModalOpen} 
+                onClose={() => setIsWriteReviewModalOpen(false)}
+              >
+                <div className="p-4 sm:p-6">
+                  <ReviewForm
+                    courseId={courseId}
+                    courseName={courseName}
+                    onClose={() => setIsWriteReviewModalOpen(false)}
+                    action={handleNewReview}
+                    onSubmitSuccess={() => {
+                      // Refresh course data after successful submission
+                      if (courseId) {
+                        fetchCourseAndReviews()
+                      }
+                      setIsWriteReviewModalOpen(false)
+                    }}
+                  />
+                </div>
+              </Modal>
+            </>
           )}
         </div>
 

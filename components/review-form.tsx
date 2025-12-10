@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Star, Loader2 } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { Star, Loader2, ChevronUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { useLanguage } from "@/providers/language-provider"
+import * as SelectPrimitive from "@radix-ui/react-select"
 import {
   Select,
   SelectContent,
@@ -15,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 import { useReviews } from "@/providers/review-provider"
 import { Review } from "@/types/review"
 import { facultyMajors } from "@/locales/content"
@@ -60,6 +62,41 @@ interface ReviewFormData {
   teachingQuality: number;
   grade?: string;
 }
+
+// Custom SelectContent without Portal for faculty dropdown (works like in Modal, avoids Dialog Portal issues)
+const FacultySelectContent = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
+  <SelectPrimitive.Content
+    ref={ref}
+    className={cn(
+      "z-[200] max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+      className
+    )}
+    position="item-aligned"
+    onPointerDownOutside={(e) => {
+      // Prevent closing when clicking on other Select triggers
+      const target = e.target as HTMLElement
+      const clickedSelectTrigger = target.closest('button[role="combobox"]')
+      if (clickedSelectTrigger) {
+        e.preventDefault()
+      }
+    }}
+    {...props}
+  >
+    <SelectPrimitive.ScrollUpButton className="flex cursor-default items-center justify-center py-1">
+      <ChevronUp className="h-4 w-4" />
+    </SelectPrimitive.ScrollUpButton>
+    <SelectPrimitive.Viewport className="p-1">
+      {children}
+    </SelectPrimitive.Viewport>
+    <SelectPrimitive.ScrollDownButton className="flex cursor-default items-center justify-center py-1">
+      <ChevronDown className="h-4 w-4" />
+    </SelectPrimitive.ScrollDownButton>
+  </SelectPrimitive.Content>
+))
+FacultySelectContent.displayName = SelectPrimitive.Content.displayName
 
 export function ReviewForm({ 
   courseId, 
@@ -445,13 +482,13 @@ export function ReviewForm({
               <SelectTrigger className="w-full px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 text-sm sm:text-base h-10 sm:h-10">
                 <SelectValue placeholder={content.faculty} />
               </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-800 rounded-lg sm:rounded-xl z-[110]">
+              <FacultySelectContent className="bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-800 rounded-lg sm:rounded-xl z-[200]">
                 {content.faculties.map((faculty) => (
                   <SelectItem key={faculty.value} value={faculty.value} className="text-sm cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50">
                     {faculty.label}
                   </SelectItem>
                 ))}
-              </SelectContent>
+              </FacultySelectContent>
             </Select>
           </div>
           <div>
