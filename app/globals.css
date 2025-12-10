@@ -135,3 +135,8 @@ body {
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+/* Hide nav bar when modal is open */
+body.modal-open nav {
+  display: none !important;
+}
