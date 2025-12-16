@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { RatingChart } from "@/components/rating-chart"
 import { GradeDistribution } from "@/components/grade-distribution"
 import { ReviewCard } from "@/components/review-card"
+import { WordCloud } from "@/components/word-cloud"
 import { useLanguage } from "@/providers/language-provider"
 import type { Review } from "@/types/review"
 import { useSession } from "next-auth/react"
@@ -249,110 +250,123 @@ export default function CoursePage() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)]" />
       </div>
       
-      <div className="container mx-auto py-8 px-4 space-y-8 relative z-10">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 text-white p-8 shadow-lg">
+      <div className="container mx-auto py-4 sm:py-6 px-4 space-y-4 sm:space-y-6 relative z-10">
+      {/* Compact Hero Section */}
+      <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 sm:p-6 shadow-lg">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="relative z-10">
-          <h1 className="text-4xl font-bold mb-2">{courseId}</h1>
-          <h2 className="text-2xl font-light opacity-90">{courseName}</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-1 truncate">{courseId}</h1>
+              <h2 className="text-base sm:text-lg font-light opacity-90 truncate">{courseName}</h2>
+            </div>
+            {!isGoogleUser() && (
+              <Button 
+                onClick={() => setIsWriteReviewModalOpen(true)}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex-shrink-0"
+              >
+                <PenLine className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                {content.writeReview}
+              </Button>
+            )}
+          </div>
           
-          {/* Quick Stats */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <Star className="w-5 h-5" />
-                <span>Average Rating</span>
-              </div>
-              <p className="text-2xl font-bold mt-2">
-                {(Object.entries(ratingData).reduce((acc, [rating, count]) => 
-                  acc + (Number(rating) * count), 0) / 
-                  Object.values(ratingData).reduce((acc, count) => acc + count, 0)
-                ).toFixed(2)} / 5.0
-              </p>
+          {/* Compact Inline Stats */}
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-sm sm:text-base">
+            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 sm:px-4 sm:py-2">
+              <Star className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+              <span className="hidden sm:inline">Avg:</span>
+              <span className="font-bold">
+                {Object.values(ratingData).reduce((acc, count) => acc + count, 0) > 0
+                  ? (Object.entries(ratingData).reduce((acc, [rating, count]) => 
+                      acc + (Number(rating) * count), 0) / 
+                      Object.values(ratingData).reduce((acc, count) => acc + count, 0)
+                    ).toFixed(1)
+                  : '0.0'}
+              </span>
             </div>
             
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <Users className="w-5 h-5" />
-                <span>Total Reviews</span>
-              </div>
-              <p className="text-2xl font-bold mt-2">{reviews.length}</p>
+            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 sm:px-4 sm:py-2">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+              <span className="hidden sm:inline">Reviews:</span>
+              <span className="font-bold">{reviews.length}</span>
             </div>
             
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <ChartPie className="w-5 h-5" />
-                <span>Grade Reports</span>
+            {Object.keys(gradeData).length > 0 && (
+              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 sm:px-4 sm:py-2">
+                <ChartPie className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                <span className="hidden sm:inline">Grades:</span>
+                <span className="font-bold">{Object.keys(gradeData).length}</span>
               </div>
-              <p className="text-2xl font-bold mt-2">
-                {Object.keys(gradeData).length} Grades
-              </p>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid md:grid-cols-2 gap-8">
-        <Card className="p-6 hover:shadow-lg transition-shadow duration-200">
-          <h3 className="text-xl font-semibold mb-6 text-purple-700 dark:text-purple-300">
-            {content.ratingDistribution}
-          </h3>
-          <div className="h-[300px]">
-            <RatingChart data={ratingData} />
+      {/* Word Cloud and Charts Section - Side by Side */}
+      <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Word Cloud - Takes 1 column on mobile, 1 on tablet, 1 on desktop */}
+        {reviews.length > 0 && (
+          <div className="lg:col-span-1">
+            <WordCloud courseId={courseId} />
           </div>
-        </Card>
+        )}
         
-        <Card className="p-6 hover:shadow-lg transition-shadow duration-200">
-          <h3 className="text-xl font-semibold mb-6 text-purple-700 dark:text-purple-300">
-            {content.gradeDistribution}
-          </h3>
-          <div className="h-[300px]">
-            <GradeDistribution reviews={reviews as unknown as Review[]} />
-          </div>
-        </Card>
+        {/* Charts - Takes full width on mobile, 2 columns on tablet+, 2 columns on desktop when word cloud present */}
+        <div className={`grid md:grid-cols-2 gap-4 sm:gap-6 ${reviews.length > 0 ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
+          <Card className="p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200">
+            <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-purple-700 dark:text-purple-300">
+              {content.ratingDistribution}
+            </h3>
+            <div className="h-[250px] sm:h-[280px]">
+              <RatingChart data={ratingData} />
+            </div>
+          </Card>
+          
+          <Card className="p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200">
+            <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-purple-700 dark:text-purple-300">
+              {content.gradeDistribution}
+            </h3>
+            <div className="h-[250px] sm:h-[280px]">
+              <GradeDistribution reviews={reviews as unknown as Review[]} />
+            </div>
+          </Card>
+        </div>
       </div>
 
       {/* Reviews Section */}
       <div>
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-semibold text-purple-700 dark:text-purple-300">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 className="text-xl sm:text-2xl font-semibold text-purple-700 dark:text-purple-300">
             {content.reviews}
           </h3>
-          {!isGoogleUser() && (
-            <>
-              <Button 
-                onClick={() => setIsWriteReviewModalOpen(true)}
-                className="bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600 rounded-full px-6 py-2 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-              >
-                {content.writeReview}
-              </Button>
-              <Modal 
-                isOpen={isWriteReviewModalOpen} 
-                onClose={() => setIsWriteReviewModalOpen(false)}
-              >
-                <div className="p-4 sm:p-6">
-                  <ReviewForm
-                    courseId={courseId}
-                    courseName={courseName}
-                    onClose={() => setIsWriteReviewModalOpen(false)}
-                    action={handleNewReview}
-                    onSubmitSuccess={() => {
-                      // Refresh course data after successful submission
-                      if (courseId) {
-                        fetchCourseAndReviews()
-                      }
-                      setIsWriteReviewModalOpen(false)
-                    }}
-                  />
-                </div>
-              </Modal>
-            </>
-          )}
         </div>
+        
+        {/* Review Modal */}
+        {!isGoogleUser() && (
+          <Modal 
+            isOpen={isWriteReviewModalOpen} 
+            onClose={() => setIsWriteReviewModalOpen(false)}
+          >
+            <div className="p-4 sm:p-6">
+              <ReviewForm
+                courseId={courseId}
+                courseName={courseName}
+                onClose={() => setIsWriteReviewModalOpen(false)}
+                action={handleNewReview}
+                onSubmitSuccess={() => {
+                  // Refresh course data after successful submission
+                  if (courseId) {
+                    fetchCourseAndReviews()
+                  }
+                  setIsWriteReviewModalOpen(false)
+                }}
+              />
+            </div>
+          </Modal>
+        )}
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {reviews.length > 0 ? (
             reviews.map((review) => (
               <div key={review._id} className="transition-all duration-200">

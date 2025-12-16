@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Star, Loader2, ChevronUp, ChevronDown } from "lucide-react"
+import { Star, Loader2, ChevronUp, ChevronDown, Sparkles, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -144,6 +144,16 @@ export function ReviewForm({
     inappropriateWords: string[];
   } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [aiSuggestions, setAiSuggestions] = useState<{
+    improvements: string[];
+    suggestions: string[];
+    completeness: {
+      missing: string[];
+      score: number;
+    };
+  } | null>(null)
+  const [isLoadingAiSuggestions, setIsLoadingAiSuggestions] = useState(false)
+  const [showAiSuggestions, setShowAiSuggestions] = useState(false)
 
   // Note: Auth check is now handled at the button level, so this effect is no longer needed
   // The dialog will only open if the user is authenticated
@@ -280,6 +290,50 @@ export function ReviewForm({
     setFormData({ ...formData, major: value, customMajor: value === "Others" ? formData.customMajor : "" })
   }
 
+  const handleGetAiSuggestions = async () => {
+    if (!formData.review.trim()) {
+      toast({
+        title: "No review text",
+        description: "Please write some review content first",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsLoadingAiSuggestions(true)
+    try {
+      const response = await fetch('/api/ai/review-assistant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentReview: formData.review,
+          courseName: formData.courseName,
+          courseId: formData.courseNo,
+          rating
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setAiSuggestions(data.suggestions)
+          setShowAiSuggestions(true)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching AI suggestions:', error)
+      toast({
+        title: "Error",
+        description: "Failed to get AI suggestions. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingAiSuggestions(false)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!verified || !rating) return
     
@@ -398,22 +452,114 @@ export function ReviewForm({
     <div className={`overflow-y-auto ${isEditing ? 'max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-12rem)]' : ''}`}>
       <div className={`space-y-4 sm:space-y-6 ${isEditing ? 'pb-4' : ''}`}>
         <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg">
-          <div className="absolute top-0 right-0 w-16 h-16 sm:w-24 sm:h-24 opacity-50">
+          <div className="absolute top-0 right-0 w-16 h-16 sm:w-24 sm:h-24 opacity-50 pointer-events-none">
             <img
               src="/elephant-mascot.png"
               alt="Cute elephant mascot"
               className="w-full h-full object-contain"
             />
           </div>
-          <h2 className="text-lg sm:text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3 sm:mb-4">
-            {content.writing}
-          </h2>
+          <div className="flex items-center justify-between mb-3 sm:mb-4 relative z-10">
+            <h2 className="text-lg sm:text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent pr-2">
+              {content.writing}
+            </h2>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGetAiSuggestions}
+              disabled={isLoadingAiSuggestions || !formData.review.trim()}
+              className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 border-none relative z-20 mr-16 sm:mr-20 flex-shrink-0"
+            >
+              {isLoadingAiSuggestions ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="hidden sm:inline">Analyzing...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden sm:inline">AI Assistant</span>
+                </>
+              )}
+            </Button>
+          </div>
           <Textarea
             placeholder={content.yourReview}
             value={formData.review}
             onChange={(e) => setFormData({ ...formData, review: e.target.value })}
             className="min-h-[120px] sm:min-h-[150px] bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg sm:rounded-xl border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 resize-none transition-all duration-300 text-sm sm:text-base"
           />
+          
+          {/* AI Suggestions Panel */}
+          {showAiSuggestions && aiSuggestions && (
+            <div className="mt-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">AI Suggestions</h3>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAiSuggestions(false)}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* Completeness Score */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">Review Completeness</span>
+                  <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{aiSuggestions.completeness.score}%</span>
+                </div>
+                <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${aiSuggestions.completeness.score}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Missing Items */}
+              {aiSuggestions.completeness.missing.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">Consider Adding:</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {aiSuggestions.completeness.missing.map((item, idx) => (
+                      <li key={idx} className="text-sm text-blue-800 dark:text-blue-200">{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Improvements */}
+              {aiSuggestions.improvements.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-orange-900 dark:text-orange-100 mb-2">Improvements:</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {aiSuggestions.improvements.map((item, idx) => (
+                      <li key={idx} className="text-sm text-orange-800 dark:text-orange-200">{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Suggestions */}
+              {aiSuggestions.suggestions.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-2">Tips:</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {aiSuggestions.suggestions.map((item, idx) => (
+                      <li key={idx} className="text-sm text-green-800 dark:text-green-200">{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4 bg-white/80 dark:bg-gray-800/80 p-3 sm:p-4 rounded-lg sm:rounded-xl backdrop-blur-sm">
@@ -700,11 +846,10 @@ export function ReviewForm({
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm">
-          <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-3 sm:mb-4 block">
-            {content.grade} 
+          <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm">
+            <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-3 sm:mb-4 block">
+              {content.grade} 
             <span className="text-sm text-muted-foreground ml-2">
               (optional) *** {language === "en" ? "does not show when posting" : "ไม่แสดงตอนโพสต์"} ***
             </span>
@@ -729,6 +874,7 @@ export function ReviewForm({
               </Button>
             ))}
           </div>
+        </div>
         </div>
 
         <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm">
