@@ -187,6 +187,84 @@ export function ReviewForm({
     fetchCourses();
   }, []);
 
+  // Fetch default values from most recent review or localStorage
+  useEffect(() => {
+    if (isEditing || initialData) return // Skip if editing
+
+    const loadDefaults = async () => {
+      try {
+        // First, try to get from API (most recent review)
+        const response = await fetch('/api/reviews/defaults')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.defaults) {
+            const defaults = data.defaults
+            if (defaults.faculty || defaults.major || defaults.programType) {
+              setFormData(prev => ({
+                ...prev,
+                faculty: defaults.faculty || prev.faculty,
+                major: defaults.major || prev.major,
+                studyPlan: defaults.programType || prev.studyPlan,
+              }))
+              
+              // Populate majors if faculty is set
+              if (defaults.faculty) {
+                const majors = facultyMajors[defaults.faculty as keyof typeof facultyMajors] || []
+                setAvailableMajors(majors.map(m => ({
+                  value: m.value,
+                  label: m.label[language as keyof typeof m.label]
+                })))
+              }
+              
+              // Save to localStorage for future use
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('reviewFormDefaults', JSON.stringify({
+                  faculty: defaults.faculty,
+                  major: defaults.major,
+                  programType: defaults.programType,
+                }))
+              }
+              return
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching defaults:', error)
+      }
+
+      // Fallback to localStorage if API doesn't have data
+      if (typeof window !== 'undefined') {
+        try {
+          const savedDefaults = localStorage.getItem('reviewFormDefaults')
+          if (savedDefaults) {
+            const defaults = JSON.parse(savedDefaults)
+            if (defaults.faculty || defaults.major || defaults.programType) {
+              setFormData(prev => ({
+                ...prev,
+                faculty: defaults.faculty || prev.faculty,
+                major: defaults.major || prev.major,
+                studyPlan: defaults.programType || prev.studyPlan,
+              }))
+              
+              // Populate majors if faculty is set
+              if (defaults.faculty) {
+                const majors = facultyMajors[defaults.faculty as keyof typeof facultyMajors] || []
+                setAvailableMajors(majors.map(m => ({
+                  value: m.value,
+                  label: m.label[language as keyof typeof m.label]
+                })))
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading from localStorage:', error)
+        }
+      }
+    }
+
+    loadDefaults()
+  }, [isEditing, initialData, language])
+
   useEffect(() => {
     if (initialData && isEditing) {
       setFormData({
@@ -404,14 +482,23 @@ export function ReviewForm({
         if (response.ok) {
           const { review: newReview } = await response.json()
           
-          // Clear the form
+          // Save current values as defaults for next time
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('reviewFormDefaults', JSON.stringify({
+              faculty: formData.faculty,
+              major: formData.major === "Others" ? formData.customMajor : formData.major,
+              programType: formData.studyPlan,
+            }))
+          }
+          
+          // Clear the form (but keep defaults)
           setFormData({
             courseNo: "",
             courseName: "",
-            faculty: "",
-            major: "",
+            faculty: formData.faculty, // Keep faculty
+            major: formData.major, // Keep major
             customMajor: "",
-            studyPlan: "",
+            studyPlan: formData.studyPlan, // Keep studyPlan
             section: "",
             grade: "",
             readingAmount: 0,

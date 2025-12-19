@@ -33,7 +33,7 @@ interface Comment {
 }
 
 export default function FacultyReviewsPage() {
-  const { content } = useLanguage()
+  const { content, language } = useLanguage()
   const params = useParams()
   const [reviews, setReviews] = useState<ReviewWithUserInteraction[]>([])
   const [loading, setLoading] = useState(true)
@@ -244,7 +244,7 @@ export default function FacultyReviewsPage() {
             {faculty}
           </h1>
           <p className="text-muted-foreground">
-            {reviews.length} {content.language === 'en' ? 'Course Reviews' : 'รีวิวรายวิชา'}
+          {reviews.length} {language === 'en' ? 'Reviews' : 'รีวิว'}
           </p>
         </div>
       </div>
@@ -419,10 +419,10 @@ export default function FacultyReviewsPage() {
             <Card className="p-12 text-center bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
               <Book className="w-12 h-12 mx-auto mb-4 text-purple-500/50" />
               <h3 className="text-xl font-semibold text-purple-700 dark:text-purple-300 mb-2">
-                {content.language === 'en' ? 'No Reviews Found' : 'ไม่พบรีวิว'}
+                {language === 'en' ? 'No Reviews Found' : 'ไม่พบรีวิว'}
               </h3>
               <p className="text-muted-foreground">
-                {content.language === 'en' 
+                {language === 'en' 
                   ? 'Try adjusting your filters'
                   : 'ลองปรับตัวกรองของคุณ'}
               </p>
