@@ -1,7 +1,17 @@
-import { pipeline, env } from '@xenova/transformers';
+// Lazy import transformers to avoid loading during build
+let pipeline: any;
+let env: any;
 
-// Configure environment
-env.allowLocalModels = false;
+async function getTransformers() {
+  if (!pipeline || !env) {
+    const transformers = await import('@xenova/transformers');
+    pipeline = transformers.pipeline;
+    env = transformers.env;
+    // Configure environment
+    env.allowLocalModels = false;
+  }
+  return { pipeline, env };
+}
 
 interface TextAnalysisResult {
   isInappropriate: boolean;
@@ -260,9 +270,11 @@ export const analyzeText = async (text: string): Promise<TextAnalysisResult> => 
 
     // If no explicit inappropriate words found, use the transformer model
     // for more nuanced analysis
+    // Lazy load transformers only when needed
+    const { pipeline: pipelineFn } = await getTransformers();
     const classifier = isThai(text) 
-      ? await pipeline('text-classification', 'airesearch/wangchanberta-base-att-spm-uncased')
-      : await pipeline('text-classification', 'roberta-base');
+      ? await pipelineFn('text-classification', 'airesearch/wangchanberta-base-att-spm-uncased')
+      : await pipelineFn('text-classification', 'roberta-base');
     
     const result = await classifier(text, {
       topk: 1

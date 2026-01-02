@@ -21,6 +21,27 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  webpack: (config, { isServer }) => {
+    // Handle @xenova/transformers and onnxruntime-node
+    // These packages have native bindings that shouldn't be bundled during build
+    if (isServer) {
+      config.externals = config.externals || []
+      config.externals.push({
+        '@xenova/transformers': 'commonjs @xenova/transformers',
+        'onnxruntime-node': 'commonjs onnxruntime-node',
+      })
+    }
+    
+    // Ignore native bindings during build
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      path: false,
+      crypto: false,
+    }
+    
+    return config
+  },
 }
 
 mergeConfig(nextConfig, userConfig)

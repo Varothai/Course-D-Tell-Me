@@ -1,5 +1,8 @@
 "use client"
 
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 import { useLanguage } from "@/providers/language-provider"

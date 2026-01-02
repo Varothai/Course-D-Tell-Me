@@ -1,5 +1,8 @@
 "use client"
 
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect, useMemo, useRef } from "react"
 import Image from "next/image"
 import { Search, GraduationCap, BookOpen, ArrowUpDown, Filter, X } from 'lucide-react'
@@ -735,29 +738,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Sort and Filters Section */}
-          <div className="space-y-4">
-            {/* Sort Dropdown */}
-            <div className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 rounded-xl p-3 backdrop-blur-sm shadow-md">
-              <ArrowUpDown className="w-4 h-4 text-purple-600 dark:text-purple-300" />
-              <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Sort by:</span>
-              <Select 
-                value={sortBy} 
-                onValueChange={handleSortChange}
-              >
-                <SelectTrigger className="w-[200px] h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">{content.sortBy.newest}</SelectItem>
-                  <SelectItem value="oldest">{content.sortBy.oldest}</SelectItem>
-                  <SelectItem value="highestRated">{content.sortBy.highestRated}</SelectItem>
-                  <SelectItem value="mostReactions">{content.sortBy.mostReactions}</SelectItem>
-                  <SelectItem value="mostCommented">{content.sortBy.mostCommented}</SelectItem>
-                </SelectContent>
-              </Select>
-          </div>
-
           {/* Filters Section */}
           <div className="flex flex-wrap gap-4 bg-white/80 dark:bg-gray-800/80 rounded-2xl p-4 backdrop-blur-sm shadow-lg">
             {/* Program Types Filter */}
@@ -875,16 +855,36 @@ export default function Home() {
                   {content.majorElective}
                 </Button>
               </div>
-              </div>
             </div>
           </div>
         </div>
 
         {/* Reviews Section with updated styling */}
         <div>
-          <h3 className="text-2xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            {content.allReviews}
-          </h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              {content.allReviews}
+            </h3>
+            <div className="flex items-center gap-2 bg-white/80 dark:bg-gray-800/80 rounded-xl px-3 py-2 backdrop-blur-sm shadow-md">
+              <ArrowUpDown className="w-4 h-4 text-purple-600 dark:text-purple-300" />
+              <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Sort by:</span>
+              <Select 
+                value={sortBy} 
+                onValueChange={handleSortChange}
+              >
+                <SelectTrigger className="w-[200px] h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">{content.sortBy.newest}</SelectItem>
+                  <SelectItem value="oldest">{content.sortBy.oldest}</SelectItem>
+                  <SelectItem value="highestRated">{content.sortBy.highestRated}</SelectItem>
+                  <SelectItem value="mostReactions">{content.sortBy.mostReactions}</SelectItem>
+                  <SelectItem value="mostCommented">{content.sortBy.mostCommented}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           {isLoading ? (
             <div className="flex justify-center items-center min-h-[200px]">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

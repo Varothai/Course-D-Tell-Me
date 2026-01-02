@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { connectMongoDB } from '@/lib/mongodb'
 import { Review } from '@/models/review'
 
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic'
+
 // Common stop words to filter out
 const stopWords = new Set([
   'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',

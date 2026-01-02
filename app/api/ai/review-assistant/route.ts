@@ -1,12 +1,45 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../auth/[...nextauth]/route'
+import { connectMongoDB } from '@/lib/mongodb'
+import { Review } from '@/models/review'
 
 interface ReviewAssistantRequest {
   currentReview: string
   courseName?: string
   courseId?: string
   rating?: number
+}
+
+// Simple in-memory cache with TTL (5 minutes)
+const suggestionCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+// Generate cache key from review content
+function getCacheKey(review: string, courseId?: string, rating?: number): string {
+  const normalizedReview = review.trim().toLowerCase().slice(0, 200) // Use first 200 chars for key
+  return `${courseId || 'no-course'}-${rating || 0}-${normalizedReview.length}-${hashString(normalizedReview)}`
+}
+
+// Simple hash function for cache keys
+function hashString(str: string): string {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(36)
+}
+
+// Clean old cache entries
+function cleanCache() {
+  const now = Date.now()
+  for (const [key, value] of suggestionCache.entries()) {
+    if (now - value.timestamp > CACHE_TTL) {
+      suggestionCache.delete(key)
+    }
+  }
 }
 
 export async function POST(request: Request) {
@@ -26,9 +59,64 @@ export async function POST(request: Request) {
       )
     }
 
-    // AI-powered review suggestions
-    // In production, replace this with actual AI API calls (OpenAI, Anthropic, etc.)
-    const suggestions = await generateReviewSuggestions(currentReview, courseName, courseId, rating)
+    // Check cache first
+    cleanCache()
+    const cacheKey = getCacheKey(currentReview, courseId, rating)
+    const cached = suggestionCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return NextResponse.json({
+        success: true,
+        suggestions: cached.data,
+        cached: true
+      })
+    }
+
+    // Fetch existing reviews for context if courseId is provided
+    let courseContext: {
+      commonTopics: string[]
+      averageRating: number
+      reviewCount: number
+      commonKeywords: string[]
+    } | null = null
+
+    if (courseId) {
+      try {
+        await connectMongoDB()
+        const existingReviews = await Review.find({
+          courseId,
+          isHidden: { $ne: true }
+        })
+          .select('review rating')
+          .limit(50) // Analyze up to 50 recent reviews
+          .lean()
+
+        if (existingReviews.length > 0) {
+          const reviewsData: Array<{ review: string; rating: number }> = existingReviews.map((r: any) => ({ 
+            review: String(r.review || ''), 
+            rating: Number(r.rating || 0) 
+          }))
+          courseContext = analyzeCourseContext(reviewsData)
+        }
+      } catch (error) {
+        console.error('Error fetching course context:', error)
+        // Continue without context if fetch fails
+      }
+    }
+
+    // Generate suggestions with context
+    const suggestions = await generateReviewSuggestions(
+      currentReview, 
+      courseName, 
+      courseId, 
+      rating,
+      courseContext
+    )
+
+    // Cache the result
+    suggestionCache.set(cacheKey, {
+      data: suggestions,
+      timestamp: Date.now()
+    })
 
     return NextResponse.json({
       success: true,
@@ -41,6 +129,97 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
+}
+
+// Analyze existing reviews to extract common topics and patterns
+function analyzeCourseContext(reviews: Array<{ review: string; rating: number }>): {
+  commonTopics: string[]
+  averageRating: number
+  reviewCount: number
+  commonKeywords: string[]
+} {
+  const allText = reviews.map(r => r.review.toLowerCase()).join(' ')
+  const ratings = reviews.map(r => r.rating)
+  const averageRating = ratings.reduce((a, b) => a + b, 0) / ratings.length
+
+  // Extract common keywords (excluding common words)
+  const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now', 'ของ', 'ที่', 'และ', 'หรือ', 'แต่', 'ใน', 'บน', 'ที่', 'เพื่อ', 'ของ', 'กับ', 'โดย', 'เป็น', 'คือ', 'มี', 'จะ', 'ได้', 'ให้', 'ทำ', 'ไป', 'มา', 'นี้', 'นั้น', 'ทุก', 'ทั้ง', 'บาง', 'ไม่', 'ก็', 'แล้ว', 'ยัง', 'อีก'])
+
+  const words = allText.split(/\s+/).filter(w => w.length > 3 && !stopWords.has(w))
+  const wordFreq = new Map<string, number>()
+  words.forEach(word => {
+    wordFreq.set(word, (wordFreq.get(word) || 0) + 1)
+  })
+
+  const commonKeywords = Array.from(wordFreq.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([word]) => word)
+
+  // Detect common topics based on keyword patterns
+  const commonTopics: string[] = []
+  const topicKeywords = {
+    instructor: ['instructor', 'professor', 'teacher', 'lecturer', 'อาจารย์', 'ผู้สอน'],
+    difficulty: ['difficult', 'hard', 'easy', 'challenging', 'ยาก', 'ง่าย', 'ท้าทาย'],
+    workload: ['homework', 'assignment', 'project', 'workload', 'การบ้าน', 'งาน', 'โปรเจค'],
+    content: ['content', 'material', 'curriculum', 'syllabus', 'เนื้อหา', 'หลักสูตร'],
+    exam: ['exam', 'test', 'quiz', 'midterm', 'final', 'สอบ', 'ทดสอบ']
+  }
+
+  Object.entries(topicKeywords).forEach(([topic, keywords]) => {
+    const mentions = keywords.filter(kw => allText.includes(kw)).length
+    if (mentions >= 3) {
+      commonTopics.push(topic)
+    }
+  })
+
+  return {
+    commonTopics,
+    averageRating: Math.round(averageRating * 10) / 10,
+    reviewCount: reviews.length,
+    commonKeywords
+  }
+}
+
+// Helper function to get keywords for a topic
+function getTopicKeywords(topic: string, isThai: boolean): string[] {
+  const topicMap: Record<string, { en: string[]; th: string[] }> = {
+    instructor: {
+      en: ['instructor', 'professor', 'teacher', 'lecturer', 'teaches', 'teaching'],
+      th: ['อาจารย์', 'ผู้สอน', 'ครู', 'อาจารย์ผู้สอน', 'สอน', 'การสอน']
+    },
+    difficulty: {
+      en: ['difficult', 'hard', 'easy', 'challenging', 'difficulty', 'level'],
+      th: ['ยาก', 'ง่าย', 'ยากมาก', 'ง่ายมาก', 'ท้าทาย', 'ระดับความยาก']
+    },
+    workload: {
+      en: ['homework', 'assignment', 'project', 'workload', 'work', 'task'],
+      th: ['การบ้าน', 'งาน', 'โปรเจค', 'โปรเจกต์', 'ภาระงาน']
+    },
+    content: {
+      en: ['content', 'material', 'curriculum', 'syllabus'],
+      th: ['เนื้อหา', 'หลักสูตร', 'บทเรียน']
+    },
+    exam: {
+      en: ['exam', 'test', 'quiz', 'midterm', 'final'],
+      th: ['สอบ', 'ทดสอบ', 'ข้อสอบ', 'สอบกลางภาค', 'สอบปลายภาค']
+    }
+  }
+  
+  return topicMap[topic] ? (isThai ? topicMap[topic].th : topicMap[topic].en) : []
+}
+
+// Helper function to get display name for a topic
+function getTopicName(topic: string, isThai: boolean): string {
+  const topicNames: Record<string, { en: string; th: string }> = {
+    instructor: { en: 'instructor', th: 'อาจารย์' },
+    difficulty: { en: 'difficulty', th: 'ความยาก' },
+    workload: { en: 'workload', th: 'ภาระงาน' },
+    content: { en: 'content', th: 'เนื้อหา' },
+    exam: { en: 'exams', th: 'การสอบ' }
+  }
+  
+  return topicNames[topic] ? (isThai ? topicNames[topic].th : topicNames[topic].en) : topic
 }
 
 // Detect if text contains Thai characters
@@ -63,7 +242,14 @@ function countWords(text: string, isThaiText: boolean): number {
 async function generateReviewSuggestions(
   review: string,
   courseName?: string,
-  rating?: number
+  courseId?: string,
+  rating?: number,
+  courseContext?: {
+    commonTopics: string[]
+    averageRating: number
+    reviewCount: number
+    commonKeywords: string[]
+  } | null
 ): Promise<{
   improvements: string[]
   suggestions: string[]
@@ -79,18 +265,18 @@ async function generateReviewSuggestions(
   
   // Thai and English keywords for checking completeness
   const instructorKeywords = {
-    en: ['professor', 'instructor', 'teacher', 'lecturer'],
-    th: ['อาจารย์', 'ผู้สอน', 'ครู', 'อาจารย์ผู้สอน']
+    en: ['professor', 'instructor', 'teacher', 'lecturer', 'teaches', 'teaching'],
+    th: ['อาจารย์', 'ผู้สอน', 'ครู', 'อาจารย์ผู้สอน', 'สอน', 'การสอน']
   }
   
   const difficultyKeywords = {
-    en: ['difficulty', 'difficult', 'hard', 'easy', 'challenging', 'simple', 'complex'],
-    th: ['ยาก', 'ง่าย', 'ยากมาก', 'ง่ายมาก', 'ท้าทาย', 'ซับซ้อน', 'ระดับความยาก']
+    en: ['difficulty', 'difficult', 'hard', 'easy', 'challenging', 'simple', 'complex', 'level'],
+    th: ['ยาก', 'ง่าย', 'ยากมาก', 'ง่ายมาก', 'ท้าทาย', 'ซับซ้อน', 'ระดับความยาก', 'ระดับ']
   }
   
   const workloadKeywords = {
-    en: ['homework', 'assignment', 'project', 'workload', 'work', 'task'],
-    th: ['การบ้าน', 'งาน', 'โปรเจค', 'โปรเจกต์', 'ภาระงาน', 'งานที่ได้รับ', 'งานที่ต้องทำ']
+    en: ['homework', 'assignment', 'project', 'workload', 'work', 'task', 'reading', 'readings'],
+    th: ['การบ้าน', 'งาน', 'โปรเจค', 'โปรเจกต์', 'ภาระงาน', 'งานที่ได้รับ', 'งานที่ต้องทำ', 'การอ่าน']
   }
   
   const keywords = isThaiText ? {
@@ -151,6 +337,51 @@ async function generateReviewSuggestions(
   // Generate improvement suggestions
   const improvements: string[] = []
   const suggestions: string[] = []
+
+  // Dynamic suggestions based on course context
+  if (courseContext && courseContext.reviewCount > 0) {
+    // Check if user mentions topics that others commonly discuss
+    const mentionedTopics = courseContext.commonTopics.filter(topic => {
+      const topicKeywords = getTopicKeywords(topic, isThaiText)
+      return topicKeywords.some(kw => reviewLower.includes(kw))
+    })
+    
+    const missingTopics = courseContext.commonTopics.filter(topic => !mentionedTopics.includes(topic))
+    
+    // Suggest topics that others frequently mention but user hasn't
+    if (missingTopics.length > 0 && missingTopics.length < courseContext.commonTopics.length) {
+      const topicNames = missingTopics.map(t => getTopicName(t, isThaiText)).join(', ')
+      suggestions.push(isThaiText
+        ? `รีวิวอื่นๆ มักกล่าวถึง: ${topicNames} ลองพิจารณาเพิ่มประเด็นเหล่านี้`
+        : `Other reviews often mention: ${topicNames}. Consider adding these aspects.`)
+    }
+    
+    // Rating comparison suggestion
+    if (hasRating && courseContext.averageRating > 0) {
+      const ratingDiff = rating! - courseContext.averageRating
+      if (Math.abs(ratingDiff) > 1) {
+        if (ratingDiff > 1) {
+          suggestions.push(isThaiText
+            ? `คุณให้คะแนนสูงกว่าค่าเฉลี่ย (${courseContext.averageRating.toFixed(1)}) มาก ลองอธิบายว่าอะไรทำให้รายวิชานี้โดดเด่น`
+            : `Your rating is significantly higher than average (${courseContext.averageRating.toFixed(1)}). Consider explaining what made this course stand out.`)
+        } else {
+          suggestions.push(isThaiText
+            ? `คุณให้คะแนนต่ำกว่าค่าเฉลี่ย (${courseContext.averageRating.toFixed(1)}) มาก ลองอธิบายรายละเอียดว่าอะไรที่ควรปรับปรุง`
+            : `Your rating is significantly lower than average (${courseContext.averageRating.toFixed(1)}). Consider explaining what specifically could be improved.`)
+        }
+      }
+    }
+
+    // Suggest using common keywords if review is generic
+    if (courseContext.commonKeywords.length > 0 && wordCount < minWords * 1.5) {
+      const userHasCommonKeywords = courseContext.commonKeywords.some(kw => reviewLower.includes(kw))
+      if (!userHasCommonKeywords) {
+        suggestions.push(isThaiText
+          ? `ลองเพิ่มรายละเอียดเฉพาะเจาะจงเกี่ยวกับรายวิชานี้ เพื่อให้รีวิวของคุณมีประโยชน์มากขึ้น`
+          : `Consider adding more specific details about this course to make your review more helpful.`)
+      }
+    }
+  }
 
   // Check for common issues
   const minLength = isThaiText ? 80 : 100
