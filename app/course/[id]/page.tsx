@@ -1,8 +1,5 @@
 "use client"
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic'
-
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { Card } from "@/components/ui/card"

@@ -1,16 +1,38 @@
-// Lazy import transformers to avoid loading during build
-let pipeline: any;
-let env: any;
+// Conditionally import transformers - it may not work in serverless environments
+let pipeline: any = null;
+let transformersAvailable = false;
 
-async function getTransformers() {
-  if (!pipeline || !env) {
+// Lazy load transformers only when needed and if available
+async function loadTransformers() {
+  if (transformersAvailable && pipeline) {
+    return pipeline;
+  }
+  
+  if (typeof window !== 'undefined') {
+    // Client-side: transformers not needed (would use onnxruntime-web if needed)
+    return null;
+  }
+  
+  // In serverless environments (like Vercel), onnxruntime-node doesn't work
+  // Skip transformers and use word-based filtering only
+  if (process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV) {
+    transformersAvailable = false;
+    return null;
+  }
+  
+  try {
+    // Dynamic import to avoid bundling issues in serverless environments
     const transformers = await import('@xenova/transformers');
     pipeline = transformers.pipeline;
-    env = transformers.env;
-    // Configure environment
-    env.allowLocalModels = false;
+    transformers.env.allowLocalModels = false;
+    transformersAvailable = true;
+    return pipeline;
+  } catch (error) {
+    // Transformers not available (e.g., in serverless environment)
+    // This is expected in Vercel - we'll use word-based filtering only
+    transformersAvailable = false;
+    return null;
   }
-  return { pipeline, env };
 }
 
 interface TextAnalysisResult {
@@ -268,33 +290,48 @@ export const analyzeText = async (text: string): Promise<TextAnalysisResult> => 
       };
     }
 
-    // If no explicit inappropriate words found, use the transformer model
-    // for more nuanced analysis
-    // Lazy load transformers only when needed
-    const { pipeline: pipelineFn } = await getTransformers();
-    const classifier = isThai(text) 
-      ? await pipelineFn('text-classification', 'airesearch/wangchanberta-base-att-spm-uncased')
-      : await pipelineFn('text-classification', 'roberta-base');
-    
-    const result = await classifier(text, {
-      topk: 1
-    });
+    // If transformers are available and no explicit inappropriate words found,
+    // use the transformer model for more nuanced analysis
+    const loadedPipeline = await loadTransformers();
+    if (loadedPipeline) {
+      try {
+        const classifier = isThai(text) 
+          ? await loadedPipeline('text-classification', 'airesearch/wangchanberta-base-att-spm-uncased')
+          : await loadedPipeline('text-classification', 'roberta-base');
+        
+        const result = await classifier(text, {
+          topk: 1
+        });
 
-    const prediction = Array.isArray(result) ? result[0] : result;
-    const confidence = 'score' in prediction ? prediction.score : 0;
-    const label = 'label' in prediction ? prediction.label : '';
-    let severity: 'low' | 'medium' | 'high' = 'low';
-    
-    if (confidence > 0.8) {
-      severity = 'high';
-    } else if (confidence > 0.6) {
-      severity = 'medium';
+        const prediction = Array.isArray(result) ? result[0] : result;
+        const confidence = 'score' in prediction ? prediction.score : 0;
+        const label = 'label' in prediction ? prediction.label : '';
+        let severity: 'low' | 'medium' | 'high' = 'low';
+        
+        if (confidence > 0.8) {
+          severity = 'high';
+        } else if (confidence > 0.6) {
+          severity = 'medium';
+        }
+
+        return {
+          isInappropriate: label === 'INAPPROPRIATE',
+          confidence,
+          severity,
+          inappropriateWords: []
+        };
+      } catch (modelError) {
+        // If model loading fails, fall back to word-based filtering
+        console.warn('Model analysis failed, using word-based filtering only:', modelError);
+      }
     }
 
+    // Fallback: If transformers are not available or failed, 
+    // return safe result (word-based filtering already checked above)
     return {
-      isInappropriate: label === 'INAPPROPRIATE',
-      confidence,
-      severity,
+      isInappropriate: false,
+      confidence: 0.5, // Medium confidence since we only did word filtering
+      severity: 'low',
       inappropriateWords: []
     };
   } catch (error) {

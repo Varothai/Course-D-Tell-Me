@@ -1,8 +1,5 @@
 "use client"
 
-// Force dynamic rendering to avoid static generation issues
-export const dynamic = 'force-dynamic'
-
 import { useState, useEffect, useMemo, useRef } from "react"
 import Image from "next/image"
 import { Search, GraduationCap, BookOpen, ArrowUpDown, Filter, X } from 'lucide-react'

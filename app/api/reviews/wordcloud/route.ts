@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { connectMongoDB } from '@/lib/mongodb'
 import { Review } from '@/models/review'
 
-// Force dynamic rendering since we use request.url
+// Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
 
 // Common stop words to filter out
