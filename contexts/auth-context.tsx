@@ -20,7 +20,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      await signIn('google')
+      // Use current origin to ensure it works in both localhost and production
+      const callbackUrl = typeof window !== 'undefined' ? window.location.origin + '/' : '/'
+      await signIn('google', { callbackUrl })
       setShowAuthModal(false)
     } catch (error) {
       console.error('Error signing in with Google:', error)
@@ -29,7 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await signOut()
+      // Use current origin to ensure it works in both localhost and production
+      const callbackUrl = typeof window !== 'undefined' ? window.location.origin + '/' : '/'
+      await signOut({ callbackUrl })
     } catch (error) {
       console.error('Error signing out:', error)
     }

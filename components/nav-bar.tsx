@@ -51,10 +51,10 @@ export function NavBar() {
   
   const routes = [
     {
-      href: "/homepage",
+      href: "/",
       label: "Home",
       icon: Home,
-      active: pathname === "/homepage",
+      active: pathname === "/",
     },
     {
       href: "/qa",
@@ -140,10 +140,10 @@ export function NavBar() {
               />
             </div>
             <Link 
-              href="/homepage" 
+              href="/" 
               prefetch={true}
               onClick={() => {
-                if ("/homepage" !== pathname) {
+                if ("/" !== pathname) {
                   setNavigating(true)
                 }
               }}
@@ -311,7 +311,7 @@ export function NavBar() {
                     <div className="h-px my-2 bg-gradient-to-r from-transparent via-purple-200 dark:via-purple-800 to-transparent" />
                     <DropdownMenuItem 
                       className="flex items-center gap-2 px-4 py-3 rounded-lg hover:bg-gradient-to-r from-red-50 to-orange-50 dark:hover:bg-gradient-to-r dark:from-red-900/30 dark:to-orange-900/30 cursor-pointer transition-all duration-300 group"
-                      onClick={() => signOut()}
+                      onClick={() => signOut({ callbackUrl: typeof window !== 'undefined' ? window.location.origin + '/' : '/' })}
                     >
                       <LogOut className="w-4 h-4 text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform duration-300" />
                       <span className="font-medium text-red-600 dark:text-red-400">

@@ -30,22 +30,22 @@ export default function CMUEntraIDCallback() {
             // Then sign in with NextAuth using the CMU provider
             const result = await signIn("cmu", { 
               redirect: false,
-              callbackUrl: "/homepage"
+              callbackUrl: "/"
             });
             
             if (result?.ok) {
-              router.push("/homepage");
+              router.push("/");
             } else {
               console.error("NextAuth sign in failed");
-              router.push("/homepage");
+              router.push("/");
             }
           } else {
             console.error("Login failed:", data.message);
-            router.push("/homepage");
+            router.push("/");
           }
         } catch (error) {
           console.error("Error during login:", error);
-          router.push("/homepage");
+          router.push("/");
         }
       }
     };
