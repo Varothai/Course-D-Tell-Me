@@ -6,7 +6,7 @@ import { useLanguage } from "@/providers/language-provider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark, ChevronDown, ChevronUp, MoreVertical, Edit, Trash, Search, MoreHorizontal, Building2, Globe } from 'lucide-react'
+import { MessageSquare, ThumbsUp, ThumbsDown, Bookmark, ChevronDown, ChevronUp, MoreVertical, Edit, Trash, Search, MoreHorizontal, Building2, Globe, X } from 'lucide-react'
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 const QAFormDialog = dynamic(
   () => import("@/components/qa-form-dialog").then(mod => mod.QAFormDialog),
@@ -151,6 +151,11 @@ export default function QAPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     fetchQuestions(searchQuery.trim())
+  }
+
+  const handleClearSearch = () => {
+    setSearchQuery('')
+    fetchQuestions('')
   }
 
   useEffect(() => {
@@ -650,8 +655,18 @@ export default function QAPage() {
                 placeholder="Search keywords..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white/90 dark:bg-gray-800/90 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-base"
+                className={`pl-10 ${searchQuery ? 'pr-10' : ''} bg-white/90 dark:bg-gray-800/90 border-purple-200 dark:border-purple-800 focus:ring-purple-500 text-base`}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  aria-label="Clear search"
+                >
+                  <X size={18} />
+                </button>
+              )}
             </div>
             <Button 
               type="submit"

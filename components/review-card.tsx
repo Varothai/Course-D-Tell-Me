@@ -933,7 +933,7 @@ export function ReviewCard({
                 {/* Desktop: Action buttons - positioned below review text, aligned with review section */}
                 <div className="hidden sm:flex sm:flex-wrap sm:items-center sm:justify-start sm:gap-2 sm:mt-2">
                   {/* Reaction Buttons */}
-                  <div className="flex items-center gap-1 bg-white/50 dark:bg-gray-800/50 rounded-full px-2 py-1 border border-purple-200 dark:border-purple-800">
+                  <div className="flex items-center gap-1.5 bg-white/50 dark:bg-gray-800/50 rounded-full px-2.5 py-1.5 border border-purple-200 dark:border-purple-800">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -947,13 +947,11 @@ export function ReviewCard({
                       }`}
                       title="👍 Thumbs Up"
                     >
-                      <span className="text-sm">👍</span>
+                      <span className="text-base">👍</span>
                     </Button>
-                    {reactions.thumbsUp?.length > 0 && (
-                      <span className="text-xs text-muted-foreground min-w-[20px] text-center">
-                        {reactions.thumbsUp.length}
-                      </span>
-                    )}
+                    <span className="text-xs text-muted-foreground min-w-[20px] text-center">
+                      {reactions.thumbsUp?.length ?? 0}
+                    </span>
                     
                     <Button
                       variant="ghost"
@@ -968,13 +966,11 @@ export function ReviewCard({
                       }`}
                       title="❤️ Heart"
                     >
-                      <span className="text-sm">❤️</span>
+                      <span className="text-base">❤️</span>
                     </Button>
-                    {reactions.heart?.length > 0 && (
-                      <span className="text-xs text-muted-foreground min-w-[20px] text-center">
-                        {reactions.heart.length}
-                      </span>
-                    )}
+                    <span className="text-xs text-muted-foreground min-w-[20px] text-center">
+                      {reactions.heart?.length ?? 0}
+                    </span>
                     
                     <Button
                       variant="ghost"
@@ -989,13 +985,11 @@ export function ReviewCard({
                       }`}
                       title="😂 Laugh"
                     >
-                      <span className="text-sm">😂</span>
+                      <span className="text-base">😂</span>
                     </Button>
-                    {reactions.laugh?.length > 0 && (
-                      <span className="text-xs text-muted-foreground min-w-[20px] text-center">
-                        {reactions.laugh.length}
-                      </span>
-                    )}
+                    <span className="text-xs text-muted-foreground min-w-[20px] text-center">
+                      {reactions.laugh?.length ?? 0}
+                    </span>
                     
                     <Button
                       variant="ghost"
@@ -1010,13 +1004,11 @@ export function ReviewCard({
                       }`}
                       title="😮 Surprised"
                     >
-                      <span className="text-sm">😮</span>
+                      <span className="text-base">😮</span>
                     </Button>
-                    {reactions.surprised?.length > 0 && (
-                      <span className="text-xs text-muted-foreground min-w-[20px] text-center">
-                        {reactions.surprised.length}
-                      </span>
-                    )}
+                    <span className="text-xs text-muted-foreground min-w-[20px] text-center">
+                      {reactions.surprised?.length ?? 0}
+                    </span>
                     
                     <Button
                       variant="ghost"
@@ -1031,13 +1023,11 @@ export function ReviewCard({
                       }`}
                       title="😢 Sad"
                     >
-                      <span className="text-sm">😢</span>
+                      <span className="text-base">😢</span>
                     </Button>
-                    {reactions.sad?.length > 0 && (
-                      <span className="text-xs text-muted-foreground min-w-[20px] text-center">
-                        {reactions.sad.length}
-                      </span>
-                    )}
+                    <span className="text-xs text-muted-foreground min-w-[20px] text-center">
+                      {reactions.sad?.length ?? 0}
+                    </span>
                   </div>
 
                   <Button
@@ -1112,9 +1102,9 @@ export function ReviewCard({
               </div>
               
               {/* Mobile: Compact Action buttons */}
-              <div className="flex flex-wrap items-center gap-1.5 mb-2">
+              <div className="flex flex-col gap-1.5 mb-2">
                   {/* Mobile Reaction Buttons */}
-                  <div className="flex items-center gap-0.5 bg-white/80 dark:bg-gray-800/80 rounded-full px-1.5 py-1 border border-purple-200 dark:border-purple-800 flex-1 min-w-[200px]">
+                  <div className="flex items-center justify-between gap-1.5 bg-white/80 dark:bg-gray-800/80 rounded-xl px-3 py-2 border border-purple-200 dark:border-purple-800 w-full">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1123,18 +1113,16 @@ export function ReviewCard({
                         handleReaction('thumbsUp')
                       }}
                       disabled={isReacting}
-                      className={`h-6 w-6 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                      className={`h-8 w-8 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
                         userReaction === 'thumbsUp' ? "bg-purple-100 dark:bg-purple-900/50" : ""
                       }`}
+                      title="Thumbs up"
                     >
-                      <span className="text-xs">👍</span>
+                      <span className="text-base">👍</span>
                     </Button>
-                    {reactions.thumbsUp?.length > 0 && (
-                      <span className="text-[10px] text-muted-foreground min-w-[15px] text-center">
-                        {reactions.thumbsUp.length}
-                      </span>
-                    )}
-                    
+                    <span className="text-[11px] text-muted-foreground min-w-[18px] text-center">
+                      {reactions.thumbsUp?.length ?? 0}
+                    </span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1143,18 +1131,16 @@ export function ReviewCard({
                         handleReaction('heart')
                       }}
                       disabled={isReacting}
-                      className={`h-6 w-6 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                      className={`h-8 w-8 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
                         userReaction === 'heart' ? "bg-purple-100 dark:bg-purple-900/50" : ""
                       }`}
+                      title="Heart"
                     >
-                      <span className="text-xs">❤️</span>
+                      <span className="text-base">❤️</span>
                     </Button>
-                    {reactions.heart?.length > 0 && (
-                      <span className="text-[10px] text-muted-foreground min-w-[15px] text-center">
-                        {reactions.heart.length}
-                      </span>
-                    )}
-                    
+                    <span className="text-[11px] text-muted-foreground min-w-[18px] text-center">
+                      {reactions.heart?.length ?? 0}
+                    </span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1163,18 +1149,16 @@ export function ReviewCard({
                         handleReaction('laugh')
                       }}
                       disabled={isReacting}
-                      className={`h-6 w-6 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                      className={`h-8 w-8 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
                         userReaction === 'laugh' ? "bg-purple-100 dark:bg-purple-900/50" : ""
                       }`}
+                      title="Laugh"
                     >
-                      <span className="text-xs">😂</span>
+                      <span className="text-base">😂</span>
                     </Button>
-                    {reactions.laugh?.length > 0 && (
-                      <span className="text-[10px] text-muted-foreground min-w-[15px] text-center">
-                        {reactions.laugh.length}
-                      </span>
-                    )}
-                    
+                    <span className="text-[11px] text-muted-foreground min-w-[18px] text-center">
+                      {reactions.laugh?.length ?? 0}
+                    </span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1183,18 +1167,16 @@ export function ReviewCard({
                         handleReaction('surprised')
                       }}
                       disabled={isReacting}
-                      className={`h-6 w-6 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                      className={`h-8 w-8 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
                         userReaction === 'surprised' ? "bg-purple-100 dark:bg-purple-900/50" : ""
                       }`}
+                      title="Surprised"
                     >
-                      <span className="text-xs">😮</span>
+                      <span className="text-base">😮</span>
                     </Button>
-                    {reactions.surprised?.length > 0 && (
-                      <span className="text-[10px] text-muted-foreground min-w-[15px] text-center">
-                        {reactions.surprised.length}
-                      </span>
-                    )}
-                    
+                    <span className="text-[11px] text-muted-foreground min-w-[18px] text-center">
+                      {reactions.surprised?.length ?? 0}
+                    </span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -1203,74 +1185,75 @@ export function ReviewCard({
                         handleReaction('sad')
                       }}
                       disabled={isReacting}
-                      className={`h-6 w-6 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
+                      className={`h-8 w-8 p-0 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 ${
                         userReaction === 'sad' ? "bg-purple-100 dark:bg-purple-900/50" : ""
                       }`}
+                      title="Sad"
                     >
-                      <span className="text-xs">😢</span>
+                      <span className="text-base">😢</span>
                     </Button>
-                    {reactions.sad?.length > 0 && (
-                      <span className="text-[10px] text-muted-foreground min-w-[15px] text-center">
-                        {reactions.sad.length}
-                      </span>
-                    )}
+                    <span className="text-[11px] text-muted-foreground min-w-[18px] text-center">
+                      {reactions.sad?.length ?? 0}
+                    </span>
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setExpandedComments(!expandedComments)
-                    }}
-                    className={`h-8 text-xs rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 flex-1 min-w-[100px] ${
-                      expandedComments
-                        ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
-                        : ""
-                    }`}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 mr-1" />
-                    <span className="text-xs">
-                      {comments.length} {content.comments}
-                    </span>
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setExpandedComments(!expandedComments)
+                      }}
+                      className={`h-8 text-xs rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 flex-1 min-w-[100px] ${
+                        expandedComments
+                          ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300"
+                          : ""
+                      }`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                      <span className="text-xs">
+                        {comments.length} {content.comments}
+                      </span>
+                    </Button>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs bg-white/80 dark:bg-gray-800/80 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full flex-1 min-w-[100px] border-purple-200 dark:border-purple-800"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      navigate(`/course/${review.courseId}`)
-                    }}
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 mr-1" />
-                    <span className="text-xs">Reviews</span>
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs bg-white/80 dark:bg-gray-800/80 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 rounded-full flex-1 min-w-[100px] border-purple-200 dark:border-purple-800"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/course/${review.courseId}`)
+                      }}
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                      <span className="text-xs">Reviews</span>
+                    </Button>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleProtectedAction(toggleBookmark);
-                    }}
-                    className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 flex-1 min-w-[100px] ${
-                      isBookmarked ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300" : ""
-                    }`}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
-                    ) : isBookmarked ? (
-                      <BookmarkSolidIcon className="w-3.5 h-3.5 mr-1 text-purple-500" />
-                    ) : (
-                      <BookmarkIcon className="w-3.5 h-3.5 mr-1" />
-                    )}
-                    <span className="text-xs">
-                      {isBookmarked ? "Saved" : "Save"}
-                    </span>
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleProtectedAction(toggleBookmark);
+                      }}
+                      className={`h-8 rounded-full hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300 flex-1 min-w-[100px] ${
+                        isBookmarked ? "bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300" : ""
+                      }`}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                      ) : isBookmarked ? (
+                        <BookmarkSolidIcon className="w-3.5 h-3.5 mr-1 text-purple-500" />
+                      ) : (
+                        <BookmarkIcon className="w-3.5 h-3.5 mr-1" />
+                      )}
+                      <span className="text-xs">
+                        {isBookmarked ? "Saved" : "Save"}
+                      </span>
+                    </Button>
+                  </div>
               </div>
             </div>
 

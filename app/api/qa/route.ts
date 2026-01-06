@@ -84,9 +84,10 @@ export async function GET(request: Request) {
     // Get search query from URL
     const { searchParams } = new URL(request.url)
     const searchQuery = searchParams.get('search')?.toLowerCase() || ''
+    const userEmail = searchParams.get('userEmail')
     
     // Build search query
-    const query = searchQuery 
+    const query: Record<string, any> = searchQuery 
       ? { 
           $or: [
             { question: { $regex: searchQuery, $options: 'i' } },
@@ -94,6 +95,11 @@ export async function GET(request: Request) {
           ]
         }
       : {}
+
+    // Optional filter for a specific user's posts
+    if (userEmail) {
+      query.userEmail = userEmail
+    }
     
     // Get questions with search filter
     const qas = await Question.find(query)
