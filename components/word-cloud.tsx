@@ -95,11 +95,8 @@ export function WordCloud({ courseId }: WordCloudProps) {
     )
   }
 
-  if (words.length === 0) {
-    return null
-  }
-
-  const maxCount = Math.max(...words.map(w => w.count))
+  const hasWords = words.length > 0
+  const maxCount = hasWords ? Math.max(...words.map(w => w.count)) : 0
   const colors = [
     'text-purple-600 dark:text-purple-400',
     'text-pink-600 dark:text-pink-400',
@@ -135,26 +132,32 @@ export function WordCloud({ courseId }: WordCloudProps) {
         className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white/60 dark:bg-gray-800/60 rounded-lg backdrop-blur-sm min-h-[150px] sm:min-h-[180px]"
         style={{ lineHeight: '1.6' }}
       >
-        {words.map((wordData, index) => {
-          const fontSize = getFontSize(wordData.count, maxCount)
-          const opacity = getOpacity(wordData.count, maxCount)
-          const colorClass = colors[index % colors.length]
-          
-          return (
-            <span
-              key={`${wordData.word}-${index}`}
-              className={`${colorClass} font-medium hover:scale-110 transition-transform cursor-default inline-block`}
-              style={{
-                fontSize: `${fontSize}px`,
-                opacity,
-                fontWeight: fontSize > 30 ? 700 : fontSize > 20 ? 600 : 500
-              }}
-              title={`Mentioned ${wordData.count} time${wordData.count !== 1 ? 's' : ''}`}
-            >
-              {wordData.word}
-            </span>
-          )
-        })}
+        {hasWords ? (
+          words.map((wordData, index) => {
+            const fontSize = getFontSize(wordData.count, maxCount)
+            const opacity = getOpacity(wordData.count, maxCount)
+            const colorClass = colors[index % colors.length]
+            
+            return (
+              <span
+                key={`${wordData.word}-${index}`}
+                className={`${colorClass} font-medium hover:scale-110 transition-transform cursor-default inline-block`}
+                style={{
+                  fontSize: `${fontSize}px`,
+                  opacity,
+                  fontWeight: fontSize > 30 ? 700 : fontSize > 20 ? 600 : 500
+                }}
+                title={`Mentioned ${wordData.count} time${wordData.count !== 1 ? 's' : ''}`}
+              >
+                {wordData.word}
+              </span>
+            )
+          })
+        ) : (
+          <p className="text-sm text-muted-foreground text-center w-full">
+            Word cloud will appear once reviews are available for this course.
+          </p>
+        )}
       </div>
 
       <p className="text-xs text-muted-foreground mt-3 sm:mt-4 text-center">

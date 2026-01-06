@@ -305,12 +305,10 @@ export default function CoursePage() {
 
       {/* Word Cloud and Charts Section - Side by Side */}
       <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Word Cloud - Takes 1 column on mobile, 1 on tablet, 1 on desktop */}
-        {reviews.length > 0 && (
-          <div className="lg:col-span-1">
-            <WordCloud courseId={courseId} />
-          </div>
-        )}
+        {/* Word Cloud - Always visible, even when no reviews yet */}
+        <div className="lg:col-span-1">
+          <WordCloud courseId={courseId} />
+        </div>
         
         {/* Charts - Takes full width on mobile, 2 columns on tablet+, 2 columns on desktop when word cloud present */}
         <div className={`grid md:grid-cols-2 gap-4 sm:gap-6 ${reviews.length > 0 ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
