@@ -32,6 +32,17 @@ async function getEmtraIDAccessTokenAsync(
     const clientSecret = process.env.CMU_ENTRAID_CLIENT_SECRET as string;
     const scope = process.env.SCOPE as string;
 
+    if (!tokenUrl || !redirectUrl || !clientId || !clientSecret || !scope) {
+      console.error("Missing EntraID configuration:", {
+        hasTokenUrl: !!tokenUrl,
+        hasRedirectUrl: !!redirectUrl,
+        hasClientId: !!clientId,
+        hasClientSecret: !!clientSecret,
+        hasScope: !!scope,
+      });
+      return null;
+    }
+
     const response = await axios.post(
       tokenUrl,
       {
@@ -50,7 +61,12 @@ async function getEmtraIDAccessTokenAsync(
     ); 
 
     return response.data.access_token;    
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Error getting EntraID access token:", {
+      message: error?.message,
+      response: error?.response?.data,
+      status: error?.response?.status,
+    });
     return null;
   }
 }
@@ -58,6 +74,10 @@ async function getEmtraIDAccessTokenAsync(
 async function getCMUBasicInfoAsync(accessToken: string) {
   try {
     const besicinfoUrl = process.env.CMU_ENTRAID_GET_BASIC_INFO as string;
+    if (!besicinfoUrl) {
+      console.error("Missing CMU_ENTRAID_GET_BASIC_INFO environment variable");
+      return null;
+    }
     const response = await axios.get(
       besicinfoUrl,
       {
@@ -65,7 +85,12 @@ async function getCMUBasicInfoAsync(accessToken: string) {
       }
     );
     return response.data as CmuEntraIDBasicInfo;
-  } catch (err) {
+  } catch (err: any) {
+    console.error("Error getting CMU basic info:", {
+      message: err?.message,
+      response: err?.response?.data,
+      status: err?.response?.status,
+    });
     return null;
   }
 }
@@ -132,7 +157,7 @@ export async function POST(
   //Note that this is server side code. We can write client cookie from the server. This is normal.
   //You can view cookie in the browser devtools (F12). Open tab "Application" -> "Cookies"
   const cookieStore = await cookies();
-  cookieStore.set({
+  const cookieOptions: any = {
     name : "cmu-entraid-example-token",
     value: token,
     maxAge: 3600,
@@ -143,9 +168,15 @@ export async function POST(
     //force cookie to use HTTPS only in production code
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    //change to your hostname in production
-    domain: "localhost",
-  });
+  };
+  
+  // Only set domain for localhost in development
+  // In production, omit domain to let browser set it automatically
+  if (process.env.NODE_ENV === "development") {
+    cookieOptions.domain = "localhost";
+  }
+  
+  cookieStore.set(cookieOptions);
   return NextResponse.json({ ok: true});
 }
 

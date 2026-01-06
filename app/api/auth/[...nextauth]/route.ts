@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken"
 import { cookies } from "next/headers"
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -16,12 +17,20 @@ export const authOptions: NextAuthOptions = {
       name: "CMU Account",
       credentials: {},
       async authorize(credentials, req) {
-        const cookieStore = cookies()
-        const token = cookieStore.get('cmu-entraid-example-token')?.value
-
-        if (!token) return null
-
         try {
+          const cookieStore = await cookies()
+          const token = cookieStore.get('cmu-entraid-example-token')?.value
+
+          if (!token) {
+            console.error("CMU auth: No token found in cookies")
+            return null
+          }
+
+          if (!process.env.JWT_SECRET) {
+            console.error("CMU auth: JWT_SECRET not configured")
+            return null
+          }
+
           const decoded = jwt.verify(
             token,
             process.env.JWT_SECRET as string
@@ -32,7 +41,11 @@ export const authOptions: NextAuthOptions = {
             name: `${decoded.firstname_EN} ${decoded.lastname_EN}`,
             email: decoded.cmuitaccount,
           }
-        } catch {
+        } catch (error: any) {
+          console.error("CMU auth: Token verification failed", {
+            message: error?.message,
+            name: error?.name,
+          })
           return null
         }
       }

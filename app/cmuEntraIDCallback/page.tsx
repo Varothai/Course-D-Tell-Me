@@ -36,11 +36,14 @@ export default function CMUEntraIDCallback() {
             if (result?.ok) {
               router.push("/");
             } else {
-              console.error("NextAuth sign in failed");
+              console.error("NextAuth sign in failed:", result?.error);
+              // Show error to user or redirect to error page
+              alert(`Sign in failed: ${result?.error || "Unknown error"}`);
               router.push("/");
             }
           } else {
             console.error("Login failed:", data.message);
+            alert(`Login failed: ${data.message}`);
             router.push("/");
           }
         } catch (error) {
