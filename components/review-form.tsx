@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Star, Loader2, ChevronUp, ChevronDown, Sparkles, X } from "lucide-react"
+import { Star, Loader2, ChevronUp, ChevronDown, Sparkles, X, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -28,6 +28,13 @@ import { useAuth } from "@/contexts/auth-context"
 import { Switch } from "@/components/ui/switch"
 import { analyzeText } from '@/utils/text-analysis'
 import { toast } from "@/components/ui/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 
 interface ReviewFormProps {
   courseId?: string
@@ -154,6 +161,7 @@ export function ReviewForm({
   } | null>(null)
   const [isLoadingAiSuggestions, setIsLoadingAiSuggestions] = useState(false)
   const [showAiSuggestions, setShowAiSuggestions] = useState(false)
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
 
   // Note: Auth check is now handled at the button level, so this effect is no longer needed
   // The dialog will only open if the user is authenticated
@@ -517,9 +525,15 @@ export function ReviewForm({
             duration: 3000,
           })
 
-          // Close form and trigger success callback
-          onClose?.()
-          onSubmitSuccess?.()
+          // Show success dialog popup
+          setShowSuccessDialog(true)
+
+          // Auto-close dialog and form after 3 seconds
+          setTimeout(() => {
+            setShowSuccessDialog(false)
+            onClose?.()
+            onSubmitSuccess?.()
+          }, 3000)
         }
       }
     } catch (error) {
@@ -1093,6 +1107,49 @@ export function ReviewForm({
           Analyzing review content...
         </div>
       )}
+
+      {/* Success Dialog Popup */}
+      <Dialog 
+        open={showSuccessDialog} 
+        onOpenChange={(open) => {
+          setShowSuccessDialog(open)
+          if (!open) {
+            // Close form when dialog is closed
+            onClose?.()
+            onSubmitSuccess?.()
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex flex-col items-center justify-center space-y-4 py-4">
+              <div className="rounded-full bg-green-100 dark:bg-green-900/30 p-4">
+                <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400" />
+              </div>
+              <DialogTitle className="text-2xl font-bold text-center text-green-600 dark:text-green-400">
+                {language === "en" ? "Success!" : "สำเร็จ!"}
+              </DialogTitle>
+              <DialogDescription className="text-center text-base">
+                {language === "en" 
+                  ? "Your review has been posted successfully!" 
+                  : "รีวิวของคุณถูกโพสต์สำเร็จแล้ว!"}
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+          <div className="flex justify-center pb-4">
+            <Button
+              onClick={() => {
+                setShowSuccessDialog(false)
+                onClose?.()
+                onSubmitSuccess?.()
+              }}
+              className="bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white"
+            >
+              {language === "en" ? "OK" : "ตกลง"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
