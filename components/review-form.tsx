@@ -795,12 +795,18 @@ export function ReviewForm({
               value={formData.section}
               onChange={(e) => {
                 const value = e.target.value;
-                if (/^\d*$/.test(value)) {
+                // Allow numbers and dash (-)
+                if (/^[\d-]*$/.test(value)) {
                   setFormData({ ...formData, section: value });
                 }
               }}
               className="w-full px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 text-sm sm:text-base h-10"
             />
+            <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
+              {language === "en" 
+                ? "If you're unsure, you can put -" 
+                : "ถ้าไม่แน่ใจหรือจำไม่ได้ สามารถใส่ -"}
+            </p>
           </div>
           <div>
             <Label className="block mb-2 text-sm sm:text-base">{content.electiveTypes}</Label>
