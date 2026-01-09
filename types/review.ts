@@ -134,6 +134,11 @@ export interface LocaleContent {
   majorSelection: {
     placeholder: string
   }
+  helperText?: {
+    faculty: string
+    major: string
+    programType: string
+  }
   likes: string
   dislikes: string
   comments: string

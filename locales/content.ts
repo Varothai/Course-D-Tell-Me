@@ -88,6 +88,11 @@ export const localeContent: Record<string, LocaleContent> = {
     majorSelection: {
       placeholder: "Please specify your major",
     },
+    helperText: {
+      faculty: "Select your own faculty",
+      major: "Select your own major",
+      programType: "Select your own program type",
+    },
     review: {
       inappropriateWarning: "Please edit your review. The content may be inappropriate.",
       pleaseRefine: "Please refine your review to maintain a respectful community.",
@@ -189,6 +194,11 @@ export const localeContent: Record<string, LocaleContent> = {
     trilingualProgram: "สามภาษา Trilingual",
     majorSelection: {
       placeholder: "Please specify your major",
+    },
+    helperText: {
+      faculty: "เลือกคณะของตัวเอง",
+      major: "เลือกสาขาของตัวเอง",
+      programType: "เลือกประเภทหลักสูตรของตัวเอง",
     },
     review: {
       inappropriateWarning: "กรุณาแก้ไขรีวิวของคุณ เนื่องจากพบเนื้อหาที่อาจไม่เหมาะสม",

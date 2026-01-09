@@ -737,6 +737,9 @@ export function ReviewForm({
                 ))}
               </FacultySelectContent>
             </Select>
+            <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
+              {content.helperText?.faculty || (language === "en" ? "Select your own faculty" : "เลือกคณะของตัวเอง")}
+            </p>
           </div>
           <div>
             <Select
@@ -761,6 +764,9 @@ export function ReviewForm({
                 )}
               </SelectContent>
             </Select>
+            <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
+              {content.helperText?.major || (language === "en" ? "Select your own major" : "เลือกสาขาของตัวเอง")}
+            </p>
             {formData.major === "Others" && (
               <Input
                 type="text"
@@ -787,6 +793,9 @@ export function ReviewForm({
                 <SelectItem value="trilingual" className="text-sm cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/50">{content.trilingualProgram}</SelectItem>
               </SelectContent>
             </Select>
+            <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
+              {content.helperText?.programType || (language === "en" ? "Select your own program type" : "เลือกประเภทหลักสูตรของตัวเอง")}
+            </p>
           </div>
           <div>
             <Input
