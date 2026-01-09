@@ -69,16 +69,41 @@ export function ReviewDialog({ review, open, action }: ReviewDialogProps) {
             </span>
           </div>
 
-          {/* Course Details */}
+          {/* Course Information */}
           <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
             <div className="col-span-1 sm:col-span-2">
               <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3 sm:mb-4">
-                Course Information
+                {content.courseInformation}
               </h3>
             </div>
             {[
               { label: content.courseNo, value: review.courseId },
               { label: content.courseName, value: review.courseName },
+              { label: 'Sec', value: review.section },
+              { label: content.electiveTypes, value: review.electiveType && review.electiveType !== 'none' && 
+                (review.electiveType === 'free' ? content.freeElective : 
+                 review.electiveType === 'general' ? content.generalElective :
+                 review.electiveType === 'major' ? content.majorElective : null) }
+            ].filter(item => item.value).map((item, index) => (
+              <div key={index} className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-3 sm:p-4">
+                <label className="text-xs sm:text-sm text-purple-600 dark:text-purple-300 block mb-1">
+                  {item.label}
+                </label>
+                <p className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">
+                  {item.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Author's Information */}
+          <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
+            <div className="col-span-1 sm:col-span-2">
+              <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3 sm:mb-4">
+                {content.authorsInfo}
+              </h3>
+            </div>
+            {[
               { label: content.faculty, value: review.faculty && getFacultyLabel(review.faculty) },
               { label: content.major, value: review.major && getMajorLabel(review.faculty || '', review.major) },
               { label: content.programTypes, value: review.programType && {
@@ -87,12 +112,7 @@ export function ReviewDialog({ review, open, action }: ReviewDialogProps) {
                 'international': content.internationalProgram,
                 'bilingual': content.bilingualProgram,
                 'trilingual': content.trilingualProgram
-              }[review.programType] },
-              { label: 'Sec', value: review.section },
-              { label: content.electiveTypes, value: review.electiveType && review.electiveType !== 'none' && 
-                (review.electiveType === 'free' ? content.freeElective : 
-                 review.electiveType === 'general' ? content.generalElective :
-                 review.electiveType === 'major' ? content.majorElective : null) }
+              }[review.programType] }
             ].filter(item => item.value).map((item, index) => (
               <div key={index} className="bg-purple-50/50 dark:bg-purple-900/20 rounded-lg p-3 sm:p-4">
                 <label className="text-xs sm:text-sm text-purple-600 dark:text-purple-300 block mb-1">

@@ -93,6 +93,8 @@ export const localeContent: Record<string, LocaleContent> = {
       major: "Select your own major",
       programType: "Select your own program type",
     },
+    courseInformation: "Course Information",
+    authorsInfo: "Author's Information",
     review: {
       inappropriateWarning: "Please edit your review. The content may be inappropriate.",
       pleaseRefine: "Please refine your review to maintain a respectful community.",
@@ -200,6 +202,8 @@ export const localeContent: Record<string, LocaleContent> = {
       major: "เลือกสาขาของตัวเอง",
       programType: "เลือกประเภทหลักสูตรของตัวเอง",
     },
+    courseInformation: "ข้อมูลวิชา",
+    authorsInfo: "ข้อมูลผู้เขียน",
     review: {
       inappropriateWarning: "กรุณาแก้ไขรีวิวของคุณ เนื่องจากพบเนื้อหาที่อาจไม่เหมาะสม",
       pleaseRefine: "กรุณาปรับแก้รีวิวของคุณเพื่อรักษามาตรฐานของชุมชน",

@@ -139,6 +139,8 @@ export interface LocaleContent {
     major: string
     programType: string
   }
+  courseInformation: string
+  authorsInfo: string
   likes: string
   dislikes: string
   comments: string
