@@ -580,7 +580,7 @@ export function ReviewForm({
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span className="hidden sm:inline">AI Assistant</span>
+                  <span className="hidden sm:inline">Review Assistant</span>
                 </>
               )}
             </Button>
