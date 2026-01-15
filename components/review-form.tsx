@@ -162,6 +162,7 @@ export function ReviewForm({
   const [isLoadingAiSuggestions, setIsLoadingAiSuggestions] = useState(false)
   const [showAiSuggestions, setShowAiSuggestions] = useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [missingFieldIds, setMissingFieldIds] = useState<string[]>([])
 
   // Note: Auth check is now handled at the button level, so this effect is no longer needed
   // The dialog will only open if the user is authenticated
@@ -355,12 +356,14 @@ export function ReviewForm({
     pattern: "\\d{6}", // Regex pattern to allow only 6 digit numbers
     title: "Course ID must be a 6 digit number",
     maxLength: 6, // Limit input to 6 characters
+    id: "course-id-input",
   }
 
   const inputPropsCourseName = {
     placeholder: "Enter Course Name",
     value: formData.courseName,
     onChange: onCourseNameChange,
+    id: "course-name-input",
   }
 
   const handleFacultyChange = (value: string) => {
@@ -421,7 +424,101 @@ export function ReviewForm({
   }
 
   const handleSubmit = async () => {
-    if (!verified || !rating) return
+    // Validate required fields on click so we can show helpful feedback.
+    // Button gating alone prevents any alert from appearing.
+    const missingFields: { id: string; label: string }[] = []
+
+    if (!verified) {
+      missingFields.push({
+        id: "confirm-checkbox",
+        label:
+          language === "en"
+            ? "Confirmation checkbox"
+            : "ยืนยันว่าไม่มีคำไม่เหมาะสม",
+      })
+    }
+
+    if (!rating) {
+      missingFields.push({
+        id: "rating-stars",
+        label: content.ratingStar,
+      })
+    }
+
+    if (!formData.courseNo || formData.courseNo.trim() === "") {
+      missingFields.push({
+        id: "course-id-input",
+        label: language === "en" ? "Course ID" : "รหัสวิชา",
+      })
+    }
+
+    if (!formData.courseName || formData.courseName.trim() === "") {
+      missingFields.push({
+        id: "course-name-input",
+        label: language === "en" ? "Course Name" : "ชื่อวิชา",
+      })
+    }
+
+    if (!formData.section || formData.section.trim() === "") {
+      missingFields.push({
+        id: "section-input",
+        label: language === "en" ? "Section" : "Section",
+      })
+    }
+
+    // Emoji ratings
+    if (formData.readingAmount === 0) {
+      missingFields.push({
+        id: "homework-emoji",
+        label: content.homeworkAmount,
+      })
+    }
+
+    if (formData.contentDifficulty === 0) {
+      missingFields.push({
+        id: "content-emoji",
+        label: content.contentInterest,
+      })
+    }
+
+    if (formData.teachingQuality === 0) {
+      missingFields.push({
+        id: "teaching-emoji",
+        label: content.teachingQuality,
+      })
+    }
+
+    if (missingFields.length > 0) {
+      setMissingFieldIds(missingFields.map((f) => f.id))
+      const labels = missingFields.map((f) => f.label)
+      toast({
+        title: language === "en" ? "Missing Required Fields" : "กรุณากรอกข้อมูลที่จำเป็น",
+        description:
+          language === "en"
+            ? `Please fill in: ${labels.join(", ")}`
+            : `กรุณากรอก/เลือก: ${labels.join(", ")}`,
+        variant: "destructive",
+        duration: 5000,
+      })
+
+      // Scroll to the first missing field so the user clearly sees it.
+      if (typeof document !== "undefined") {
+        const first = missingFields[0]
+        const el = document.getElementById(first.id)
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" })
+          if ("focus" in el && typeof (el as any).focus === "function") {
+            ;(el as HTMLElement).focus()
+          }
+        }
+      }
+      return
+    }
+    
+    // Clear any previous error highlights when validation passes
+    if (missingFieldIds.length > 0) {
+      setMissingFieldIds([])
+    }
     
     setIsSubmitting(true)
     setIsAnalyzing(true)
@@ -663,7 +760,10 @@ export function ReviewForm({
           )}
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-4 bg-white/80 dark:bg-gray-800/80 p-3 sm:p-4 rounded-lg sm:rounded-xl backdrop-blur-sm">
+        <div
+          id="rating-stars"
+          className="flex items-center gap-3 sm:gap-4 bg-white/80 dark:bg-gray-800/80 p-3 sm:p-4 rounded-lg sm:rounded-xl backdrop-blur-sm"
+        >
           <div className="flex">
             {[1, 2, 3, 4, 5].map((index) => (
               <Star
@@ -679,9 +779,18 @@ export function ReviewForm({
               />
             ))}
           </div>
-          <span className="text-sm sm:text-lg text-purple-700 dark:text-purple-300 font-medium">
-            {content.ratingStar}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-sm sm:text-lg text-purple-700 dark:text-purple-300 font-medium">
+              {content.ratingStar}
+            </span>
+            {missingFieldIds.includes("rating-stars") && (
+              <span className="text-xs text-red-500 mt-0.5">
+                {language === "en"
+                  ? "* Please select a star rating"
+                  : "* กรุณาให้คะแนนดาว"}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -702,6 +811,13 @@ export function ReviewForm({
                 suggestionHighlighted: 'bg-purple-100 dark:bg-purple-800/50'
               }}
             />
+            {missingFieldIds.includes("course-id-input") && (
+              <p className="mt-1 text-xs text-red-500">
+                {language === "en"
+                  ? "* Please fill in the Course ID"
+                  : "* กรุณากรอกรหัสวิชา"}
+              </p>
+            )}
           </div>
           <div className="col-span-1 sm:col-span-2 md:col-span-1">
             <Autosuggest
@@ -720,6 +836,13 @@ export function ReviewForm({
                 suggestionHighlighted: 'bg-purple-100 dark:bg-purple-800/50'
               }}
             />
+            {missingFieldIds.includes("course-name-input") && (
+              <p className="mt-1 text-xs text-red-500">
+                {language === "en"
+                  ? "* Please fill in the Course Name"
+                  : "* กรุณากรอกชื่อวิชา"}
+              </p>
+            )}
           </div>
           <div>
             <Select
@@ -809,6 +932,7 @@ export function ReviewForm({
                   setFormData({ ...formData, section: value });
                 }
               }}
+              id="section-input"
               className="w-full px-3 sm:px-4 py-2.5 sm:py-2 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 border-2 border-purple-200 dark:border-purple-800 focus:border-purple-500 focus:ring-purple-500 transition-all duration-300 text-sm sm:text-base h-10"
             />
             <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground">
@@ -816,6 +940,13 @@ export function ReviewForm({
                 ? "If you're unsure, you can put -" 
                 : "ถ้าไม่แน่ใจหรือจำไม่ได้ สามารถใส่ -"}
             </p>
+            {missingFieldIds.includes("section-input") && (
+              <p className="mt-0.5 text-xs text-red-500">
+                {language === "en"
+                  ? "* Please fill in the Section (or - if unknown)"
+                  : "* กรุณากรอกเซค (หรือใส่ - ถ้าไม่แน่ใจ)"}
+              </p>
+            )}
           </div>
           <div>
             <Label className="block mb-2 text-sm sm:text-base">{content.electiveTypes}</Label>
@@ -870,9 +1001,19 @@ export function ReviewForm({
         </div>
 
         <div className="space-y-3 sm:space-y-1">
-          <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm">
-            <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-3 sm:mb-4 block">
+          <div
+            id="homework-emoji"
+            className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm"
+          >
+            <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-1.5 sm:mb-2 block">
               {content.homeworkAmount}
+              {missingFieldIds.includes("homework-emoji") && (
+                <span className="ml-2 text-xs text-red-500 align-middle">
+                  {language === "en"
+                    ? "* Please select an emoji"
+                    : "* กรุณาเลือกอีโมจิ"}
+                </span>
+              )}
             </Label>
             <div className="flex justify-between items-center">
               <div className="flex gap-2 sm:gap-4">
@@ -901,9 +1042,19 @@ export function ReviewForm({
             </div>
           </div>
 
-          <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm">
-            <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-3 sm:mb-4 block">
+          <div
+            id="content-emoji"
+            className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm"
+          >
+            <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-1.5 sm:mb-2 block">
               {content.contentInterest}
+              {missingFieldIds.includes("content-emoji") && (
+                <span className="ml-2 text-xs text-red-500 align-middle">
+                  {language === "en"
+                    ? "* Please select an emoji"
+                    : "* กรุณาเลือกอีโมจิ"}
+                </span>
+              )}
             </Label>
             <div className="flex justify-between items-center">
               <div className="flex gap-2 sm:gap-4">
@@ -932,9 +1083,19 @@ export function ReviewForm({
             </div>
           </div>
 
-          <div className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm">
-            <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-3 sm:mb-4 block">
+          <div
+            id="teaching-emoji"
+            className="bg-white/80 dark:bg-gray-800/80 rounded-lg sm:rounded-xl p-4 sm:p-6 backdrop-blur-sm"
+          >
+            <Label className="text-base sm:text-lg font-medium text-purple-700 dark:text-purple-300 mb-1.5 sm:mb-2 block">
               {content.teachingQuality}
+              {missingFieldIds.includes("teaching-emoji") && (
+                <span className="ml-2 text-xs text-red-500 align-middle">
+                  {language === "en"
+                    ? "* Please select an emoji"
+                    : "* กรุณาเลือกอีโมจิ"}
+                </span>
+              )}
             </Label>
             <div className="flex justify-between items-center">
               <div className="flex gap-2 sm:gap-4">
@@ -997,12 +1158,20 @@ export function ReviewForm({
           <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
             <input
               type="checkbox"
+              id="confirm-checkbox"
               checked={verified}
               onChange={(e) => setVerified(e.target.checked)}
               className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-purple-200 dark:border-purple-800 text-purple-600 focus:ring-purple-500"
             />
             <Label className="text-red-500 font-medium text-sm sm:text-base">
               {content.verifyContent}
+              {missingFieldIds.includes("confirm-checkbox") && (
+                <span className="ml-1 text-xs text-red-500 align-middle">
+                  {language === "en"
+                    ? "* Please tick this box"
+                    : "* กรุณาติ๊กช่องนี้"}
+                </span>
+              )}
             </Label>
           </div>
 
@@ -1088,7 +1257,7 @@ export function ReviewForm({
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
             <Button 
               className="flex-1 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white h-11 sm:h-10 text-sm sm:text-base font-semibold"
-              disabled={!verified || !rating || isSubmitting}
+              disabled={!verified || isSubmitting}
               onClick={handleSubmit}
             >
               {isSubmitting ? (
