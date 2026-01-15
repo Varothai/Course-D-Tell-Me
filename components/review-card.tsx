@@ -605,11 +605,54 @@ export function ReviewCard({
       return;
     }
 
+    const userId = session.user.email || session.user.id;
+    if (!userId) {
+      return;
+    }
+
+    // Determine the new reaction (toggle off if clicking the same one)
+    const newReaction = userReaction === reactionType ? 'none' : reactionType;
+
+    // Optimistic UI update: update local state immediately for snappy feedback
+    const prevReactions = reactions;
+    const prevUserReaction = userReaction;
+
+    setReactions((current) => {
+      const next = {
+        thumbsUp: [...(current.thumbsUp || [])],
+        heart: [...(current.heart || [])],
+        laugh: [...(current.laugh || [])],
+        surprised: [...(current.surprised || [])],
+        sad: [...(current.sad || [])],
+      };
+
+      // Remove user from all reaction arrays
+      (Object.keys(next) as (keyof typeof next)[]).forEach((key) => {
+        next[key] = next[key].filter((id) => id !== userId);
+      });
+
+      // Add user to the selected reaction if not 'none'
+      if (newReaction !== 'none') {
+        next[newReaction].push(userId);
+      }
+
+      return next;
+    });
+
+    setUserReaction(newReaction);
+    setLocalReview((prev) => ({
+      ...prev,
+      reactions: {
+        thumbsUp: reactions.thumbsUp,
+        heart: reactions.heart,
+        laugh: reactions.laugh,
+        surprised: reactions.surprised,
+        sad: reactions.sad,
+      },
+    }));
+
     setIsReacting(true);
     try {
-      const userId = session.user.email || session.user.id;
-      const newReaction = userReaction === reactionType ? 'none' : reactionType;
-
       const response = await fetch('/api/reviews', {
         method: 'PATCH',
         headers: {
@@ -626,6 +669,9 @@ export function ReviewCard({
       const data = await response.json();
 
       if (!response.ok) {
+        // Roll back optimistic update on error
+        setReactions(prevReactions);
+        setUserReaction(prevUserReaction);
         throw new Error(data.error || 'Failed to update reaction');
       }
 
@@ -648,6 +694,9 @@ export function ReviewCard({
       }
     } catch (error) {
       console.error('Error updating reaction:', error);
+      // Ensure rollback in case of network or other unexpected errors
+      setReactions(prevReactions);
+      setUserReaction(prevUserReaction);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update reaction",
