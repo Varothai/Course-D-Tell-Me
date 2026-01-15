@@ -695,7 +695,7 @@ export function ReviewForm({
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">AI Suggestions</h3>
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100">Review Suggestions</h3>
                 </div>
                 <Button
                   variant="ghost"

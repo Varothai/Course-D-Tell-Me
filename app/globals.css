@@ -140,3 +140,25 @@ body {
 body.modal-open nav {
   display: none !important;
 }
+
+/* Mobile performance: disable expensive effects while scrolling */
+@media (max-width: 640px) {
+  .animate-pulse {
+    animation: none !important;
+  }
+
+  .blur-3xl {
+    filter: none !important;
+  }
+
+  .backdrop-blur-md,
+  .backdrop-blur-sm {
+    backdrop-filter: none !important;
+  }
+
+  /* Skip painting offscreen review cards when supported (Chrome/Android) */
+  .mobile-cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 420px;
+  }
+}

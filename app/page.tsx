@@ -912,7 +912,7 @@ export default function Home() {
           ) : (
             <div className="space-y-6">
               {filteredReviews.map((review) => (
-                <div key={review._id} className="transition-all duration-300">
+                <div key={review._id} className="transition-all duration-300 mobile-cv-auto">
                   <ReviewCard 
                     review={review as unknown as Review & { isAnonymous?: boolean; timestamp: string; _id: string; userId: string }}
                     likeAction={handleLike}

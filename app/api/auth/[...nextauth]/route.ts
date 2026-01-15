@@ -52,16 +52,28 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async session({ session, token }) {
+    async session({ session, token, user }) {
       if (session.user) {
         session.user.id = token.sub as string
         session.user.provider = token.provider as string
+        // Include CMU organization data if available
+        if (token.organization_name_EN) {
+          session.user.organization_name_EN = token.organization_name_EN as string
+          session.user.organization_name_TH = token.organization_name_TH as string
+          session.user.organization_code = token.organization_code as string
+        }
       }
       return session
     },
-    async jwt({ token, account }) {
+    async jwt({ token, account, user }) {
       if (account) {
         token.provider = account.provider
+      }
+      // Store CMU organization data from user object if available
+      if (user && 'organization_name_EN' in user) {
+        token.organization_name_EN = (user as any).organization_name_EN
+        token.organization_name_TH = (user as any).organization_name_TH
+        token.organization_code = (user as any).organization_code
       }
       return token
     }
