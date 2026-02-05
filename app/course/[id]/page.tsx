@@ -303,15 +303,15 @@ export default function CoursePage() {
         </div>
       </div>
 
-      {/* Word Cloud and Charts Section - Side by Side */}
-      <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Word Cloud - Always visible, even when no reviews yet */}
-        <div className="lg:col-span-1">
+      {/* Word Cloud and Charts Section - Side by Side (word cloud hidden for now) */}
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Word Cloud - Hidden for now, to be implemented later */}
+        <div className="hidden lg:col-span-1">
           <WordCloud courseId={courseId} />
         </div>
         
-        {/* Charts - Takes full width on mobile, 2 columns on tablet+, 2 columns on desktop when word cloud present */}
-        <div className={`grid md:grid-cols-2 gap-4 sm:gap-6 ${reviews.length > 0 ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
+        {/* Charts - Takes full width on mobile, 2 columns on tablet+ */}
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-6 lg:col-span-2">
           <Card className="p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200">
             <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-purple-700 dark:text-purple-300">
               {content.ratingDistribution}
