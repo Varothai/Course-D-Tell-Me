@@ -40,6 +40,9 @@ import Papa from "papaparse"
 import { useSession } from "next-auth/react"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/components/ui/use-toast"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { TopReviewedCourses } from "@/components/top-reviewed-courses"
 
 interface ReviewWithUserInteraction extends Omit<Review, 'likes' | 'dislikes'> {
   likes: string[];
@@ -70,6 +73,7 @@ interface Comment {
 
 export default function HomeClient({ initialReviews = [] }: { initialReviews?: ReviewWithUserInteraction[] }) {
   const { content } = useLanguage()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const { addReview, clearReviews } = useReviews()
   const [selectedFaculty, setSelectedFaculty] = useState("")
@@ -526,18 +530,120 @@ export default function HomeClient({ initialReviews = [] }: { initialReviews?: R
         {/* Subtle grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)]" />
       </div>
-      
+     
       <div className="container mx-auto px-4 pt-4 pb-8 relative z-10">
-        {/* Welcome Section with Mascot */}
-        <div className="relative mb-8 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md rounded-2xl p-5 shadow-xl border border-white/20 dark:border-gray-700/30 transition-all duration-300 overflow-hidden hover:shadow-2xl">
-          {/* Decorative background elements */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-indigo-200/40 to-purple-200/40 dark:from-indigo-800/20 dark:to-purple-800/20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 left-0 w-36 h-36 bg-gradient-to-tr from-blue-200/40 to-cyan-200/40 dark:from-blue-800/20 dark:to-cyan-800/20 rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2" />
-
-          <div className="relative flex items-center justify-between">
+        {/* Welcome Section with Mascot - clickable to About page */}
+        <div
+          className="group relative mb-8 bg-gradient-to-br from-purple-100 via-purple-50/80 to-indigo-50/60 dark:from-purple-950/60 dark:via-purple-900/50 dark:to-indigo-950/40 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-lg border border-purple-200/50 dark:border-purple-800/30 transition-all duration-300 overflow-hidden hover:shadow-2xl hover:scale-[1.01] cursor-pointer"
+          onClick={() => router.push("/about")}
+          role="button"
+          aria-label="Learn more about Course D Tell Me"
+        >
+          {/* Floating Doodles - Pastel colors with increased saturation */}
+          {/* Star 1 */}
+          <div className="absolute top-8 right-20 text-pink-400/50 dark:text-pink-400/40 animate-pulse" style={{ animationDuration: '3s' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Star 2 */}
+          <div className="absolute top-16 right-32 text-yellow-400/50 dark:text-yellow-400/35 animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Star 3 - Top Left */}
+          <div className="absolute top-6 left-8 text-yellow-400/55 dark:text-yellow-400/40 animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '0.8s' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Star 4 - Top Center */}
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-purple-400/50 dark:text-purple-400/35 animate-pulse" style={{ animationDuration: '4.5s', animationDelay: '1.2s' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Star 5 - Right Side */}
+          <div className="absolute top-32 right-12 text-pink-400/50 dark:text-pink-400/35 animate-pulse" style={{ animationDuration: '3.8s', animationDelay: '0.5s' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Star 6 - Bottom Right */}
+          <div className="absolute bottom-16 right-16 text-yellow-400/55 dark:text-yellow-400/40 animate-pulse" style={{ animationDuration: '4.2s', animationDelay: '1.8s' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Star 7 - Bottom Center */}
+          <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 text-purple-400/45 dark:text-purple-400/30 animate-pulse" style={{ animationDuration: '3.2s', animationDelay: '2.2s' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Star 8 - Left Side Middle */}
+          <div className="absolute top-1/2 left-4 transform -translate-y-1/2 text-pink-400/50 dark:text-pink-400/35 animate-pulse" style={{ animationDuration: '4.8s', animationDelay: '0.3s' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Star 9 - Right Top Corner */}
+          <div className="absolute top-4 right-8 text-yellow-400/45 dark:text-yellow-400/30 animate-pulse" style={{ animationDuration: '3.6s', animationDelay: '1.5s' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Star 10 - Left Bottom */}
+          <div className="absolute bottom-10 left-10 text-purple-400/55 dark:text-purple-400/40 animate-pulse" style={{ animationDuration: '4.3s', animationDelay: '2s' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Star 11 - Center Right */}
+          <div className="absolute top-20 right-6 text-pink-400/45 dark:text-pink-400/30 animate-pulse" style={{ animationDuration: '3.4s', animationDelay: '0.7s' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Flower */}
+          <div className="absolute bottom-12 left-16 text-green-300/30 dark:text-green-400/20 animate-pulse" style={{ animationDuration: '5s', animationDelay: '0.5s' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="3" />
+              <circle cx="6" cy="12" r="2" />
+              <circle cx="18" cy="12" r="2" />
+              <circle cx="12" cy="6" r="2" />
+              <circle cx="12" cy="18" r="2" />
+            </svg>
+          </div>
+          {/* Spiral */}
+          <div className="absolute bottom-8 right-24 text-purple-300/25 dark:text-purple-400/15 animate-pulse" style={{ animationDuration: '6s', animationDelay: '2s' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 12c0-6.627-5.373-12-12-12v12h12zM12 12c0 6.627 5.373 12 12 12v-12h-12z" />
+            </svg>
+          </div>
+          {/* Small Star (original) */}
+          <div className="absolute top-24 left-24 text-yellow-400/45 dark:text-yellow-400/30 animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '1.5s' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+          {/* Flower 2 */}
+          <div className="absolute top-12 left-12 text-pink-300/25 dark:text-pink-400/15 animate-pulse" style={{ animationDuration: '4.5s', animationDelay: '2.5s' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="2.5" />
+              <circle cx="6" cy="12" r="1.5" />
+              <circle cx="18" cy="12" r="1.5" />
+              <circle cx="12" cy="6" r="1.5" />
+              <circle cx="12" cy="18" r="1.5" />
+            </svg>
+          </div>
+ 
+ 
+          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
             {/* Welcome Text and Mascot */}
-            <div className="flex items-center gap-5">
-              <div className="relative w-20 h-20 group flex-shrink-0">
+            <div className="flex items-center gap-5 flex-1">
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 group flex-shrink-0">
                 <div className="absolute -inset-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full opacity-60 group-hover:opacity-100 blur-lg transition-all duration-500 group-hover:scale-110" />
                 <div className="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full p-1.5 shadow-md border border-white/50 dark:border-gray-700/50">
                   <img
@@ -548,25 +654,36 @@ export default function HomeClient({ initialReviews = [] }: { initialReviews?: R
                 </div>
               </div>
               <div className="space-y-1">
-                <h1 className="text-3xl font-bold tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                   <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
                     {content.welcome}
                   </span>
                 </h1>
-                <h2 className="text-lg font-medium text-gray-600 dark:text-gray-300">
+                <h2 className="text-base sm:text-lg font-medium text-gray-700 dark:text-gray-300">
                   {content.courseTitle}
                 </h2>
-              </div>
             </div>
           </div>
+ 
+ 
+            {/* CTA Button */}
+            <Button
+              onClick={(e) => {
+                e.stopPropagation()
+                router.push("/about")
+              }}
+              className="rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 px-6 py-2.5 font-semibold shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 whitespace-nowrap"
+            >
+              {content.readMoreAboutUs}
+            </Button>
+          </div>
+        </div>
+ 
+ 
 
-          {/* Decorative sparkles - smaller and fewer */}
-          <div className="absolute top-3 right-16 animate-pulse">
-            <div className="w-2 h-2 bg-amber-400/60 dark:bg-amber-300/40 rounded-full shadow-sm" />
-          </div>
-          <div className="absolute top-4 right-24 animate-pulse" style={{ animationDelay: '1.5s', animationDuration: '2s' }}>
-            <div className="w-1.5 h-1.5 bg-amber-400/60 dark:bg-amber-300/40 rounded-full shadow-sm" />
-          </div>
+        {/* Top 10 Most Reviewed Courses - scrollable carousel */}
+        <div className="mb-8">
+          <TopReviewedCourses />
         </div>
 
         {/* Write Review Button with Auth Check */}

@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 export interface CourseStats {
   averageRating: number
   totalReviews: number
@@ -77,6 +79,7 @@ export interface LocaleContent {
   signOut: ReactNode
   welcome: string
   courseTitle: string
+  readMoreAboutUs: string
   search: string
   courseName: string
   faculty: string
