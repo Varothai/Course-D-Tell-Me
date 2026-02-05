@@ -13,6 +13,7 @@ import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { PenLine, ChartPie, Star, Users } from "lucide-react"
 import { Modal } from "@/components/modal"
+import { useAuth } from "@/contexts/auth-context"
 import dynamic from "next/dynamic"
 const ReviewForm = dynamic(
   () => import("@/components/review-form").then(mod => mod.ReviewForm),
@@ -41,6 +42,7 @@ export default function CoursePage() {
   const params = useParams<{ id: string }>()
   const courseId = params?.id || ''
   const { content } = useLanguage()
+  const { setShowAuthModal } = useAuth()
   const [reviews, setReviews] = useState<ReviewWithUserInteraction[]>([])
   const [ratingData, setRatingData] = useState<Record<number, number>>({})
   const [gradeData, setGradeData] = useState<Record<string, number>>({})
@@ -262,7 +264,13 @@ export default function CoursePage() {
             </div>
             {!isGoogleUser() && (
               <Button 
-                onClick={() => setIsWriteReviewModalOpen(true)}
+                onClick={() => {
+                  if (!session) {
+                    setShowAuthModal(true)
+                    return
+                  }
+                  setIsWriteReviewModalOpen(true)
+                }}
                 className="bg-white/20 hover:bg-white/30 text-white border-white/30 rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex-shrink-0"
               >
                 <PenLine className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
