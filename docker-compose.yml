@@ -1,0 +1,24 @@
+# Course Review Web App (Course D)- Faculty VM deployment
+# 2 containers: Next.js app + MongoDB (non-clustered)
+
+services:
+  app:
+    build: .
+    container_name: course-review-app
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: course-review-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
