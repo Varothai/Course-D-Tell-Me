@@ -1,26 +1,40 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
-export const connectMongoDB = async () => {
-  try {
-    if (!process.env.MONGODB_URI) {
-      throw new Error('Missing MONGODB_URI')
-    }
+const uri = process.env.MONGODB_URI;
+if (!uri) {
+  throw new Error("Please define the MONGODB_URI environment variable");
+}
 
-    // Check if already connected
-    if (mongoose.connections[0].readyState === 1) {
-      return
-    }
+/** Use cached connection in serverless environments */
+const globalForMongo = globalThis as unknown as {
+  mongoose: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null };
+};
 
+let cached = globalForMongo.mongoose;
+
+if (!cached) {
+  cached = globalForMongo.mongoose = { conn: null, promise: null };
+}
+
+export async function connectMongoDB() {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
     const opts = {
+      bufferCommands: false,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
-      maxPoolSize: 5, // Limit connections per serverless instance (M0 Atlas = 500 total)
-    }
+      maxPoolSize: 5,
+    };
 
-    await mongoose.connect(process.env.MONGODB_URI, opts)
-    console.log("Connected to MongoDB")
-  } catch (error) {
-    console.error("Error connecting to MongoDB:", error)
-    throw error
+    cached.promise = mongoose.connect(uri!, opts).then((m) => {
+      console.log("✅ MongoDB connected");
+      return m;
+    });
   }
-} 
+
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
