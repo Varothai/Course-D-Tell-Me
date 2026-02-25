@@ -14,6 +14,7 @@ export const connectMongoDB = async () => {
     const opts = {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      maxPoolSize: 5, // Limit connections per serverless instance (M0 Atlas = 500 total)
     }
 
     await mongoose.connect(process.env.MONGODB_URI, opts)
