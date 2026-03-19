@@ -96,6 +96,8 @@ export interface LocaleContent {
   courseNo: string
   plan: string
   grade: string
+  gradesReported?: string
+  gradesReportedTooltip?: string
   homeworkAmount: string
   contentInterest: string
   teachingQuality: string

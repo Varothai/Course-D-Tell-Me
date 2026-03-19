@@ -24,6 +24,8 @@ export const localeContent: Record<string, LocaleContent> = {
    courseNo: "Course ID",
    plan: "Study Plan",
    grade: "Grade",
+   gradesReported: "Reported grades",
+   gradesReportedTooltip: "Number of reviewers who reported their grade",
    homeworkAmount: "Homework Amount",
    contentInterest: "Content Interest",
    teachingQuality: "Teaching Quality",
@@ -153,7 +155,7 @@ export const localeContent: Record<string, LocaleContent> = {
          insights: {
            title: "Course Insights",
            description:
-             "View average ratings, grade distributions, and word clouds to quickly understand course trends.",
+             "View average ratings, grade distributions, and automated summary to quickly understand course trends.",
          },
        },
      },
@@ -205,6 +207,8 @@ export const localeContent: Record<string, LocaleContent> = {
    courseNo: "รหัสวิชา",
    plan: "แผนการเรียน",
    grade: "เกรด",
+   gradesReported: "รายงานเกรด",
+   gradesReportedTooltip: "จำนวนผู้รีวิวที่ระบุเกรดของตนเอง",
    homeworkAmount: "จำนวนงานการบ้าน",
    contentInterest: "ความน่าสนใจของเนื้อหา",
    teachingQuality: "การสอนของอาจารย์",
@@ -334,7 +338,7 @@ export const localeContent: Record<string, LocaleContent> = {
          insights: {
            title: "อินไซต์จากข้อมูลรีวิว",
            description:
-             "ดูคะแนนเฉลี่ย การกระจายของเกรด และ Word Cloud เพื่อเข้าใจภาพรวมของวิชาอย่างรวดเร็ว",
+             "ดูคะแนนเฉลี่ย การกระจายของเกรด และ สรุปภาพรวมของรีวิวโดยอัตโนมัติ เพื่อเข้าใจภาพรวมของวิชาอย่างรวดเร็ว",
          },
        },
      },

@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { RatingChart } from "@/components/rating-chart"
 import { GradeDistribution } from "@/components/grade-distribution"
 import { ReviewCard } from "@/components/review-card"
-import { WordCloud } from "@/components/word-cloud"
+import { CourseSummary } from "@/components/course-summary"
 import { useLanguage } from "@/providers/language-provider"
 import type { Review } from "@/types/review"
 import { useSession } from "next-auth/react"
@@ -301,43 +301,37 @@ export default function CoursePage() {
             </div>
             
             {Object.keys(gradeData).length > 0 && (
-              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 sm:px-4 sm:py-2">
+              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 sm:px-4 sm:py-2" title={content.gradesReportedTooltip || "Number of reviewers who reported their grade"}>
                 <ChartPie className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                <span className="hidden sm:inline">Grades:</span>
-                <span className="font-bold">{Object.keys(gradeData).length}</span>
+                <span className="hidden sm:inline">{content.gradesReported || 'Reported grades'}:</span>
+                <span className="font-bold">{Object.values(gradeData).reduce((a, b) => a + b, 0)}</span>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Word Cloud and Charts Section - Side by Side (word cloud hidden for now) */}
-      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Word Cloud - Hidden for now, to be implemented later */}
-        <div className="hidden lg:col-span-1">
-          <WordCloud courseId={courseId} />
+      {/* AI Summary and Charts Section - Equal blocks */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="min-h-[340px] w-full">
+          <CourseSummary courseId={courseId} />
         </div>
-        
-        {/* Charts - Takes full width on mobile, 2 columns on tablet+ */}
-        <div className="grid md:grid-cols-2 gap-4 sm:gap-6 lg:col-span-2">
-          <Card className="p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200">
-            <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-purple-700 dark:text-purple-300">
-              {content.ratingDistribution}
-            </h3>
-            <div className="h-[250px] sm:h-[280px]">
-              <RatingChart data={ratingData} />
-            </div>
-          </Card>
-          
-          <Card className="p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200">
-            <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-purple-700 dark:text-purple-300">
-              {content.gradeDistribution}
-            </h3>
-            <div className="h-[250px] sm:h-[280px]">
-              <GradeDistribution reviews={reviews as unknown as Review[]} />
-            </div>
-          </Card>
-        </div>
+        <Card className="p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200 min-h-[340px]">
+          <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-purple-700 dark:text-purple-300">
+            {content.ratingDistribution}
+          </h3>
+          <div className="h-[250px] sm:h-[280px]">
+            <RatingChart data={ratingData} />
+          </div>
+        </Card>
+        <Card className="p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200 min-h-[340px]">
+          <h3 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-purple-700 dark:text-purple-300">
+            {content.gradeDistribution}
+          </h3>
+          <div className="h-[250px] sm:h-[280px]">
+            <GradeDistribution reviews={reviews as unknown as Review[]} />
+          </div>
+        </Card>
       </div>
 
       {/* Reviews Section */}

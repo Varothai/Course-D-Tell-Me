@@ -30,10 +30,12 @@ export async function POST(request: Request) {
         summary: {
           overallRating: 0,
           totalReviews: 0,
-          keyPoints: [],
+          keyPoints: { en: [], th: [] },
           sentiment: 'neutral',
-          recommendations: [],
+          recommendations: { en: [], th: [] },
           commonThemes: [],
+          summaryText: { en: '', th: '' },
+          primaryLanguage: 'en' as const,
           metrics: {
             averageDifficulty: 0,
             averageWorkload: 0,
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
       })
     }
 
-    // Generate AI summary
+    // Generate AI summary (including prose in Thai + English)
     const summary = await generateSummary(reviews)
 
     return NextResponse.json({
@@ -59,17 +61,43 @@ export async function POST(request: Request) {
   }
 }
 
+// Thai theme names for summary
+const themeNamesTh: Record<string, string> = {
+  'Teaching Quality': 'คุณภาพการสอน',
+  'Difficulty': 'ความยาก',
+  'Workload': 'ภาระงาน',
+  'Engagement': 'ความน่าสนใจ',
+  'Assessment': 'การประเมิน'
+}
+
+// Detect if reviews are mostly Thai
+function detectPrimaryLanguage(reviews: any[]): 'th' | 'en' {
+  const thaiChars = /[\u0E00-\u0E7F]/
+  let thaiCount = 0
+  let enCount = 0
+  for (const r of reviews) {
+    const text = (r.review || '').trim()
+    if (!text) continue
+    const thaiRatio = (text.match(/[\u0E00-\u0E7F]/g) || []).length / text.length
+    if (thaiRatio > 0.3) thaiCount++
+    else enCount++
+  }
+  return thaiCount >= enCount ? 'th' : 'en'
+}
+
 async function generateSummary(reviews: any[]): Promise<{
   overallRating: number
   totalReviews: number
-  keyPoints: string[]
+  keyPoints: { en: string[]; th: string[] }
   sentiment: 'positive' | 'neutral' | 'negative'
-  recommendations: string[]
+  recommendations: { en: string[]; th: string[] }
   commonThemes: {
     theme: string
     frequency: number
     sentiment: 'positive' | 'neutral' | 'negative'
   }[]
+  summaryText: { en: string; th: string }
+  primaryLanguage: 'th' | 'en'
   metrics: {
     averageDifficulty: number
     averageWorkload: number
@@ -158,46 +186,55 @@ async function generateSummary(reviews: any[]): Promise<{
   if (overallRating >= 4) sentiment = 'positive'
   else if (overallRating <= 2) sentiment = 'negative'
 
-  // Generate key points
-  const keyPoints: string[] = []
-  
-  if (overallRating >= 4) {
-    keyPoints.push(`Highly rated course with an average rating of ${overallRating.toFixed(1)}/5`)
-  } else if (overallRating <= 2) {
-    keyPoints.push(`Lower rated course with an average rating of ${overallRating.toFixed(1)}/5`)
-  } else {
-    keyPoints.push(`Moderately rated course with an average rating of ${overallRating.toFixed(1)}/5`)
-  }
-
-  if (commonThemes.length > 0) {
-    const topTheme = commonThemes[0]
-    keyPoints.push(`${topTheme.theme} is frequently mentioned (${topTheme.frequency} reviews)`)
-  }
-
-  // Generate recommendations
-  const recommendations: string[] = []
-  
-  if (overallRating >= 4) {
-    recommendations.push("This course is highly recommended based on student reviews")
-  } else if (overallRating <= 2) {
-    recommendations.push("Consider reading detailed reviews before enrolling")
-  }
-
+  // Generate key points (bilingual) - only supplementary info not in prose
+  const keyPointsEn: string[] = []
+  const keyPointsTh: string[] = []
   if (commonThemes.some(t => t.theme === 'Workload' && t.sentiment === 'negative')) {
-    recommendations.push("Be prepared for a significant workload")
+    keyPointsEn.push("Notable workload reported")
+    keyPointsTh.push("มีภาระงานค่อนข้างมาก")
+  }
+  if (commonThemes.some(t => t.theme === 'Difficulty' && t.sentiment === 'negative')) {
+    keyPointsEn.push("Consider prerequisites before enrolling")
+    keyPointsTh.push("ควรตรวจสอบ prerequisite ก่อนลงทะเบียน")
+  }
+  if (commonThemes.some(t => t.theme === 'Teaching Quality' && t.sentiment === 'positive')) {
+    keyPointsEn.push("Teaching quality is well regarded")
+    keyPointsTh.push("คุณภาพการสอนได้รับการยอมรับ")
+  }
+  if (mostCommonGrade) {
+    keyPointsEn.push(`Most common grade: ${mostCommonGrade}`)
+    keyPointsTh.push(`เกรดที่พบมากที่สุด: ${mostCommonGrade}`)
   }
 
-  if (commonThemes.some(t => t.theme === 'Difficulty' && t.sentiment === 'negative')) {
-    recommendations.push("This course may be challenging - ensure you have the prerequisites")
+  // Recommendations (bilingual)
+  const recommendationsEn: string[] = []
+  const recommendationsTh: string[] = []
+  if (overallRating >= 4) {
+    recommendationsEn.push("Highly recommended based on reviews")
+    recommendationsTh.push("แนะนำอย่างยิ่งจากรีวิว")
+  } else if (overallRating <= 2) {
+    recommendationsEn.push("Read detailed reviews before enrolling")
+    recommendationsTh.push("อ่านรีวิวโดยละเอียดก่อนลงทะเบียน")
   }
+
+  // Build short prose summary (Thai + English)
+  const primaryLanguage = detectPrimaryLanguage(reviews)
+  const summaryText = buildSummaryProse({
+    overallRating,
+    totalReviews: reviews.length,
+    sentiment,
+    commonThemes
+  })
 
   return {
     overallRating: Math.round(overallRating * 10) / 10,
     totalReviews: reviews.length,
-    keyPoints,
+    keyPoints: { en: keyPointsEn, th: keyPointsTh },
     sentiment,
-    recommendations,
+    recommendations: { en: recommendationsEn, th: recommendationsTh },
     commonThemes,
+    summaryText,
+    primaryLanguage,
     metrics: {
       averageDifficulty: Math.round(averageDifficulty * 10) / 10,
       averageWorkload: Math.round(averageWorkload * 10) / 10,
@@ -205,4 +242,38 @@ async function generateSummary(reviews: any[]): Promise<{
       mostCommonGrade: mostCommonGrade
     }
   }
+}
+
+function buildSummaryProse(data: {
+  overallRating: number
+  totalReviews: number
+  sentiment: 'positive' | 'neutral' | 'negative'
+  commonThemes: Array<{ theme: string; frequency: number; sentiment: string }>
+}): { en: string; th: string } {
+  const { overallRating, totalReviews, sentiment, commonThemes } = data
+  const topThemes = commonThemes.slice(0, 2)
+
+  // Compact English: one sentence with rating + themes + takeaway
+  const themePart = topThemes.length > 0
+    ? `${topThemes.map(t => t.theme.toLowerCase()).join(' and ')} are often discussed. `
+    : ''
+  const takeaway = sentiment === 'positive'
+    ? 'Students generally recommend this course.'
+    : sentiment === 'negative'
+    ? 'Consider reading full reviews before enrolling.'
+    : 'Reviews are mixed—check individual feedback.'
+  const en = `Based on ${totalReviews} review${totalReviews !== 1 ? 's' : ''} (avg ${overallRating.toFixed(1)}/5): ${themePart}${takeaway}`
+
+  // Compact Thai
+  const themePartTh = topThemes.length > 0
+    ? `${topThemes.map(t => themeNamesTh[t.theme] || t.theme).join(' และ ')} ถูกพูดถึงบ่อย. `
+    : ''
+  const takeawayTh = sentiment === 'positive'
+    ? 'ผู้รีวิวส่วนใหญ่แนะนำรายวิชานี้.'
+    : sentiment === 'negative'
+    ? 'ควรอ่านรีวิวเต็มก่อนลงทะเบียน.'
+    : 'รีวิวหลากหลาย แนะนำให้อ่านแต่ละความคิดเห็น.'
+  const th = `จาก ${totalReviews} รีวิว (เฉลี่ย ${overallRating.toFixed(1)}/5): ${themePartTh}${takeawayTh}`
+
+  return { en, th }
 }
