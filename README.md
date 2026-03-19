@@ -1,6 +1,6 @@
 # Course D Tell Me 🎓
 
-Course D Tell Me is a web-based platform designed to help university students make informed course selection decisions through real peer experiences. The system provides a centralized space for course reviews, ratings, and discussions, allowing students to better understand courses before enrolling.
+Course D Tell Me is a web-based platform designed to help university students make informed course selection decisions through real peer experiences. The system provides a centralized space where students can write and share course reviews, ratings, and discussions, with content continuously growing as more students contribute their experiences.
 
 ---
 
